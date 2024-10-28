@@ -3,6 +3,7 @@ import Form from "./Form";
 interface Entity {
     readonly id: string;
     readonly entityTypeId: string;
+    readonly entityTypeName: string,
     readonly profile: Form;
     readonly visits: Array<Form>;
 }
