@@ -1,0 +1,223 @@
+import Entity from "../entity/Entity";
+import { sumBy } from "lodash";
+
+const groupBy = <T, K extends keyof any>(arr: T[], key: (i: T) => K) =>
+	arr.reduce((groups, item) => {
+		(groups[key(item)] ||= []).push(item);
+		return groups;
+	}, {} as Record<K, T[]>);
+
+const entityTypeByProgram = (program: string): string => {
+	let entityType = "";
+	if (program === "TSFP-MAM") {
+		entityType = "NG - TSFP Child";
+	} else {
+		if (program === "OTP-SAM") {
+			entityType = "NG - OTP Child";
+		}
+	}
+	return entityType;
+};
+
+const sumByAge = (
+	entities: Array<Entity>,
+	ageCheck: (age: number) => boolean
+): number => {
+	return sumBy(entities, (child) => {
+		let age =
+			child.profile.values?.age__int__ ??
+			child.profile.values?.age_months ??
+			child.profile.values?.age ??
+			child.profile.values?.age_years;
+		if (age != null && ageCheck(age)) {
+			return 1;
+		}
+		return 0;
+	});
+};
+
+const sumByAgeOnField = (
+	entities: Array<any>,
+	ageCheck: (age: number) => boolean,
+	status: string
+) => {
+	return sumBy(entities, (child) => {
+		let age =
+			child.profile.values?.age__int__ ??
+			child.profile.values?.age_months ??
+			child.profile.values?.age ??
+			child.profile.values?.age_years;
+		let visitSatus = child[status];
+		if (age != null && ageCheck(age)) {
+			return visitSatus ?? 0;
+		}
+		return 0;
+	});
+};
+
+const defaultEmptyDataByCategory = (
+	categories: Array<any>,
+	program: string
+) => {
+	return categories.map((category) => {
+		let defaultKeys: any = { between6And23: [0, 0], between24And59: [0, 0] };
+		let admittedByCriteria = admissionTypeWithCriteria(program)[category];
+
+		if (admittedByCriteria && admittedByCriteria !== undefined) {
+			let rows = admittedByCriteria?.map((criteria: string) => {
+				return {
+					key: criteria,
+					status: category,
+					...defaultKeys,
+				};
+			});
+			return rows;
+		} else {
+			return {
+				key: "",
+				status: category,
+				...defaultKeys,
+			};
+		}
+	});
+};
+
+const categoryDictionary = (key: string) => {
+	let keyValues: any = {
+		new_case: "New case",
+		referred_from_other_otp: "Admitted from OTP",
+		referred_from_other_tsfp: "Referred from other TSFP by",
+		returned_defaulter: "Returned Defaulters",
+		relapse: "Relapse",
+		referred_from_sc_itp: "Transfers in from SC/ITP",
+		referred_from_tsfp: "Referred from other TSFP by",
+		referred_from_otp: "Referred from from OTP by",
+		returned_referral: "Returned Referral",
+		readmission_as_non_respondent: "Readmission as non respondent",
+		voluntarywithdrawal: "Voluntary Withdrawal",
+		voluntary_withdrawal: "Voluntary Withdrawal",
+		dismissiedduetocheating: "Dismissals due to cheating",
+		dismissal: "Dismissals due to cheating",
+		death: "Death",
+		cured: "Cured",
+		transferred_out: "Transferred Out",
+		transferredout: "Transferred Out",
+		yes: "Yes",
+		no: "No",
+		have_diarrhoea: "Number of Diarrhoea",
+		have_diarrhoea__bool__: "Number of Diarrhoea",
+		passing_urine: "Problems urinating",
+		contact_tb: "Contact with TB person",
+		medical_appetite: "Poor appetite",
+		none: "None",
+		incomplete: "Incomplete",
+		complete: "Complete",
+		"motherdoesnot recall": "No idea",
+		palmar_pallor: "Palmar Pallor",
+		eyes_infection: "Eyes Infection",
+		signs_vad: "VAD Yes",
+		skin_infections: "Skin infections",
+		dermatosis_dermatosis: "Dermatosis",
+		disability_status: "Disability present",
+		positive: "Positive",
+		negative: "Negative",
+		exposed: "Exposed",
+		unknown: "Unknown",
+		tested_malaria: "Tested",
+		malaria_test: "Tested",
+		tested_malaria__bool__: "Tested",
+		treated_for_malaria: "Treated",
+		treated_for_malaria__bool__: "Treated",
+		result_appetite_test: "Failed appetite test",
+		amoxillin: "Amoxicillin given",
+		erythromycin: "Erythromycin given",
+		albendazole: "Albendazole given",
+		intractablevomit: "Intractable vomit",
+		convulsions: "Convulsions",
+		lethargynotalert: "Lethargy/not alert",
+		unconsciousness: "Unconsciousness",
+		hypoglycaemia: "Hypoglycaemia",
+		highfever: "High fever",
+		hypothermia: "Hypothermia",
+		severedehydration: "Severe dehydration",
+		lowerrespiratorytractinfection: "Lower respiratory tract infection",
+		severeanemia: "Severe anemia",
+		eyesignsofvitadeficiency: "Eye signs of vit A deficiency",
+		skinlesions: "Skin lesions",
+		respiratory_rate: "Poor respiratory rate",
+		rutf: "RUTF",
+		rusf: "RUSF",
+		csb: "CSB+",
+		csb1: "CSB+ and Veg oil",
+		csb2: "CSB++",
+		lndf: "Local Nutrient Dense Food (e.g. Tom Brown)",
+		RUSF: "RUSF",
+		"CSB++": "CSB++",
+		child_waste: "Wasted child",
+		child_wasted: "Wasted child",
+		returned_from_sc: "Transfer in from SC",
+		transfer_from_other_tsfp: "Transfer in from other TSFP",
+		transfer_to_sc_itp: "Referrals to SC/ITP",
+		transfer_to_healthcenter: "Transfers to Health Center",
+		whz: "Z-Score",
+		defaulter: "Defaulters",
+		non_respondent: "Non-respondent",
+		non_respondent__int__: "Non-respondent",
+		dismissedduetocheating: "Dismissals due to cheating",
+		transferred_to_otp: "Referrals to OTP",
+		transferred_to_tsfp: "Transfers to TSFP/Cured",
+		referred_for_medical_examination: "Medical transfers",
+		absentees: "Absentees",
+		defaulters: "Defaulters",
+		medical_investigation: "Medical investigation",
+		home_visits: "Home visits",
+		referral_to_sc_itp: "Referral to SC",
+		breastfeeding: "Lactating",
+		pregnant: "Pregnant",
+		returnee: "Returnee",
+		muac: "MUAC",
+		oedema: "Oedema",
+	};
+	return keyValues[key];
+};
+
+const childrenUnder5Criteria = ["muac", "oedema", "whz"];
+
+const admissionTypeWithCriteria = (program: string) => {
+	let criteriaType: any = [];
+	let entityType = entityTypeByProgram(program);
+
+	if (entityType === "NG - TSFP Child") {
+		criteriaType = ["muac", "whz"];
+	} else {
+		if (entityType === "NG - OTP Child") {
+			criteriaType = childrenUnder5Criteria;
+		}
+	}
+
+	let types: any = {
+		new_case: criteriaType,
+		referred_from_sc_itp: program.includes("OTP") ? criteriaType : undefined,
+		returned_referral: program.includes("TSFP") ? criteriaType : [],
+		returned_defaulter: criteriaType,
+		referred_from_other_otp: criteriaType,
+		referred_from_tsfp: program.includes("TSFP") ? criteriaType : undefined,
+		relapse: criteriaType,
+		readmission_as_non_respondent: criteriaType,
+		returned_from_sc: criteriaType,
+		transfer_from_other_tsfp: criteriaType,
+		referred_from_otp: criteriaType,
+		referred_from_other_tsfp: criteriaType,
+	};
+	return types;
+};
+
+export {
+	groupBy,
+	sumByAge,
+	categoryDictionary,
+	sumByAgeOnField,
+	defaultEmptyDataByCategory,
+	admissionTypeWithCriteria,
+	entityTypeByProgram,
+};
