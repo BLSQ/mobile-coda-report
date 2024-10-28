@@ -1,14 +1,10 @@
 import Entity from "./entity/Entity";
 import Form from "./entity/Form";
+import { dateFromJson } from "./utils/DateFormatter";
 import { chain } from "lodash";
-import FAKE_DATA from "./fake/FakeData";
-import FAKE_LOCAL_HF from "./fake/FakeLocalHealthFacility";
+//import FAKE_DATA from "./fake/FakeData";
+//import FAKE_LOCAL_HF from "./fake/FakeLocalHealthFacility";
 
-function dateFromJson(string: any): Date {
-    const date = new Date();
-    date.setTime(Date.parse(string));
-    return date;
-}
 
 function toForm(form: any): Form {
     return {
@@ -25,11 +21,11 @@ function toForm(form: any): Form {
 
 function LoadForms(): Array<Entity> {
     // @ts-ignore
-    const formsToLoad = JSON.parse(FAKE_DATA);
-    //const formsToLoad = JSON.parse(Android.loadForms());
+    //const formsToLoad = JSON.parse(FAKE_DATA);
+    const formsToLoad = JSON.parse(Android.loadForms());
     // @ts-ignore
-    const localHealthFacility = JSON.parse(FAKE_LOCAL_HF);
-    //const localHealthFacility = JSON.parse(Android.currentOrgUnit());
+    //const localHealthFacility = JSON.parse(FAKE_LOCAL_HF);
+    const localHealthFacility = JSON.parse(Android.currentOrgUnit());
 
     return chain(formsToLoad)
         .groupBy((it) => it["entityId"])
