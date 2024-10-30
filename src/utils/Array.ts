@@ -184,7 +184,8 @@ const categoryDictionary = (key: string) => {
 		returnee: "Returnee",
 		muac: "MUAC",
 		oedema: "Oedema",
-		disability_status__bool__: ""
+		other: "Other",
+
 	};
 	return keyValues[key];
 };
