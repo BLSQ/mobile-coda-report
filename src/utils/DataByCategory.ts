@@ -1,4 +1,6 @@
-import { sumByAge, sumByAgeOnField } from "./Array";
+import { sumByAge, sumByAgeOnField, groupBy } from "./Array";
+import { visitsDataByFieldList, visitsDataByValuesList } from "./Filter";
+import { filterDataOnProgram, followUpData } from "./DataFilter";
 
 const admissionTypesByCategory: any = {
     "Follow Ups": ["Total Follow up"],
@@ -17,6 +19,38 @@ const admissionTypesByCategory: any = {
         "transferred_out",
     ],
     Total: ["Total Admissions", "Follow Ups"],
+};
+
+const medicalStatusByCategory: any = {
+    "": [
+        "have_diarrhoea",
+        "passing_urine__bool__",
+        "tb_therapy",
+        "state_appetite",
+        "appetite_test_result",
+    ],
+    Immunization: [
+        "respiratory_rate",
+        "conjuctivae_palm",
+        "eyes",
+        "disability_status",
+    ],
+    HIV: ["positive", "negative", "nottested"],
+    Complications: [
+        "intractablevomit",
+        "convulsions",
+        "lethargynotalert",
+        "unconsciousness",
+        "hypoglycaemia",
+        "highfever",
+        "hypothermia",
+        "severedehydration",
+        "lowerrespiratorytractinfection",
+        "severeanemia",
+        "eyesignsofvitadeficiency",
+        "skinlesions",
+        "other",
+    ],
 };
 
 const formsByCategory: any = {
@@ -39,7 +73,7 @@ const formsByCategory: any = {
             "child_assistance_admission",
             "anthropometric_second_visit_tsfp",
             "Child Medical Follow Up Visit TSFP",
-            "Child Assistance Follow-Up Visit TSFP",
+            "child_assistance_2nd_visit_tsfp",
         ],
         "NG - OTP Child": [
             "anthropometric_admission_otp",
@@ -47,7 +81,7 @@ const formsByCategory: any = {
             "assistance_admission_otp",
             "anthropometric_second_visit_otp",
             "child_medical_admission",
-            "Child Assistance Follow Up Visit  OTP",
+            "assistance_admission_2nd_visit_otp",
         ],
     },
     nonRespondent: {
@@ -63,11 +97,23 @@ const formsByCategory: any = {
     rationGiven: {
         "NG - TSFP Child": [
             "child_assistance_admission",
-            "Child Assistance Follow-Up Visit TSFP",
+            "child_assistance_2nd_visit_tsfp",
         ],
         "NG - OTP Child": [
             "assistance_admission_otp",
-            "Child Assistance Follow Up Visit  OTP",
+            "assistance_admission_2nd_visit_otp",
+        ],
+    },
+    medicals: {
+        "NG - TSFP Child": [
+            "anthropometric_second_visit_tsfp",
+            "Child Medical Admission",
+            "Child Medical Follow Up TSFP",
+        ],
+        "NG - OTP Child": [
+            "anthropometric_second_visit_otp",
+            "Child Medical Admission",
+            "Child Medical Follow Up OTP",
         ],
     },
 };
@@ -77,12 +123,11 @@ const admissionByStatus = (
     status: string,
     key: string
 ) => {
-    console.info("ENTITITES ", entities);
-    let boys = entities.filter((entity: any) =>
+    let boys = entities?.filter((entity: any) =>
         ["Male", "M"].includes(entity.profile?.values?.gender)
     );
 
-    let girls = entities.filter((entity: any) =>
+    let girls = entities?.filter((entity: any) =>
         ["Female", "F"].includes(entity.profile?.values?.gender)
     );
 
@@ -143,9 +188,109 @@ const sumDataWithCommonKeys = (rows: any[], mainStatus: string) => {
     };
 };
 
+const childrenUnder5MedicalReport = (
+    entities: Array<any>,
+    program: string,
+    startDate: Date,
+    endDate: Date
+) => {
+    let initialData = filterDataOnProgram(entities, program, startDate, endDate);
+    let rows = followUpData(initialData, program, "medicals");
+    let defaultData = visitsDataByFieldList(rows, {
+        have_diarrhoea: "1",
+        passing_urine__bool__: "0",
+        tb_therapy: "1",
+        state_appetite: "poor",
+        appetite_test_result: "failure",
+    }).flat();
+    let groupDefaultDataByMedicalTypes = groupBy(
+        defaultData,
+        (visit: any) => visit?.criteria
+    );
+    let immunizations = visitsDataByFieldList(rows, {
+        conjuctivae_palm: "pale",
+        eyes: "sunken",
+        disability_status__bool__: "1",
+        respiratory_rate: "",
+    }).flat();
+    let groupImmunizationDataByMedicalTypes = groupBy(
+        immunizations.flat(),
+        (visit: any) => visit?.value
+    );
+    let hivStatus = visitsDataByValuesList(rows, "hiv_status", [
+        "positive",
+        "negative",
+        "nottested",
+    ]);
+
+    let groupHIVDataByMedicalTypes = groupBy(
+        hivStatus.flat(),
+        (visit: any) => visit?.value
+    );
+    let complications = visitsDataByValuesList(rows, "specify_signs", [
+        "intractablevomit",
+        "convulsions",
+        "lethargynotalert",
+        "unconsciousness",
+        "hypoglycaemia",
+        "highfever",
+        "hypothermia",
+        "severedehydration",
+        "lowerrespiratorytractinfection",
+        "severeanemia",
+        "eyesignsofvitadeficiency",
+        "skinlesions",
+        "other",
+    ]);
+    let groupComplicationsDataByMedicalTypes = groupBy(
+        complications.flat(),
+        (visit: any) => visit?.value
+    );
+    return {
+        "": groupDefaultDataByMedicalTypes,
+        Immunization: groupImmunizationDataByMedicalTypes,
+        HIV: groupHIVDataByMedicalTypes,
+        Complications: groupComplicationsDataByMedicalTypes,
+    };
+};
+
+const medicalReports = (
+    entities: Array<any>,
+    program: string,
+    startDate: Date,
+    endDate: Date
+) => {
+    let rows: any = childrenUnder5MedicalReport(
+        entities,
+        program,
+        startDate,
+        endDate
+    );
+    let medicalCategories = Object.keys(medicalStatusByCategory);
+    return medicalCategories.map((category) => {
+        let subCategories = medicalStatusByCategory[category];
+        let subCategoriesData = subCategories.map((subCategory: any) => {
+            let currentSubCategory = rows[category] && rows[category][subCategory];
+            let dataWithStatus = admissionByStatus(
+                currentSubCategory,
+                category,
+                subCategory
+            );
+            return dataWithStatus;
+        });
+        return {
+            category: category,
+            rows: subCategoriesData,
+        };
+    });
+};
+
 export {
     admissionTypesByCategory,
     formsByCategory,
     admissionByStatus,
     sumDataWithCommonKeys,
+    childrenUnder5MedicalReport,
+    medicalStatusByCategory,
+    medicalReports,
 };

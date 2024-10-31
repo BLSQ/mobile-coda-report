@@ -56,21 +56,76 @@ const visitsDataByStatus = (
 ) => {
     return entities
         .map((row) => {
+            let age =
+                row.profile?.values?.age_months ??
+                row.profile?.values?.age ??
+                row.profile?.values?.age__int__;
+
             let visits = row.visits.filter((visit: any) => {
-                return (
-                    visit?.values &&
-                    visit?.values[fieldName] &&
-                    visit?.values[fieldName] === value
-                );
+                let response = visit?.values[fieldName] === value;
+                switch (fieldName) {
+                    case "disability_status__bool__":
+                        value = "yes";
+                        fieldName = "disability_status";
+                        response = true;
+                        break;
+
+                    case "respiratory_rate":
+                        let rate = visit?.values && visit?.values[fieldName];
+                        if (
+                            (age <= 12 && !["<30", "30", "3039", "4049"].includes(rate)) ||
+                            (age > 12 && !["<30", "30", "3039"].includes(rate))
+                        ) {
+                            value = "poor";
+                            response = true;
+                        }
+                        break;
+                    case "specify_signs":
+                        response =
+                            visit?.values && visit?.values[fieldName]?.includes(value);
+                        break;
+                    default:
+                        response = visit?.values[fieldName] === value;
+                        break;
+                }
+                return response;
             });
             return {
                 ...row,
                 visits: visits,
                 criteria: fieldName,
+                value: value,
                 visitsNumber: visits.length,
             };
         })
         .filter((row) => row.visitsNumber > 0);
+};
+
+const visitsDataByFieldList = (entities: Array<any>, fieldsWithValues: any) => {
+    return Object.keys(fieldsWithValues).map((fieldName: string) => {
+        let value = fieldsWithValues[fieldName];
+        const entitiesWithVisitByStatus = visitsDataByStatus(
+            entities,
+            fieldName,
+            value
+        );
+        return entitiesWithVisitByStatus;
+    });
+};
+
+const visitsDataByValuesList = (
+    entities: Array<any>,
+    fieldName: any,
+    fieldValues: Array<string>
+) => {
+    return fieldValues.map((value) => {
+        const entitiesWithVisitByStatus = visitsDataByStatus(
+            entities,
+            fieldName,
+            value
+        );
+        return entitiesWithVisitByStatus;
+    });
 };
 
 export {
@@ -78,4 +133,6 @@ export {
     filterStepsInPeriod,
     visitsDataByStatus,
     entitiesByStatus,
+    visitsDataByFieldList,
+    visitsDataByValuesList,
 };

@@ -55,32 +55,13 @@ const categoryWithData = (
     program: string,
     category: string
 ) => {
-    let categories: any[] = Object.keys(admissionTypesByCategory);
-    console.info("CATEGORIES ", categories);
-
-    let typeWithCriteria = admissionTypeWithCriteria(program);
-    console.info("TYPE WITH CRITERIA ", typeWithCriteria);
-
-    console.info("ENTITIES ", entities);
-
-    let subCategories = admissionTypesByCategory;
-    console.info(
-        "SUB CATEGORIES ",
-        subCategories,
-        category,
-        subCategories[category]
-    );
     let mainData: any = [];
     let admissionTypes = admissionTypesByCategory[category];
 
     switch (category) {
         case "Follow Ups":
             let data = followUpData(entities, program, "followUps");
-
-            console.info("FOLLOW UP DATA ...:", data);
-
             let followUps = admissionByStatus(data, category, "Total Follow up");
-            console.info("ALL FOLLOWS UP DATA ...:", followUps);
             mainData[category] = [followUps];
             break;
 
@@ -106,15 +87,11 @@ const categoryWithData = (
 
         case "Discharges":
             const defaulters = followUpData(entities, program, "defaulters");
-            console.info("DEFAULTERS ...:", defaulters);
-
             const deathCases = visitsDataByStatus(
                 entities,
                 "reason_not_continue",
                 "death"
             );
-            console.info("DEATHS ...:", deathCases);
-
             const non_respondent = visitsDataByStatus(
                 entities,
                 "non_respondent__int__",
@@ -126,8 +103,6 @@ const categoryWithData = (
                 admissionByStatus(deathCases, category, "death"),
                 admissionByStatus(non_respondent, category, "non_respondent__int__"),
             ];
-            console.info("ADMISSION TYPES ...:", admissionTypes);
-
             break;
 
         case "Other Exits":
@@ -164,17 +139,10 @@ const categoryWithData = (
                 category,
                 "Follow Ups"
             );
-            console.info("TOTAL FOLLOW UPS DATA ...:", totalFolloWups, allFolloWup);
-
             let totalAdmissions = admissionByStatus(
                 allAdmissions,
                 category,
                 "Total Admissions"
-            );
-            console.info(
-                "TOTAL ADMISSIONS DATA ...:",
-                totalAdmissions,
-                allAdmissions
             );
             mainData[category] = [totalFolloWups, totalAdmissions];
 
@@ -197,25 +165,14 @@ const subMainCategoryData = (
             caseTypes,
             admissionTypeValue
         ).filter((entity) => entity?.visits.length > 0);
-        console.info(
-            "ADMISSION BY TYPE AND CRITERIAS ...:",
-            admissionByTypeAndCriteria
-        );
         let criterias = admissionTypeByCriteriaMapper(admissionTypeValue, program);
-        console.info("CRITERIAS ...:", criterias);
+
         return criterias.map((criteria: any) => {
-            console.info(
-                "CCDQQ ..... ",
-                criteria,
-                admissionTypeValue,
-                admissionByTypeAndCriteria
-            );
             let filteredEntities = entitiesByStatus(
                 admissionByTypeAndCriteria,
                 "subCategory",
                 criteria?.admissionTypeWithCriteria
             );
-            console.info("FILTERED ENTITIES ..... ", filteredEntities);
             let admissionsByStatus = admissionByStatus(
                 filteredEntities,
                 category,
@@ -226,7 +183,6 @@ const subMainCategoryData = (
                 admissionType: admissionTypeValue,
                 admissionCriteria: criteria?.criteria,
             };
-            //return admissionByStatus(filteredEntities, category, criteria);
         });
     });
     let data = records.flat();
@@ -238,23 +194,13 @@ const admissionTypeByCriteriaMapper = (
     program: string
 ) => {
     let criterias = admissionTypeWithCriteria(program)[admissionType];
-    let admissionTypeByCriteria = criterias?.map(
-        (criteria: string) => {
-            return {
-                admissionTypeWithCriteria: `${admissionType} ${criteria}`,
-                admissionType,
-                criteria,
-            };
-        }
-        //`${admissionType} ${criteria}`
-        /*{
-                return {
-                    key: `${admissionType} ${criteria}`,
-                    admissionType,
-                    criteria
-                }
-            }*/
-    );
+    let admissionTypeByCriteria = criterias?.map((criteria: string) => {
+        return {
+            admissionTypeWithCriteria: `${admissionType} ${criteria}`,
+            admissionType,
+            criteria,
+        };
+    });
     return admissionTypeByCriteria;
 };
 
@@ -268,7 +214,6 @@ const dataCategory = (
     let categories: any[] = Object.keys(admissionTypesByCategory);
     let rows = categories.map((category: any) => {
         let data = categoryWithData(initialData, program, category);
-        console.info("DDDD ...:", data);
         let total = null;
         if (data) {
             total = sumDataWithCommonKeys(data, "Total");
@@ -289,8 +234,6 @@ const followUpData = (
 ) => {
     const entityType = entityTypeByProgram(program);
     let forms = formsByCategory[status][entityType];
-    console.info("GOT FORMS ...:", forms, program, entityType, entities);
-
     let beneficiariesAdmissions = entities
         .filter((entity) => entity?.entityTypeName === entityType)
         .map((entity) => {
@@ -317,14 +260,6 @@ const assistanceGiven = (
     let initialData = filterDataOnProgram(entities, program, startDate, endDate);
     const entityType = entityTypeByProgram(program);
     let forms = formsByCategory[status][entityType];
-    console.info(
-        "INITIAL FORMS ...:",
-        forms,
-        program,
-        entityType,
-        entities,
-        initialData
-    );
     let startPeriod = timeStampToDate(startDate.toISOString());
     let endPeriod = timeStampToDate(endDate.toISOString());
 
@@ -347,7 +282,6 @@ const assistanceGiven = (
             visits,
             (visit: any) => visit.values?.ration_type
         );
-        console.info("GROUP BY RATION ...:", groupByRationType);
         let rationType = Object.keys(groupByRationType);
         return {
             ...entity,
@@ -355,9 +289,6 @@ const assistanceGiven = (
             visits: visits,
         };
     });
-    //let assistances =
-    console.info("ASSISTANCE GROUP BY RATION ...:", assistanceData);
-
     return assistanceData;
 };
 
