@@ -36,6 +36,14 @@ const sumByAge = (
 	});
 };
 
+const sumByFieldValues = (rows: any[], keyName: string) => {
+	return rows.reduce(
+		(value: any, visit: any) =>
+			value + parseFloat(visit?.values[keyName] ?? 0),
+		0
+	);
+}
+
 const sumByAgeOnField = (
 	entities: Array<any>,
 	ageCheck: (age: number) => boolean,
@@ -229,4 +237,5 @@ export {
 	defaultEmptyDataByCategory,
 	admissionTypeWithCriteria,
 	entityTypeByProgram,
+	sumByFieldValues
 };
