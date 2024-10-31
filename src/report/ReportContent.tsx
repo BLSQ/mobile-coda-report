@@ -23,10 +23,9 @@ const td = {
     border: "1pt solid black",
 } as const;
 
-const ReportContent = (category: any, rows: Array<any>): any => {
+const ReportContent = (category: any): any => {
     let between6And23 = 0;
     let between24And59 = 0;
-
     return (
         <div style={root}>
             <br />
@@ -136,7 +135,7 @@ const ReportContent = (category: any, rows: Array<any>): any => {
                             </tr>
                         );
                     })}
-                    {
+                    {category?.showTotal && (
                         <tr style={table}>
                             <td style={th}>{category?.total?.status}</td>
                             <td colSpan={2} className="align" style={td}>
@@ -149,7 +148,7 @@ const ReportContent = (category: any, rows: Array<any>): any => {
                                 {between6And23 + between24And59}
                             </td>
                         </tr>
-                    }
+                    )}
                 </tbody>
             </table>
         </div>

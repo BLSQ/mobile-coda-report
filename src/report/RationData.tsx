@@ -1,4 +1,4 @@
-import { categoryDictionary } from "../utils/Array";
+import { categoryDictionary, sumByFieldValues } from "../utils/Array";
 import { groupBy } from "lodash";
 
 const table = {
@@ -11,38 +11,27 @@ const table = {
 } as const;
 
 const RationData = (entities: any): any => {
-    let rationTypes = ["rusf", "rutf", "csb", "csb1", "csb2"];
+    let rationTypes = ["rusf", "rutf", "csb", "csb1", "csb2", "lndf"];
     let groupRationByType = groupBy({ ...entities }, "ration");
 
     const rations = rationTypes.map((ration) => {
         let quantity = 0;
         let rows = groupRationByType[ration] ?? [];
-        let allRows = rows.reduce(
+        let assistanceVisits = rows.reduce(
             (value: any, row: any) => value.concat(row.visits),
             []
         );
-
+        let fieldName = "";
         if (["csb", "csb1", "csb2"]?.includes(ration)) {
-            quantity = allRows.reduce(
-                (value: any, visit: any) =>
-                    value + parseFloat(visit?.values?._csb_packets),
-                0
-            );
+            fieldName = "_csb_packets";
         } else {
             if (ration === "lndf") {
-                quantity = allRows.reduce(
-                    (value: any, visit: any) =>
-                        value + parseFloat(visit?.values?._lndf_kgs),
-                    0
-                );
+                fieldName = "_lndf_kgs";
             } else {
-                quantity = allRows.reduce(
-                    (value: any, visit: any) =>
-                        value + parseFloat(visit?.values?._total_number_of_sachets),
-                    0
-                );
+                fieldName = "_total_number_of_sachets";
             }
         }
+        quantity = sumByFieldValues(assistanceVisits, fieldName);
         return {
             type: categoryDictionary(ration),
             quantity: quantity,
@@ -70,5 +59,4 @@ const RationData = (entities: any): any => {
         </table>
     );
 };
-
 export { RationData };

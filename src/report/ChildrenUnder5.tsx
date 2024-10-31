@@ -35,7 +35,7 @@ function ChildrenUnder5(
         <div>
           <div>
             {categories.map((category: any) => {
-              return <ReportContent {...category} />;
+              return <ReportContent showTotal {...category} />;
             })}
           </div>
           <br />
