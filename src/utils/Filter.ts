@@ -32,11 +32,24 @@ const filterStepsInPeriod = (
             step?.values?.next_visit_date__date__ ||
             step?.values?.new_next_visit__date__
         );
+        let nextVisitDays =
+            step?.values?.next_visit_days ??
+            step?.values?.number_of_days__int__ ??
+            step?.values?.tsfp_next_visit ??
+            step?.values?.TSFP_next_visit ??
+            step?.values?.otp_next_visit ??
+            step?.values?.OTP_next_visit;
+        const secondNextVisit = timeStampToDate(
+            new Date(nextVisitDate).setDate(
+                new Date(nextVisitDate).getDate() + nextVisitDays
+            )
+        );
 
         return (
             (startPeriod <= createdAt && endPeriod >= createdAt) ||
             (startPeriod <= visitDate && endPeriod >= visitDate) ||
-            (startPeriod <= nextVisitDate && endPeriod >= nextVisitDate)
+            (startPeriod <= nextVisitDate && endPeriod >= nextVisitDate) ||
+            (startPeriod <= secondNextVisit && endPeriod >= secondNextVisit)
         );
     });
 };

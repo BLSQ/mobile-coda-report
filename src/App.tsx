@@ -7,6 +7,7 @@ import "react-date-picker/dist/DatePicker.css";
 import DatePicker from "react-date-picker";
 import { ChildrenUnder5 } from "./report/ChildrenUnder5";
 import { MedicalChildrenUnder5Report } from "./report/MedicalChildrenUnder5Report";
+import { ERegistry } from "./report/ERegistry";
 import { removeTime } from "./utils/DateFormatter";
 
 const box = {
@@ -447,7 +448,100 @@ function App() {
               startDate,
               endDate,
               program
-            )))}
+            ))
+
+          || (["TSFP_eRegister", "OTP_eRegister"].includes(reportType) &&
+            ERegistry(program,
+              entities.filter((entity) => {
+                let startDateIsoString = removeTime(
+                  new Date(startDate.toISOString())
+                );
+                let endDateIsoString = removeTime(
+                  new Date(endDate.toISOString())
+                );
+
+                const visits = entity.visits.filter((visit) => {
+                  let nextVisitDays =
+                    visit?.values?.next_visit ??
+                    visit?.values?.next_visit_days ??
+                    visit?.values?.number_of_days__int__ ??
+                    visit?.values?.tsfp_next_visit ??
+                    visit?.values?.TSFP_next_visit ??
+                    visit?.values?.otp_next_visit ??
+                    visit?.values?.OTP_next_visit;
+
+                  const nextVisit =
+                    visit?.values?._display_next_visit ??
+                    visit?.values?.new_next_visit__date__;
+                  const secondNextVisit = new Date(nextVisit).setDate(
+                    new Date(nextVisit).getDate() + nextVisitDays
+                  );
+
+                  return (
+                    (startDateIsoString <= removeTime(visit.createdAt) &&
+                      endDateIsoString >= removeTime(visit.createdAt)) ||
+                    (startDateIsoString <=
+                      removeTime(new Date(visit?.values?.visit_date)) &&
+                      endDateIsoString >=
+                      removeTime(new Date(visit?.values?.visit_date))) ||
+                    (startDateIsoString <=
+                      removeTime(
+                        new Date(visit?.values?.new_next_visit__date__)
+                      ) &&
+                      endDateIsoString >=
+                      removeTime(
+                        new Date(visit?.values?.new_next_visit__date__)
+                      )) ||
+                    (startDateIsoString <= removeTime(new Date(nextVisit)) &&
+                      endDateIsoString >= removeTime(new Date(nextVisit))) ||
+                    (startDateIsoString <=
+                      removeTime(new Date(secondNextVisit)) &&
+                      endDateIsoString >= removeTime(new Date(secondNextVisit)))
+                  );
+                });
+                return some(visits, (visit) => {
+                  let nextVisitDays =
+                    visit?.values?.next_visit_days ??
+                    visit?.values?.number_of_days__int__ ??
+                    visit?.values?.tsfp_next_visit ??
+                    visit?.values?.TSFP_next_visit ??
+                    visit?.values?.otp_next_visit ??
+                    visit?.values?.OTP_next_visit;
+                  const nextVisit =
+                    visit?.values?._display_next_visit ??
+                    visit?.values?.new_next_visit__date__;
+                  const secondNextVisit = new Date(nextVisit).setDate(
+                    new Date(nextVisit).getDate() + nextVisitDays
+                  );
+
+                  return (
+                    (startDateIsoString <= removeTime(visit.createdAt) &&
+                      endDateIsoString >= removeTime(visit.createdAt)) ||
+                    (startDateIsoString <=
+                      removeTime(new Date(visit?.values?.visit_date)) &&
+                      endDateIsoString >=
+                      removeTime(new Date(visit?.values?.visit_date))) ||
+                    (startDateIsoString <=
+                      removeTime(
+                        new Date(visit?.values?.new_next_visit__date__)
+                      ) &&
+                      endDateIsoString >=
+                      removeTime(
+                        new Date(visit?.values?.new_next_visit__date__)
+                      )) ||
+                    (startDateIsoString <= removeTime(new Date(nextVisit)) &&
+                      endDateIsoString >= removeTime(new Date(nextVisit))) ||
+                    (startDateIsoString <=
+                      removeTime(new Date(secondNextVisit)) &&
+                      endDateIsoString >= removeTime(new Date(secondNextVisit)))
+                  );
+                });
+              }),
+              startDate,
+              endDate
+            )
+          )
+        )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+/* eslint-disable array-callback-return */
 import Entity from "../entity/Entity";
 import {
     stepsLinkedToProgram,
@@ -5,8 +6,8 @@ import {
     entitiesByStatus,
     visitsDataByStatus,
 } from "./Filter";
-import { timeStampToDate } from "./DateFormatter";
-import { orderBy } from "lodash";
+import { timeStampToDate, removeTime } from "./DateFormatter";
+import { orderBy, uniqBy } from "lodash";
 import {
     formsByCategory,
     admissionTypesByCategory,
@@ -53,7 +54,9 @@ const filterDataOnProgram = (
 const categoryWithData = (
     entities: Array<Entity>,
     program: string,
-    category: string
+    category: string,
+    startDate: Date,
+    endDate: Date
 ) => {
     let mainData: any = [];
     let admissionTypes = admissionTypesByCategory[category];
@@ -87,6 +90,12 @@ const categoryWithData = (
 
         case "Discharges":
             const defaulters = followUpData(entities, program, "defaulters");
+            let defaulted = defaulterCases(
+                defaulters,
+                startDate,
+                endDate,
+                program
+            ).filter((entity: any) => entity?.counter > 1);
             const deathCases = visitsDataByStatus(
                 entities,
                 "reason_not_continue",
@@ -99,7 +108,7 @@ const categoryWithData = (
             );
 
             mainData[category] = [
-                admissionByStatus(defaulters, category, "defaulter"),
+                admissionByStatus(defaulted, category, "defaulter"),
                 admissionByStatus(deathCases, category, "death"),
                 admissionByStatus(non_respondent, category, "non_respondent__int__"),
             ];
@@ -213,7 +222,13 @@ const dataCategory = (
     let initialData = filterDataOnProgram(entities, program, startDate, endDate);
     let categories: any[] = Object.keys(admissionTypesByCategory);
     let rows = categories.map((category: any) => {
-        let data = categoryWithData(initialData, program, category);
+        let data = categoryWithData(
+            initialData,
+            program,
+            category,
+            startDate,
+            endDate
+        );
         let total = null;
         if (data) {
             total = sumDataWithCommonKeys(data, "Total");
@@ -245,6 +260,7 @@ const followUpData = (
                 ...entity,
                 visits: visits,
                 visitsNumber: visitsCounter,
+                status: status,
             };
         })
         .filter((entity) => entity.visitsNumber > 0);
@@ -324,10 +340,154 @@ const filterDataOnAdmissionCriteria = (
     return admissionByStatus(entities, status, key);
 };
 
+const visitsLinkedToForms = (
+    startDate: Date,
+    endDate: Date,
+    visits: Array<any>,
+    formIds: any[],
+    program: string
+) => {
+    let startPeriod = timeStampToDate(startDate.toISOString());
+    let endPeriod = timeStampToDate(endDate.toISOString());
+
+    return visits.filter((visit: any) => {
+        let createdAt = timeStampToDate(visit?.createdAt);
+        return (
+            (visit?.values?.program === program ||
+                visit?.values?._programme === program ||
+                visit?.values?.programme === program ||
+                visit?.values?.previous_discharge_program === program) &&
+            startPeriod <= createdAt &&
+            endPeriod >= createdAt &&
+            formIds.includes(visit?.formFormId)
+        );
+    });
+};
+
+const defaulterCases = (
+    entities: Array<Entity>,
+    startDate: Date,
+    endDate: Date,
+    program: string
+) => {
+    let startPeriod = timeStampToDate(startDate.toISOString());
+    let endPeriod = timeStampToDate(endDate.toISOString());
+    const anthropometricForms = [
+        "Anthropometric visit child",
+        "anthropometric_admission_otp",
+        "anthropometric_second_visit_tsfp",
+        "anthropometric_second_visit_otp",
+    ];
+    const assistanceForms = [
+        "child_assistance_admission",
+        "assistance_admission_otp",
+        "child_assistance_2nd_visit_tsfp",
+        "assistance_admission_2nd_visit_otp",
+    ];
+    let rows = entities.map((entity) => {
+        let lastVisitDate = null;
+        const assistanceVisits = orderBy(
+            entity.visits,
+            ["createdAt"],
+            ["asc"]
+        ).filter((visit: any) => assistanceForms.includes(visit?.formFormId));
+        //Keep only 1 assistance by date
+        const assistanceVisitsByDate = uniqBy(assistanceVisits, [
+            "formFormId",
+            "createdAt",
+        ]);
+        const anthropometricVisits = orderBy(
+            entity.visits,
+            ["createdAt"],
+            ["asc"]
+        ).filter((visit: any) => {
+            anthropometricForms.includes(visit?.formFormId);
+        });
+        let counter = 0;
+        assistanceVisitsByDate.forEach((visit: any) => {
+            let nextVisitDays =
+                visit?.values?.next_visit ?? visit?.values?.number_of_days__int__;
+            const nextVisit =
+                visit?.values?.new_next_visit__date__ ??
+                visit?.values?._display_next_visit;
+            const nextVisitDate = timeStampToDate(nextVisit);
+            const secondNextVisit = new Date(nextVisitDate).setDate(
+                new Date(nextVisitDate).getDate() + nextVisitDays
+            );
+            const secondNextVisitDate = timeStampToDate(secondNextVisit);
+            const currentDate = timeStampToDate(new Date());
+            const currentTime = new Date().getHours();
+            //check if the beneficiary missed 1 next visit!
+            if (
+                nextVisitDate !== "" &&
+                startPeriod <= nextVisitDate &&
+                endPeriod >= nextVisitDate
+            ) {
+                let carriedOutAnthropometricVisits = anthropometricVisits.filter(
+                    (visit: any) => {
+                        let createdAt = timeStampToDate(
+                            visit?.values?.visit_date ?? visit?.values?._visit_date
+                        );
+                        return createdAt === nextVisitDate;
+                    }
+                );
+                if (
+                    (currentDate > nextVisitDate || currentTime >= 17) &&
+                    carriedOutAnthropometricVisits.length === 0
+                ) {
+                    counter++;
+                }
+            }
+            //check if the beneficiary missed 2 consecutives visites! with the last visit at 17PM
+            const daysDiffInTime =
+                new Date().getTime() - new Date(nextVisitDate).getTime();
+            const daysDiff = Math.round(daysDiffInTime / (1000 * 3600 * 24));
+            const sameDiffTime =
+                removeTime(new Date()).getTime() -
+                removeTime(new Date(secondNextVisitDate)).getTime();
+            const sameDayDiff = Math.round(sameDiffTime / (1000 * 3600 * 24));
+            if (
+                secondNextVisitDate !== "" &&
+                startPeriod <= secondNextVisitDate &&
+                endPeriod >= secondNextVisitDate
+            ) {
+                lastVisitDate = secondNextVisitDate;
+                //Check if the beneficiary missed the visit after 17PM
+                if ((sameDayDiff === 0 && currentTime >= 17) || sameDayDiff > 0) {
+                    if (program.includes("OTP")) {
+                        if (daysDiff > 7) {
+                            counter = counter + 2;
+                        }
+                    } else {
+                        if (program.includes("TSFP")) {
+                            if (daysDiff > 14) {
+                                counter = counter + 2;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        return {
+            ...entity,
+            assistances: assistanceVisitsByDate,
+            anthropometrics: anthropometricVisits,
+            counter: counter,
+            dischargeDate: lastVisitDate,
+            exitDate: lastVisitDate,
+            exitWeight:
+                assistanceVisitsByDate[assistanceVisitsByDate.length - 1]?.values
+                    ?.previous_weight_kgs__decimal__,
+        };
+    });
+    return rows.filter((row) => row.counter > 0);
+};
 export {
     filterDataOnProgram,
     followUpData,
     dataCategory,
     filterDataOnAdmissionCriteria,
     assistanceGiven,
+    visitsLinkedToForms,
+    defaulterCases,
 };

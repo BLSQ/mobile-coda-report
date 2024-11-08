@@ -1,6 +1,16 @@
 import { sumByAge, sumByAgeOnField, groupBy } from "./Array";
-import { visitsDataByFieldList, visitsDataByValuesList } from "./Filter";
-import { filterDataOnProgram, followUpData } from "./DataFilter";
+import {
+    visitsDataByFieldList,
+    visitsDataByValuesList,
+    visitsDataByStatus,
+} from "./Filter";
+import {
+    filterDataOnProgram,
+    followUpData,
+    visitsLinkedToForms,
+    defaulterCases,
+} from "./DataFilter";
+import { timeStampToDateString, removeTime } from "./DateFormatter";
 
 const admissionTypesByCategory: any = {
     "Follow Ups": ["Total Follow up"],
@@ -69,18 +79,14 @@ const formsByCategory: any = {
     defaulters: {
         "NG - TSFP Child": [
             "Anthropometric visit child",
-            "Child Medical Admission",
             "child_assistance_admission",
             "anthropometric_second_visit_tsfp",
-            "Child Medical Follow Up Visit TSFP",
             "child_assistance_2nd_visit_tsfp",
         ],
         "NG - OTP Child": [
             "anthropometric_admission_otp",
-            "Child Medical Admission",
             "assistance_admission_otp",
             "anthropometric_second_visit_otp",
-            "child_medical_admission",
             "assistance_admission_2nd_visit_otp",
         ],
     },
@@ -196,6 +202,7 @@ const childrenUnder5MedicalReport = (
 ) => {
     let initialData = filterDataOnProgram(entities, program, startDate, endDate);
     let rows = followUpData(initialData, program, "medicals");
+
     let defaultData = visitsDataByFieldList(rows, {
         have_diarrhoea: "1",
         passing_urine__bool__: "0",
@@ -285,6 +292,142 @@ const medicalReports = (
     });
 };
 
+const eRegister = (
+    entities: Array<any>,
+    program: string,
+    startDate: Date,
+    endDate: Date
+) => {
+    let initialData = filterDataOnProgram(entities, program, startDate, endDate);
+    let defaulters = followUpData(entities, program, "defaulters");
+    let entitiesToDefaults = defaulterCases(
+        defaulters,
+        startDate,
+        endDate,
+        program
+    );
+    const deaths = visitsDataByStatus(entities, "reason_not_continue", "death");
+    console.info("DEATH ...:", deaths);
+    const nonRespondents = visitsDataByStatus(
+        entities,
+        "non_respondent__int__",
+        1
+    );
+
+    const cured = visitsDataByStatus(entities, "cured__bool__", true);
+
+    const anthropometricForms = [
+        "Anthropometric visit child",
+        "anthropometric_admission_otp",
+        "anthropometric_second_visit_tsfp",
+        "anthropometric_second_visit_otp",
+    ];
+
+    let beneficiaries = initialData.map((entity) => {
+        let discharges: any = {
+            cured: cured.find(
+                (current_entity: any) => current_entity.id === entity.id
+            ),
+            non_respondent: nonRespondents.find(
+                (current_entity: any) => current_entity.id === entity.id
+            ),
+            defaulters: entitiesToDefaults
+                .filter((entity) => entity?.counter > 1)
+                .find((current_entity: any) => current_entity.id === entity.id),
+        };
+
+        const exit_type = discharges.cured
+            ? "cured"
+            : discharges.non_respondent
+                ? "non_respondent"
+                : discharges.defaulters
+                    ? "defaulters"
+                    : "";
+        const visits = visitsLinkedToForms(
+            startDate,
+            endDate,
+            entity?.visits,
+            anthropometricForms,
+            program
+        );
+        let exitDate = null;
+        let exitWeight = discharges && discharges[exit_type]?.exitWeight;
+
+        exitDate =
+            discharges &&
+            discharges[exit_type] &&
+            timeStampToDateString(
+                discharges[exit_type]["exitDate"] || discharges[exit_type]["createdAt"]
+            );
+        let lengthOfStay = 0;
+
+        if (exitDate) {
+            const duration =
+                removeTime(new Date(exitDate)).getTime() -
+                removeTime(entity?.profile?.createdAt).getTime();
+            lengthOfStay = Math.round(duration / (1000 * 3600 * 24));
+        }
+        return {
+            ...entity,
+            firstName: entity?.profile?.values?.first_name,
+            lastName: entity?.profile?.values?.last_name,
+            middleName: entity?.profile?.values?.middle_name,
+            gender: entity?.profile?.values?._gender,
+            age:
+                entity?.profile?.values?.age_months ??
+                entity?.profile?.values?.age__int__,
+            admission_date: timeStampToDateString(
+                entity?.profile?.values?.registration_date
+            ),
+            visits: visits,
+            weight:
+                visits[0]?.values?.previous_weight_kgs__decimal__ ||
+                visits[0]?.values?.weight_kgs,
+            muac: visits[0]?.values?.muac,
+            whzScore: visits[0]?.values?._whz_score,
+            admissionType:
+                entity?.visitLinkedToProgram?.values?.admission_type ??
+                visits[0]?.values?.admission_type ??
+                visits[0]?.values?.admission_type_yellow ??
+                visits[0]?.values?.admission_type_red ??
+                entity?.profile?.values?.admission_type,
+            admissionChoice:
+                entity?.visitLinkedToProgram?.values?.admission_choice ??
+                visits[0]?.values?.admission_choice ??
+                visits[0]?.values?.admission_criteria_yellow ??
+                visits[0]?.values?.admission_criteria_red ??
+                visits[0]?.values?.admission_criteria ??
+                entity?.profile?.values?.admission_choice,
+            visit_number: visits.length,
+            oedemaStatus:
+                visits[0]?.values?.oedema_severity === "1"
+                    ? "+"
+                    : visits[0]?.values?.oedema_severity === "2"
+                        ? "++"
+                        : visits[0]?.values?.oedema_severity === "3"
+                            ? "+++"
+                            : "",
+            exit_type: exit_type,
+            exit: discharges && discharges[exit_type],
+            exitWeight: exitWeight,
+            exitVisit:
+                discharges &&
+                discharges[exit_type] &&
+                timeStampToDateString(
+                    discharges[exit_type]["exitDate"] ||
+                    discharges[exit_type]["createdAt"]
+                ),
+            lengthOfStay: lengthOfStay,
+            exitMuac:
+                exit_type !== "" &&
+                (visits[visits.length - 1]?.values?.muac ??
+                    visits[visits.length - 1]?.values?.previous_muac ??
+                    visits[visits.length - 1]?.values?.previous_oedema_status__int__),
+        };
+    });
+    return beneficiaries;
+};
+
 export {
     admissionTypesByCategory,
     formsByCategory,
@@ -293,4 +436,5 @@ export {
     childrenUnder5MedicalReport,
     medicalStatusByCategory,
     medicalReports,
+    eRegister,
 };
