@@ -307,7 +307,6 @@ const eRegister = (
         program
     );
     const deaths = visitsDataByStatus(entities, "reason_not_continue", "death");
-    console.info("DEATH ...:", deaths);
     const nonRespondents = visitsDataByStatus(
         entities,
         "non_respondent__int__",
@@ -334,6 +333,13 @@ const eRegister = (
             defaulters: entitiesToDefaults
                 .filter((entity) => entity?.counter > 1)
                 .find((current_entity: any) => current_entity.id === entity.id),
+            absentees: entitiesToDefaults
+                .filter((entity) => entity?.counter === 1)
+                .find((current_entity: any) => current_entity.id === entity.id),
+            death: deaths.find(
+                (current_entity: any) => current_entity.id === entity.id
+            ),
+
         };
 
         const exit_type = discharges.cured
@@ -342,7 +348,7 @@ const eRegister = (
                 ? "non_respondent"
                 : discharges.defaulters
                     ? "defaulters"
-                    : "";
+                    : (discharges.absentees ? "absentees" : (discharges.death ? "death" : ""));
         const visits = visitsLinkedToForms(
             startDate,
             endDate,
@@ -428,6 +434,7 @@ const eRegister = (
     return beneficiaries;
 };
 
+
 export {
     admissionTypesByCategory,
     formsByCategory,
@@ -436,5 +443,5 @@ export {
     childrenUnder5MedicalReport,
     medicalStatusByCategory,
     medicalReports,
-    eRegister,
+    eRegister
 };

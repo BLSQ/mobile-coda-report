@@ -13,6 +13,7 @@ import {
     admissionTypesByCategory,
     admissionByStatus,
     sumDataWithCommonKeys,
+    eRegister,
 } from "./DataByCategory";
 import {
     entityTypeByProgram,
@@ -365,7 +366,7 @@ const visitsLinkedToForms = (
 };
 
 const defaulterCases = (
-    entities: Array<Entity>,
+    entities: Array<any>,
     startDate: Date,
     endDate: Date,
     program: string
@@ -478,10 +479,75 @@ const defaulterCases = (
             exitWeight:
                 assistanceVisitsByDate[assistanceVisitsByDate.length - 1]?.values
                     ?.previous_weight_kgs__decimal__,
+            status: counter === 1 ? "absentees" : entity?.status,
         };
     });
     return rows.filter((row) => row.counter > 0);
 };
+
+const agregatedBeneficiaryFolloWup = (
+    program: string,
+    entities: Array<any>,
+    startDate: Date,
+    endDate: Date
+) => {
+    let allCategories = [
+        "absentees",
+        "defaulters",
+        "death",
+        "referral_to_sc_itp",
+        "medical_investigation",
+        "home_visits",
+        "transferred_to_otp",
+        "referred_from_other_tsfp",
+        "transferred_to_tsfp",
+        "referred_from_other_otp",
+    ];
+
+    let allData: any[] = [];
+    let registers = eRegister(entities, program, startDate, endDate);
+
+    registers
+        .filter(
+            (entity: any) =>
+                entity?.admissionType !== "" || entity?.exit?.status !== ""
+        )
+        .forEach((entity: any) => {
+            let admissionType = entity?.admissionType ?? "";
+            let status = entity?.exit?.status ?? "";
+            const {
+                caretaker_name,
+                caretaker_Last_name,
+                registration_number,
+                registration_document,
+            } = entity?.profile?.values;
+            let profile = {
+                id: entity?.id,
+                name: `${entity?.firstName ?? ""} ${entity?.middleName ?? ""} ${entity?.lastName ?? ""
+                    }`,
+                age: entity?.age,
+                gender: entity?.gender,
+                careGiver: `${caretaker_name ?? ""} ${caretaker_Last_name ?? ""}`,
+                registrationNumber: registration_number,
+                registrationDocument: registration_document,
+            };
+
+            if (allCategories?.includes(status)) {
+                allData.push({
+                    ...profile,
+                    status: status,
+                });
+            }
+            if (allCategories?.includes(admissionType)) {
+                allData.push({
+                    ...profile,
+                    status: admissionType,
+                });
+            }
+        });
+    return allData;
+};
+
 export {
     filterDataOnProgram,
     followUpData,
@@ -490,4 +556,5 @@ export {
     assistanceGiven,
     visitsLinkedToForms,
     defaulterCases,
+    agregatedBeneficiaryFolloWup,
 };
