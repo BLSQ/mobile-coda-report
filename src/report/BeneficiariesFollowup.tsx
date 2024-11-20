@@ -5,7 +5,7 @@ const table = {
 	padding: "auto",
 	alignItems: "center",
 	borderCollapse: "collapse",
-	border: "1pt solid black"
+	border: "1pt solid black",
 } as const;
 
 function BeneficiariesFollowup(beneficiaries: Array<any>, label: string) {
@@ -21,11 +21,10 @@ function BeneficiariesFollowup(beneficiaries: Array<any>, label: string) {
 						<th style={table}>Care giver</th>
 						<th style={table}>Reg Doc</th>
 						<th style={table}>Reg number</th>
-						{label !== "" && <th style={table}>Status</th>}
+						<th style={table}>Status</th>
 					</tr>
 				</thead>
 				<tbody style={table}>
-
 					{beneficiaries.map((beneficiary: any) => {
 						return (
 							<tr style={table}>
@@ -33,22 +32,17 @@ function BeneficiariesFollowup(beneficiaries: Array<any>, label: string) {
 								<td style={table}>{beneficiary.age}</td>
 								<td style={table}>{beneficiary.gender}</td>
 								<td style={table}>{beneficiary.careGiver}</td>
-								<td style={table}>{categoryDictionary(beneficiary.registrationDocument)}</td>
+								<td style={table}>
+									{categoryDictionary(beneficiary.registrationDocument)}
+								</td>
 								<td style={table}>{beneficiary.registrationNumber}</td>
-								{label !== "" && <td style={table}>{categoryDictionary(beneficiary.status)}</td>}
+								<td style={table}>{categoryDictionary(beneficiary.status)}</td>
 							</tr>
 						);
 					})}
-
 				</tbody>
 			</table>
 		</div>
 	);
-
 }
-
-
-
-
-
 export { BeneficiariesFollowup };

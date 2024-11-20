@@ -1,12 +1,11 @@
 import { agregatedBeneficiaryFolloWup } from "../utils/DataFilter";
 import { BeneficiariesFollowup } from "./BeneficiariesFollowup";
-import { uniqBy } from "lodash";
 
 const root = {
   width: "100%",
   height: "80%",
   textAlign: "center",
-  fontSize: "13.5px"
+  fontSize: "13.5px",
 } as const;
 
 const FolloWupCategories = (
@@ -17,12 +16,17 @@ const FolloWupCategories = (
   endDate: Date
 ) => {
   const dateValue = `${startDate.toDateString()} to ${endDate.toDateString()}`;
-  let beneficiaries = agregatedBeneficiaryFolloWup(program, entities, startDate, endDate);
+  let beneficiaries = agregatedBeneficiaryFolloWup(
+    program,
+    entities,
+    startDate,
+    endDate
+  );
 
   if (category !== "") {
-    beneficiaries = beneficiaries.filter((entity: any) => entity?.status === category)
-  } else {
-    beneficiaries = uniqBy(beneficiaries, "id")
+    beneficiaries = beneficiaries.filter(
+      (entity: any) => entity?.status === category
+    );
   }
 
   return (
@@ -35,5 +39,5 @@ const FolloWupCategories = (
       <br />
     </div>
   );
-}
+};
 export { FolloWupCategories };
