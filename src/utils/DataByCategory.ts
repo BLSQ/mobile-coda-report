@@ -339,7 +339,6 @@ const eRegister = (
             death: deaths.find(
                 (current_entity: any) => current_entity.id === entity.id
             ),
-
         };
 
         const exit_type = discharges.cured
@@ -348,7 +347,11 @@ const eRegister = (
                 ? "non_respondent"
                 : discharges.defaulters
                     ? "defaulters"
-                    : (discharges.absentees ? "absentees" : (discharges.death ? "death" : ""));
+                    : discharges.absentees
+                        ? "absentees"
+                        : discharges.death
+                            ? "death"
+                            : "";
         const visits = visitsLinkedToForms(
             startDate,
             endDate,
@@ -384,6 +387,9 @@ const eRegister = (
                 entity?.profile?.values?.age__int__,
             admission_date: timeStampToDateString(
                 entity?.profile?.values?.registration_date
+            ),
+            birth_date: timeStampToDateString(
+                entity?.profile?.values?.actual_birthday__date__
             ),
             visits: visits,
             weight:
@@ -434,7 +440,6 @@ const eRegister = (
     return beneficiaries;
 };
 
-
 export {
     admissionTypesByCategory,
     formsByCategory,
@@ -443,5 +448,5 @@ export {
     childrenUnder5MedicalReport,
     medicalStatusByCategory,
     medicalReports,
-    eRegister
+    eRegister,
 };

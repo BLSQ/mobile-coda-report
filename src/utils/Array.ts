@@ -231,6 +231,40 @@ const admissionTypeWithCriteria = (program: string) => {
 	return types;
 };
 
+let beneficiaryFollowupCategories = (program: string | null) => {
+	let beneficiaryCategory = [
+		{ key: "", label: "All data" },
+		{ key: "absentees", label: "Absentees" },
+		{ key: "defaulters", label: "Defaulters" },
+		{ key: "non_respondent", label: "Non-respondent" },
+		{ key: "referral_to_sc_itp", label: "Referral to SC" },
+		{ key: "medical_investigation", label: "Medical investigation" },
+		{ key: "death", label: "Death" }];
+	if (program === "TSFP-MAM") {
+		beneficiaryCategory.push({
+			key: "referred_from_otp",
+			label: "Transfer in from OTP",
+		});
+		beneficiaryCategory.push({
+			key: "referred_from_other_tsfp",
+			label: "Transfer in from other TSFP",
+		});
+
+	} else {
+		if (program === "OTP-SAM") {
+			beneficiaryCategory.push({
+				key: "transferred_to_tsfp",
+				label: "Transfer To TSFP",
+			});
+			beneficiaryCategory.push({
+				key: "referred_from_other_otp",
+				label: "Transfer in from other OTP",
+			});
+		}
+	}
+	return beneficiaryCategory
+}
+
 export {
 	groupBy,
 	sumByAge,
@@ -239,5 +273,6 @@ export {
 	defaultEmptyDataByCategory,
 	admissionTypeWithCriteria,
 	entityTypeByProgram,
-	sumByFieldValues
+	sumByFieldValues,
+	beneficiaryFollowupCategories
 };
