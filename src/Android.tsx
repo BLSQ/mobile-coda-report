@@ -5,7 +5,6 @@ import { chain } from "lodash";
 //import FAKE_DATA from "./fake/FakeData";
 //import FAKE_LOCAL_HF from "./fake/FakeLocalHealthFacility";
 
-
 function toForm(form: any): Form {
     return {
         id: form["id"],
@@ -45,8 +44,7 @@ function LoadForms(): Array<Entity> {
                             (form["orgUnitId"] === localHealthFacility?.id ||
                                 form?.values?.org_unit_id === localHealthFacility?.id ||
                                 form?.values?.current_ou_id === localHealthFacility?.id ||
-                                form?.values?._ou_id === localHealthFacility?.id
-                            )
+                                form?.values?._ou_id === localHealthFacility?.id)
                     )
                     .map((form) => toForm(form))
                     .sort((f1: Form, f2: Form) => {
@@ -63,5 +61,4 @@ function LoadForms(): Array<Entity> {
         })
         .value();
 }
-
 export default LoadForms;
