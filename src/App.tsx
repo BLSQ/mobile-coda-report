@@ -8,7 +8,9 @@ import DatePicker from "react-date-picker";
 import { ChildrenUnder5 } from "./report/ChildrenUnder5";
 import { MedicalChildrenUnder5Report } from "./report/MedicalChildrenUnder5Report";
 import { ERegistry } from "./report/ERegistry";
+import { FolloWupCategories } from "./report/FollowUpCategories";
 import { removeTime } from "./utils/DateFormatter";
+import { beneficiaryFollowupCategories } from "./utils/Array";
 
 const box = {
   width: "100%",
@@ -23,6 +25,13 @@ const calendarStyle = {
   width: "51%",
   textAlign: "center",
   alignItems: "center",
+} as const;
+
+const selector = {
+  width: "100%",
+  textAlign: "center",
+  alignItems: "center",
+  display: "flex",
 } as const;
 
 const period = {
@@ -46,6 +55,9 @@ function App() {
   let [program, setProgram] = useState<string | null>(null);
   let [reportType, setReportType] = useState<string | null>(null);
   const [isValidated, setIsValidated] = useState<boolean | null>(null);
+  let [category, setCategory] = useState<string | null>("");;
+
+  let beneficiaryCategory = beneficiaryFollowupCategories(program);
 
   return (
     <div className="App">
@@ -53,7 +65,7 @@ function App() {
         <button
           id="back"
           className="back"
-          style={{ visibility: "visible" }}
+          style={{ visibility: "hidden" }}
           onClick={() => {
             if (reportType) {
               setReportType(null);
@@ -62,6 +74,7 @@ function App() {
               setProgram(program);
               setEntityType(entityType);
               setIsValidated(true);
+              setCategory("");
             } else {
               if (program) {
                 setProgram(null);
@@ -70,6 +83,7 @@ function App() {
                 setEntityType(entityType);
                 setReportType(reportType);
                 setIsValidated(isValidated);
+                setCategory("");
               } else {
                 if (isValidated) {
                   setIsValidated(false);
@@ -78,6 +92,7 @@ function App() {
                   setEntityType(entityType);
                   setReportType(reportType);
                   setProgram(program);
+                  setCategory("");
                 } else {
                   if (startDate && endDate) {
                     setStartDate(null);
@@ -86,6 +101,7 @@ function App() {
                     setReportType(reportType);
                     setEntityType(entityType);
                     setIsValidated(false);
+                    setCategory("");
                   } else {
                     if (entityType) {
                       setEntityType(null);
@@ -94,6 +110,17 @@ function App() {
                       setProgram(program);
                       setReportType(reportType);
                       setIsValidated(true);
+                      setCategory("");
+                    } else {
+                      if (category) {
+                        setEntityType(entityType);
+                        setStartDate(startDate);
+                        setEndDate(endDate);
+                        setProgram(program);
+                        setReportType(reportType);
+                        setIsValidated(true);
+                        setCategory(category);
+                      }
                     }
                   }
                 }
@@ -259,6 +286,30 @@ function App() {
             )}
           </div>
         )}
+      {
+        entityType &&
+        entityType === "CHILDRENUNDER5" &&
+        startDate &&
+        endDate &&
+        isValidated &&
+        program &&
+        reportType && ["OTP_followup_category", "TSFP_followup_category"].includes(reportType) &&
+        (
+          <div style={selector}>
+            <select
+              style={validatePeriod}
+              name="category"
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              {beneficiaryCategory.map((row: any) => (
+                <option value={row.key} key={row.key}>
+                  {row.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )
+      }
 
       {entityType &&
         entityType === "CHILDRENUNDER5" &&
@@ -540,6 +591,97 @@ function App() {
               startDate,
               endDate
             )
+          ) ||
+          (
+            category !== null && ["OTP_followup_category", "TSFP_followup_category"].includes(reportType) &&
+            FolloWupCategories(category, program,
+              entities.filter((entity) => {
+                let startDateIsoString = removeTime(
+                  new Date(startDate.toISOString())
+                );
+                let endDateIsoString = removeTime(
+                  new Date(endDate.toISOString())
+                );
+
+                const visits = entity.visits.filter((visit) => {
+                  let nextVisitDays =
+                    visit?.values?.next_visit ??
+                    visit?.values?.next_visit_days ??
+                    visit?.values?.number_of_days__int__ ??
+                    visit?.values?.tsfp_next_visit ??
+                    visit?.values?.TSFP_next_visit ??
+                    visit?.values?.otp_next_visit ??
+                    visit?.values?.OTP_next_visit;
+
+                  const nextVisit =
+                    visit?.values?._display_next_visit ??
+                    visit?.values?.new_next_visit__date__;
+                  const secondNextVisit = new Date(nextVisit).setDate(
+                    new Date(nextVisit).getDate() + nextVisitDays
+                  );
+
+                  return (
+                    (startDateIsoString <= removeTime(visit.createdAt) &&
+                      endDateIsoString >= removeTime(visit.createdAt)) ||
+                    (startDateIsoString <=
+                      removeTime(new Date(visit?.values?.visit_date)) &&
+                      endDateIsoString >=
+                      removeTime(new Date(visit?.values?.visit_date))) ||
+                    (startDateIsoString <=
+                      removeTime(
+                        new Date(visit?.values?.new_next_visit__date__)
+                      ) &&
+                      endDateIsoString >=
+                      removeTime(
+                        new Date(visit?.values?.new_next_visit__date__)
+                      )) ||
+                    (startDateIsoString <= removeTime(new Date(nextVisit)) &&
+                      endDateIsoString >= removeTime(new Date(nextVisit))) ||
+                    (startDateIsoString <=
+                      removeTime(new Date(secondNextVisit)) &&
+                      endDateIsoString >= removeTime(new Date(secondNextVisit)))
+                  );
+                });
+                return some(visits, (visit) => {
+                  let nextVisitDays =
+                    visit?.values?.next_visit_days ??
+                    visit?.values?.number_of_days__int__ ??
+                    visit?.values?.tsfp_next_visit ??
+                    visit?.values?.TSFP_next_visit ??
+                    visit?.values?.otp_next_visit ??
+                    visit?.values?.OTP_next_visit;
+                  const nextVisit =
+                    visit?.values?._display_next_visit ??
+                    visit?.values?.new_next_visit__date__;
+                  const secondNextVisit = new Date(nextVisit).setDate(
+                    new Date(nextVisit).getDate() + nextVisitDays
+                  );
+
+                  return (
+                    (startDateIsoString <= removeTime(visit.createdAt) &&
+                      endDateIsoString >= removeTime(visit.createdAt)) ||
+                    (startDateIsoString <=
+                      removeTime(new Date(visit?.values?.visit_date)) &&
+                      endDateIsoString >=
+                      removeTime(new Date(visit?.values?.visit_date))) ||
+                    (startDateIsoString <=
+                      removeTime(
+                        new Date(visit?.values?.new_next_visit__date__)
+                      ) &&
+                      endDateIsoString >=
+                      removeTime(
+                        new Date(visit?.values?.new_next_visit__date__)
+                      )) ||
+                    (startDateIsoString <= removeTime(new Date(nextVisit)) &&
+                      endDateIsoString >= removeTime(new Date(nextVisit))) ||
+                    (startDateIsoString <=
+                      removeTime(new Date(secondNextVisit)) &&
+                      endDateIsoString >= removeTime(new Date(secondNextVisit)))
+                  );
+                });
+              }),
+              startDate,
+              endDate)
           )
         )}
     </div>
