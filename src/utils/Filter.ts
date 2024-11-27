@@ -21,8 +21,8 @@ const filterStepsInPeriod = (
     startDate: Date,
     endDate: Date
 ) => {
-    let startPeriod = timeStampToDate(startDate.toISOString());
-    let endPeriod = timeStampToDate(endDate.toISOString());
+    let startPeriod = timeStampToDate(startDate?.toISOString());
+    let endPeriod = timeStampToDate(endDate?.toISOString());
     let orderedStepsByDate = orderBy(steps, ["createdAt"], ["asc"]);
 
     return orderedStepsByDate.filter((step: any) => {

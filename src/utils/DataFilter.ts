@@ -1,4 +1,3 @@
-/* eslint-disable array-callback-return */
 import Entity from "../entity/Entity";
 import {
     stepsLinkedToProgram,
@@ -20,6 +19,17 @@ import {
     groupBy,
     admissionTypeWithCriteria,
 } from "./Array";
+
+const entitiesWithVisits = (
+    entities: Array<Entity>,
+    startDate: Date,
+    endDate: Date
+) => {
+    return entities.filter((entity) => {
+        const visits = filterStepsInPeriod(entity.visits, startDate, endDate);
+        return visits;
+    });
+};
 
 const filterDataOnProgram = (
     entities: Array<Entity>,
@@ -402,7 +412,7 @@ const defaulterCases = (
             ["createdAt"],
             ["asc"]
         ).filter((visit: any) => {
-            anthropometricForms.includes(visit?.formFormId);
+            return anthropometricForms.includes(visit?.formFormId);
         });
         let counter = 0;
         assistanceVisitsByDate.forEach((visit: any) => {
@@ -549,6 +559,7 @@ const agregatedBeneficiaryFolloWup = (
 };
 
 export {
+    entitiesWithVisits,
     filterDataOnProgram,
     followUpData,
     dataCategory,
