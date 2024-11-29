@@ -44,10 +44,16 @@ const medicalStatusByCategory: any = {
         "eyes",
         "disability_status",
     ],
+    Immunization: [
+        "fully_immunization",
+        "not_fully_immunization",
+        "measles_vacc_proof",
+        "no_measles_vacc_proof",
+    ],
+
     HIV: ["positive", "negative", "nottested"],
     Complications: [
-        "lethargynotalert",
-        "unconsciousness",
+        "apatheticpassive",
         "highfever",
         "hypothermia",
         "severedehydration",
@@ -232,6 +238,17 @@ const childrenUnder5MedicalReport = (
         (visit: any) => visit?.criteria
     );
 
+    let immunizations = visitsDataByFieldList(rows, {
+        fully_immunization: "1",
+        not_fully_immunization: "1",
+        measles_vacc_proof: "1",
+        no_measles_vacc_proof: "1",
+    });
+    let groupImmunizationDataByMedicalTypes = groupBy(
+        immunizations.flat(),
+        (visit: any) => visit?.criteria
+    );
+
     let hivStatus = visitsDataByValuesList(rows, "hiv_status", [
         "positive",
         "negative",
@@ -242,9 +259,8 @@ const childrenUnder5MedicalReport = (
         hivStatus.flat(),
         (visit: any) => visit?.value
     );
+
     let complications = visitsDataByValuesList(rows, "specify_signs", [
-        "lethargynotalert",
-        "unconsciousness",
         "highfever",
         "hypothermia",
         "severedehydration",
@@ -254,12 +270,18 @@ const childrenUnder5MedicalReport = (
         "skinlesions",
         "other",
     ]);
+    let state_consciousness = visitsDataByFieldList(rows, {
+        state_consciousness: "apatheticpassive",
+    });
+    complications.push(state_consciousness[0]);
     let groupComplicationsDataByMedicalTypes = groupBy(
         complications.flat(),
         (visit: any) => visit?.value
     );
+
     return {
         "": groupDefaultDataByMedicalTypes,
+        Immunization: groupImmunizationDataByMedicalTypes,
         HIV: groupHIVDataByMedicalTypes,
         Complications: groupComplicationsDataByMedicalTypes,
     };

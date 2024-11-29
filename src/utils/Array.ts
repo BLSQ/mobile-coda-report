@@ -196,6 +196,11 @@ const categoryDictionary = (key: string) => {
 		birthregistration: "Birth Registration",
 		vaccinationid: "Vaccination ID",
 		child_vomiting: "Vomit",
+		fully_immunization: "Fully immunised",
+		not_fully_immunization: "Not fully immunised",
+		measles_vacc_proof: "Measles vaccine proof",
+		no_measles_vacc_proof: "No measles vaccine proof",
+		apatheticpassive: "Apathetic/Passive"
 
 	};
 	return keyValues[key];

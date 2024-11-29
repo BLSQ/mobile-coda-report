@@ -25,9 +25,9 @@ const entitiesWithVisits = (
     startDate: Date,
     endDate: Date
 ) => {
-    return entities.filter((entity) => {
+    return entities.map((entity) => {
         const visits = filterStepsInPeriod(entity.visits, startDate, endDate);
-        return visits;
+        return { ...entity, visits: visits };
     });
 };
 
@@ -253,7 +253,6 @@ const followUpData = (
     const entityType = entityTypeByProgram(program);
     let forms = formsByCategory[status][entityType];
     let beneficiariesAdmissions = entities
-        .filter((entity) => entity?.entityTypeName === entityType)
         .map((entity) => {
             let visits = orderBy(entity.visits, ["createdAt"], ["asc"])?.filter(
                 (visit: any) => forms.includes(visit?.formFormId)

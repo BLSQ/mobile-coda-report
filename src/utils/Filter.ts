@@ -94,9 +94,32 @@ const visitsDataByStatus = (
                         }
                         break;
                     case "specify_signs":
-                        response =
-                            visit?.values && visit?.values[fieldName]?.includes(value);
+                        response = visit?.values && visit?.values[fieldName]?.includes(value);
                         break;
+
+                    case "fully_immunization":
+                        response = visit?.values && visit?.values?.immunization_status === "1";
+
+                        break;
+
+                    case "not_fully_immunization":
+                        response = visit?.values && visit?.values?.immunization_status === "0";
+                        break;
+
+                    case "measles_vacc_proof":
+                        response = visit?.values && visit?.values?.measles_vacc === "1";
+                        break;
+
+                    case "no_measles_vacc_proof":
+                        response = visit?.values && visit?.values?.measles_vacc === "0";
+                        break;
+
+                    case "apatheticpassive":
+                        response =
+                            visit?.values &&
+                            visit?.values?.state_consciousness === "apatheticpassive";
+                        break;
+
                     default:
                         response = visit?.values[fieldName] === value;
                         break;
