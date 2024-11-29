@@ -46,11 +46,8 @@ const medicalStatusByCategory: any = {
     ],
     HIV: ["positive", "negative", "nottested"],
     Complications: [
-        "intractablevomit",
-        "convulsions",
         "lethargynotalert",
         "unconsciousness",
-        "hypoglycaemia",
         "highfever",
         "hypothermia",
         "severedehydration",
@@ -246,11 +243,8 @@ const childrenUnder5MedicalReport = (
         (visit: any) => visit?.value
     );
     let complications = visitsDataByValuesList(rows, "specify_signs", [
-        "intractablevomit",
-        "convulsions",
         "lethargynotalert",
         "unconsciousness",
-        "hypoglycaemia",
         "highfever",
         "hypothermia",
         "severedehydration",
