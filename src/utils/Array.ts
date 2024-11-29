@@ -194,7 +194,8 @@ const categoryDictionary = (key: string) => {
 		oedema: "Oedema",
 		other: "Other",
 		birthregistration: "Birth Registration",
-		vaccinationid: "Vaccination ID"
+		vaccinationid: "Vaccination ID",
+		child_vomiting: "Vomit",
 
 	};
 	return keyValues[key];

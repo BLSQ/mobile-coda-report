@@ -38,8 +38,7 @@ const medicalStatusByCategory: any = {
         "tb_therapy",
         "state_appetite",
         "appetite_test_result",
-    ],
-    Immunization: [
+        "child_vomiting",
         "respiratory_rate",
         "conjuctivae_palm",
         "eyes",
@@ -65,12 +64,12 @@ const medicalStatusByCategory: any = {
 
 const formsByCategory: any = {
     admission: {
-        "NG - TSFP Child": ["Anthropometric visit child"],
-        "NG - OTP Child": ["anthropometric_admission_otp"],
+        "NG - TSFP Child": ["anthropometric_admission", "Anthropometric visit child"],
+        "NG - OTP Child": ["anthropometric_admission", "anthropometric_admission_otp"],
     },
     oldCase: {
-        "NG - TSFP Child": ["Anthropometric visit child"],
-        "NG - OTP Child": ["anthropometric_admission_otp"],
+        "NG - TSFP Child": ["anthropometric_admission", "Anthropometric visit child"],
+        "NG - OTP Child": ["anthropometric_admission", "anthropometric_admission_otp"],
     },
     followUps: {
         "NG - TSFP Child": ["anthropometric_second_visit_tsfp"],
@@ -78,12 +77,14 @@ const formsByCategory: any = {
     },
     defaulters: {
         "NG - TSFP Child": [
+            "anthropometric_admission",
             "Anthropometric visit child",
             "child_assistance_admission",
             "anthropometric_second_visit_tsfp",
             "child_assistance_2nd_visit_tsfp",
         ],
         "NG - OTP Child": [
+            "anthropometric_admission",
             "anthropometric_admission_otp",
             "assistance_admission_otp",
             "anthropometric_second_visit_otp",
@@ -112,11 +113,13 @@ const formsByCategory: any = {
     },
     medicals: {
         "NG - TSFP Child": [
+            "anthropometric_admission",
             "anthropometric_second_visit_tsfp",
             "Child Medical Admission",
             "Child Medical Follow Up TSFP",
         ],
         "NG - OTP Child": [
+            "anthropometric_admission",
             "anthropometric_second_visit_otp",
             "Child Medical Admission",
             "Child Medical Follow Up OTP",
@@ -209,21 +212,17 @@ const childrenUnder5MedicalReport = (
         tb_therapy: "1",
         state_appetite: "poor",
         appetite_test_result: "failure",
-    }).flat();
-    let groupDefaultDataByMedicalTypes = groupBy(
-        defaultData,
-        (visit: any) => visit?.criteria
-    );
-    let immunizations = visitsDataByFieldList(rows, {
+        child_vomiting: "1",
         conjuctivae_palm: "pale",
         eyes: "sunken",
         disability_status__bool__: "1",
         respiratory_rate: "",
     }).flat();
-    let groupImmunizationDataByMedicalTypes = groupBy(
-        immunizations.flat(),
-        (visit: any) => visit?.value
+    let groupDefaultDataByMedicalTypes = groupBy(
+        defaultData,
+        (visit: any) => visit?.criteria
     );
+
     let hivStatus = visitsDataByValuesList(rows, "hiv_status", [
         "positive",
         "negative",
@@ -255,7 +254,6 @@ const childrenUnder5MedicalReport = (
     );
     return {
         "": groupDefaultDataByMedicalTypes,
-        Immunization: groupImmunizationDataByMedicalTypes,
         HIV: groupHIVDataByMedicalTypes,
         Complications: groupComplicationsDataByMedicalTypes,
     };
