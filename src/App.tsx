@@ -57,8 +57,18 @@ function App() {
   let [category, setCategory] = useState<string | null>("");
 
   let beneficiaryCategory = beneficiaryFollowupCategories(program);
+  let type =
+    program === "TSFP-MAM"
+      ? "NG - TSFP Child"
+      : program === "OTP-SAM"
+        ? "NG - OTP Child"
+        : null;
 
-  let entities = entitiesWithVisits(allEntities, startDate, endDate);
+  let entitiesByEntityType = allEntities.filter(
+    (entity) =>
+      entity.entityTypeName === type || entity.entityTypeName === entityType
+  );
+  let entities = entitiesWithVisits(entitiesByEntityType, startDate, endDate);
 
   return (
     <div className="App">
@@ -137,14 +147,14 @@ function App() {
           <h1>Choose beneficiary type </h1>
           <button
             className="EntityType"
-            onClick={() => setEntityType("CHILDRENUNDER5")}
+            onClick={() => setEntityType("Child Under 5")}
           >
             Children under 5
           </button>
         </div>
       )}
       {entityType &&
-        ["CHILDRENUNDER5"].includes(entityType) &&
+        ["Child Under 5"].includes(entityType) &&
         (!startDate || !endDate || !isValidated) && (
           <div>
             <h1>Choose a period </h1>
@@ -187,7 +197,7 @@ function App() {
         )}
 
       {entityType &&
-        entityType === "CHILDRENUNDER5" &&
+        entityType === "Child Under 5" &&
         startDate &&
         endDate &&
         isValidated &&
@@ -214,7 +224,7 @@ function App() {
         )}
 
       {entityType &&
-        entityType === "CHILDRENUNDER5" &&
+        entityType === "Child Under 5" &&
         startDate &&
         endDate &&
         isValidated &&
@@ -288,7 +298,7 @@ function App() {
           </div>
         )}
       {entityType &&
-        entityType === "CHILDRENUNDER5" &&
+        entityType === "Child Under 5" &&
         startDate &&
         endDate &&
         isValidated &&
@@ -313,7 +323,7 @@ function App() {
         )}
 
       {entityType &&
-        entityType === "CHILDRENUNDER5" &&
+        entityType === "Child Under 5" &&
         startDate &&
         endDate &&
         isValidated &&
