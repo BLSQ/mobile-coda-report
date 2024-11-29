@@ -64,12 +64,24 @@ const medicalStatusByCategory: any = {
 
 const formsByCategory: any = {
     admission: {
-        "NG - TSFP Child": ["anthropometric_admission", "Anthropometric visit child"],
-        "NG - OTP Child": ["anthropometric_admission", "anthropometric_admission_otp"],
+        "NG - TSFP Child": [
+            "anthropometric_admission",
+            "Anthropometric visit child",
+        ],
+        "NG - OTP Child": [
+            "anthropometric_admission",
+            "anthropometric_admission_otp",
+        ],
     },
     oldCase: {
-        "NG - TSFP Child": ["anthropometric_admission", "Anthropometric visit child"],
-        "NG - OTP Child": ["anthropometric_admission", "anthropometric_admission_otp"],
+        "NG - TSFP Child": [
+            "anthropometric_admission",
+            "Anthropometric visit child",
+        ],
+        "NG - OTP Child": [
+            "anthropometric_admission",
+            "anthropometric_admission_otp",
+        ],
     },
     followUps: {
         "NG - TSFP Child": ["anthropometric_second_visit_tsfp"],

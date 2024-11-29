@@ -37,25 +37,17 @@ const filterDataOnProgram = (
     startDate: Date,
     endDate: Date
 ) => {
-    let entityType =
-        program === "TSFP-MAM"
-            ? "NG - TSFP Child"
-            : program === "OTP-SAM"
-                ? "NG - OTP Child"
-                : null;
-    let rows = entities
-        .filter((entity) => entity?.entityTypeName === entityType)
-        .map((entity) => {
-            let visits = orderBy(entity.visits, ["createdAt"], ["asc"]);
-            let visitsInPeriod = filterStepsInPeriod(visits, startDate, endDate);
-            let visitsLinkedToProgram = stepsLinkedToProgram(visitsInPeriod, program);
-            return {
-                ...entity,
-                visits: visitsLinkedToProgram,
-                visitLinkedToProgram: visitsLinkedToProgram && visitsLinkedToProgram[0],
-                program: program,
-            };
-        });
+    let rows = entities.map((entity) => {
+        let visits = orderBy(entity.visits, ["createdAt"], ["asc"]);
+        let visitsInPeriod = filterStepsInPeriod(visits, startDate, endDate);
+        let visitsLinkedToProgram = stepsLinkedToProgram(visitsInPeriod, program);
+        return {
+            ...entity,
+            visits: visitsLinkedToProgram,
+            visitLinkedToProgram: visitsLinkedToProgram && visitsLinkedToProgram[0],
+            program: program,
+        };
+    });
     let dataLinkedToProgram = rows.filter(
         (row) => row.visitLinkedToProgram !== undefined
     );
