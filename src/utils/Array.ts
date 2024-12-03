@@ -200,7 +200,13 @@ const categoryDictionary = (key: string) => {
 		not_fully_immunization: "Not fully immunised",
 		measles_vacc_proof: "Measles vaccine proof",
 		no_measles_vacc_proof: "No measles vaccine proof",
-		apatheticpassive: "Apathetic/Passive"
+		apatheticpassive: "Apathetic/Passive",
+		ab_given: "Abendazole ",
+		anti_helminth_given: "Mebendazole",
+		abendazole: "Abendazole ",
+		mebendazole: "Mebendazole",
+		art_given: "ART",
+		vitamins_given: "Vitamin"
 
 	};
 	return keyValues[key];

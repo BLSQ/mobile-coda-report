@@ -63,6 +63,12 @@ const medicalStatusByCategory: any = {
         "skinlesions",
         "other",
     ],
+    "Medication Given": [
+        "ab_given",
+        "anti_helminth_given",
+        "art_given",
+        "vitamins_given"
+    ]
 };
 
 const formsByCategory: any = {
@@ -254,7 +260,6 @@ const childrenUnder5MedicalReport = (
         "negative",
         "nottested",
     ]);
-
     let groupHIVDataByMedicalTypes = groupBy(
         hivStatus.flat(),
         (visit: any) => visit?.value
@@ -279,11 +284,23 @@ const childrenUnder5MedicalReport = (
         (visit: any) => visit?.value
     );
 
+    let medicationGiven = visitsDataByFieldList(rows, {
+        ab_given: "1",
+        anti_helminth_given: "mebendazole",
+        art_given: "1",
+        vitamins_given: "1"
+    });
+    let groupMedicationGivenByType = groupBy(
+        medicationGiven.flat(),
+        (visit: any) => visit?.criteria
+    );
+
     return {
         "": groupDefaultDataByMedicalTypes,
         Immunization: groupImmunizationDataByMedicalTypes,
         HIV: groupHIVDataByMedicalTypes,
         Complications: groupComplicationsDataByMedicalTypes,
+        "Medication Given": groupMedicationGivenByType
     };
 };
 
