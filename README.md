@@ -58,9 +58,10 @@ Paste in the build folder as well
 Open the `index.html` file with your code editor, make sure to have HTML plugin formatter activated then format the content file
 
 In header tag, on: 
-- line 8, with `<script></script>` tag, on the `src` attribute, remove the path `/static/js/`. Just keep the main css file name
-- line 9, with `<link>` tag  attribute, remove the path `/static/css/` 
-In order to reference the rigth path, then remove css and js folder as they are empty
+- line 8, with `<script></script>` tag, on the `src` attribute, remove the path `/static/js/`. Just keep the main css file name.
+- line 9, with `<link>` tag  attribute, remove the path `/static/css/`.
+
+In order to reference the right path, then remove css and js folder as they are empty.
 
 Inside `build/static` folder, create zip file with the whole content by selecting all files then zip, provide the name for the zip and let the process finish compressing files .
 
@@ -72,9 +73,9 @@ e.g: https://qa.coda.go.wfp.org/admin/
 
 ### 1. Create new report version
 
-Go to report version. e.g: `https://qa.coda.go.wfp.org/admin/iaso/reportversion/`
+Go to report version. e.g: https://qa.coda.go.wfp.org/admin/iaso/reportversion/
 
-Create the version by making sure the status field is set to *Published*
+Create the version by making sure the status field is set to "Published"
 
 
 
