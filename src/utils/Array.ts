@@ -112,8 +112,8 @@ const categoryDictionary = (key: string) => {
 		transferredout: "Transferred Out",
 		yes: "Yes",
 		no: "No",
-		have_diarrhoea: "Number of Diarrhoea",
-		have_diarrhoea__bool__: "Number of Diarrhoea",
+		have_diarrhoea: "Diarrhoea",
+		have_diarrhoea__bool__: "Diarrhoea",
 		passing_urine: "Problems urinating",
 		passing_urine__bool__: "Problems urinating",
 		contact_tb: "Contact with TB person",
@@ -206,8 +206,7 @@ const categoryDictionary = (key: string) => {
 		abendazole: "Abendazole ",
 		mebendazole: "Mebendazole",
 		art_given: "ART",
-		vitamins_given: "Vitamin"
-
+		vitamins_given: "Vitamin A"
 	};
 	return keyValues[key];
 };
