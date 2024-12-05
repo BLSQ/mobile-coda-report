@@ -86,24 +86,29 @@ const visitsDataByStatus = (
                     case "respiratory_rate":
                         let rate = visit?.values && visit?.values[fieldName];
                         if (
-                            (age <= 12 && !["<30", "30", "3039", "4049"].includes(rate)) ||
-                            (age > 12 && !["<30", "30", "3039"].includes(rate))
+                            rate &&
+                            ((age <= 12 &&
+                                !["<30", "30", "3039", "4049", "30-39"].includes(rate)) ||
+                                (age > 12 && !["<30", "30", "3039", "30-39"].includes(rate)))
                         ) {
                             value = "poor";
                             response = true;
                         }
                         break;
                     case "specify_signs":
-                        response = visit?.values && visit?.values[fieldName]?.includes(value);
+                        response =
+                            visit?.values && visit?.values[fieldName]?.includes(value);
                         break;
 
                     case "fully_immunization":
-                        response = visit?.values && visit?.values?.immunization_status === "1";
+                        response =
+                            visit?.values && visit?.values?.immunization_status === "1";
 
                         break;
 
                     case "not_fully_immunization":
-                        response = visit?.values && visit?.values?.immunization_status === "0";
+                        response =
+                            visit?.values && visit?.values?.immunization_status === "0";
                         break;
 
                     case "measles_vacc_proof":
