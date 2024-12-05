@@ -1,10 +1,15 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import "./App.css";
 import LoadForms from "./Android";
 import "react-calendar/dist/Calendar.css";
 import "react-date-picker/dist/DatePicker.css";
 import DatePicker from "react-date-picker";
 import { ChildrenUnder5 } from "./report/ChildrenUnder5";
+import { MedicalChildrenUnder5Report } from "./report/MedicalChildrenUnder5Report";
+import { ERegistry } from "./report/ERegistry";
+import { FolloWupCategories } from "./report/FollowUpCategories";
+import { beneficiaryFollowupCategories } from "./utils/Array";
+import { entitiesWithVisits } from "./utils/DataFilter";
 
 const box = {
   width: "100%",
@@ -21,6 +26,13 @@ const calendarStyle = {
   alignItems: "center",
 } as const;
 
+const selector = {
+  width: "100%",
+  textAlign: "center",
+  alignItems: "center",
+  display: "flex",
+} as const;
+
 const period = {
   width: "90%",
   margin: "auto",
@@ -35,20 +47,28 @@ const validatePeriod = {
 } as const;
 
 function App() {
-  const entities = LoadForms();
+  const allEntities = LoadForms();
   const [entityType, setEntityType] = useState<string | null>(null);
   const [startDate, setStartDate] = useState<any>(null);
   const [endDate, setEndDate] = useState<any>(null);
   let [program, setProgram] = useState<string | null>(null);
   let [reportType, setReportType] = useState<string | null>(null);
   const [isValidated, setIsValidated] = useState<boolean | null>(null);
+  let [category, setCategory] = useState<string | null>("");
 
-  console.info("ENTITY TYPE ...:", entityType);
-  console.info("REPORT TYPE ...:", reportType);
-  console.info("PROGRAM ...:", program);
-  console.info("START DATE ...:", startDate);
-  console.info("END DATE ...:", endDate);
-  console.info("IS VALIDATED ...:", isValidated);
+  let beneficiaryCategory = beneficiaryFollowupCategories(program);
+  let type =
+    program === "TSFP-MAM"
+      ? "NG - TSFP Child"
+      : program === "OTP-SAM"
+        ? "NG - OTP Child"
+        : null;
+
+  let entitiesByEntityType = allEntities.filter(
+    (entity) =>
+      entity.entityTypeName === type || entity.entityTypeName === entityType
+  );
+  let entities = entitiesWithVisits(entitiesByEntityType, startDate, endDate);
 
   return (
     <div className="App">
@@ -56,7 +76,7 @@ function App() {
         <button
           id="back"
           className="back"
-          style={{ visibility: "visible" }}
+          style={{ visibility: "hidden" }}
           onClick={() => {
             if (reportType) {
               setReportType(null);
@@ -65,14 +85,16 @@ function App() {
               setProgram(program);
               setEntityType(entityType);
               setIsValidated(true);
+              setCategory("");
             } else {
               if (program) {
                 setProgram(null);
-                setEntityType(entityType);
-                setReportType(reportType);
                 setStartDate(startDate);
                 setEndDate(endDate);
+                setEntityType(entityType);
+                setReportType(reportType);
                 setIsValidated(isValidated);
+                setCategory("");
               } else {
                 if (isValidated) {
                   setIsValidated(false);
@@ -81,25 +103,37 @@ function App() {
                   setEntityType(entityType);
                   setReportType(reportType);
                   setProgram(program);
+                  setCategory("");
                 } else {
-                  if(startDate && endDate){
+                  if (startDate && endDate) {
                     setStartDate(null);
-													setEndDate(null);
-													setProgram(program);
-													setReportType(reportType);
-													setEntityType(entityType);
-													setIsValidated(false);
-                  }else{
-                    if (entityType) {
-                    setEntityType(null);
-                    setStartDate(startDate);
-                    setEndDate(endDate);
+                    setEndDate(null);
                     setProgram(program);
                     setReportType(reportType);
-                    setIsValidated(true);
+                    setEntityType(entityType);
+                    setIsValidated(false);
+                    setCategory("");
+                  } else {
+                    if (entityType) {
+                      setEntityType(null);
+                      setStartDate(startDate);
+                      setEndDate(endDate);
+                      setProgram(program);
+                      setReportType(reportType);
+                      setIsValidated(true);
+                      setCategory("");
+                    } else {
+                      if (category) {
+                        setEntityType(entityType);
+                        setStartDate(startDate);
+                        setEndDate(endDate);
+                        setProgram(program);
+                        setReportType(reportType);
+                        setIsValidated(true);
+                        setCategory(category);
+                      }
+                    }
                   }
-                  }
-                  
                 }
               }
             }
@@ -108,21 +142,19 @@ function App() {
           &lt;back
         </button>
       )}
-
       {!entityType && (
         <div>
           <h1>Choose beneficiary type </h1>
           <button
             className="EntityType"
-            onClick={() => setEntityType("SSD_CHILDREN")}
+            onClick={() => setEntityType("Child Under 5")}
           >
-            SSD Children under 5
+            Children under 5
           </button>
         </div>
       )}
-
       {entityType &&
-        ["SSD_CHILDREN"].includes(entityType) &&
+        ["Child Under 5"].includes(entityType) &&
         (!startDate || !endDate || !isValidated) && (
           <div>
             <h1>Choose a period </h1>
@@ -161,81 +193,164 @@ function App() {
                 </button>
               </div>
             )}
-
-            {entityType &&
-              ["SSD_CHILDREN"].includes(entityType) &&
-              startDate &&
-              endDate &&
-              isValidated &&
-              !program && (
-                <div>
-                  <h4 style={period}>
-                    Period to report:{" "}
-                    {`${startDate.toDateString()} to ${endDate.toDateString()}`}
-                  </h4>
-                  <h2> Choose the program </h2>
-                  <button
-                    className="EntityType"
-                    onClick={() => setProgram("TSFP")}
-                  >
-                    TSFP
-                  </button>
-                  <button
-                    className="EntityType"
-                    onClick={() => setProgram("OTP")}
-                  >
-                    OTP
-                  </button>
-                </div>
-              )}
-            {entityType &&
-              entityType === "SSD_CHILDREN" &&
-              startDate &&
-              endDate &&
-              isValidated &&
-              program &&
-              (
-                <div>
-                  <h4 style={period}>
-                    Period to report:{" "}
-                    {`${startDate.toDateString()} to ${endDate.toDateString()}`}
-                  </h4>
-                  <h2> Choose the report type for {program} </h2>
-                  {program === "TSFP" && !reportType && (
-                    <div>
-                      <button
-                        className="EntityType"
-                        onClick={() => setReportType("TSFP")}
-                      >
-                        Main Report
-                      </button>
-                    </div>
-                  )}
-
-                  {program === "OTP" && !reportType && (
-                    <div>
-                      <button
-                        className="EntityType"
-                        onClick={() => setReportType("OTP")}
-                      >
-                        Main Report
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-            {entityType &&
-              entityType === "SSD_CHILDREN" &&
-              startDate &&
-              endDate &&
-              isValidated &&
-              program &&
-              reportType &&
-              ["OTP", "TSFP"].includes(reportType) &&
-              ChildrenUnder5(entities, startDate, endDate, program)}
           </div>
         )}
+
+      {entityType &&
+        entityType === "Child Under 5" &&
+        startDate &&
+        endDate &&
+        isValidated &&
+        !program && (
+          <div>
+            <h4 style={period}>
+              Period to report:{" "}
+              {`${startDate.toDateString()} to ${endDate.toDateString()}`}
+            </h4>
+            <h2> Choose the program </h2>
+            <button
+              className="EntityType"
+              onClick={() => setProgram("TSFP-MAM")}
+            >
+              TSFP
+            </button>
+            <button
+              className="EntityType"
+              onClick={() => setProgram("OTP-SAM")}
+            >
+              OTP
+            </button>
+          </div>
+        )}
+
+      {entityType &&
+        entityType === "Child Under 5" &&
+        startDate &&
+        endDate &&
+        isValidated &&
+        program &&
+        !reportType && (
+          <div>
+            <h4 style={period}>
+              Period to report:{" "}
+              {`${startDate.toDateString()} to ${endDate.toDateString()}`}
+            </h4>
+            <h2> Choose the report type for {program} </h2>
+            {program.includes("TSFP") && !reportType && (
+              <div>
+                <button
+                  className="EntityType"
+                  onClick={() => setReportType("TSFP")}
+                >
+                  Main Report
+                </button>
+                <button
+                  className="EntityType"
+                  onClick={() => setReportType("medical_TSFP")}
+                >
+                  Medical Report
+                </button>
+                <button
+                  className="EntityType"
+                  onClick={() => setReportType("TSFP_followup_category")}
+                >
+                  Followup category
+                </button>
+
+                <button
+                  className="EntityType"
+                  onClick={() => setReportType("TSFP_eRegister")}
+                >
+                  eRegister
+                </button>
+              </div>
+            )}
+
+            {program.includes("OTP") && !reportType && (
+              <div>
+                <button
+                  className="EntityType"
+                  onClick={() => setReportType("OTP")}
+                >
+                  Main Report
+                </button>
+
+                <button
+                  className="EntityType"
+                  onClick={() => setReportType("medical_OTP")}
+                >
+                  Medical Report
+                </button>
+                <button
+                  className="EntityType"
+                  onClick={() => setReportType("OTP_followup_category")}
+                >
+                  Followup category
+                </button>
+                <button
+                  className="EntityType"
+                  onClick={() => setReportType("OTP_eRegister")}
+                >
+                  eRegister
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      {entityType &&
+        entityType === "Child Under 5" &&
+        startDate &&
+        endDate &&
+        isValidated &&
+        program &&
+        reportType &&
+        ["OTP_followup_category", "TSFP_followup_category"].includes(
+          reportType
+        ) && (
+          <div style={selector}>
+            <select
+              style={validatePeriod}
+              name="category"
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              {beneficiaryCategory.map((row: any) => (
+                <option value={row.key} key={row.key}>
+                  {row.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+      {entityType &&
+        entityType === "Child Under 5" &&
+        startDate &&
+        endDate &&
+        isValidated &&
+        program &&
+        reportType &&
+        ((["OTP", "TSFP"].includes(reportType) &&
+          ChildrenUnder5(entities, startDate, endDate, program)) ||
+          (["medical_OTP", "medical_TSFP"].includes(reportType) &&
+            MedicalChildrenUnder5Report(
+              entities,
+              startDate,
+              endDate,
+              program
+            )) ||
+          (["TSFP_eRegister", "OTP_eRegister"].includes(reportType) &&
+            ERegistry(program, entities, startDate, endDate)) ||
+          (category !== null &&
+            ["OTP_followup_category", "TSFP_followup_category"].includes(
+              reportType
+            ) &&
+            FolloWupCategories(
+              category,
+              program,
+              entities,
+              startDate,
+              endDate
+            )))}
     </div>
   );
 }
