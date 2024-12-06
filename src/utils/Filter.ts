@@ -76,20 +76,21 @@ const visitsDataByStatus = (
 
             let visits = row.visits.filter((visit: any) => {
                 let response = visit?.values[fieldName] === value;
+                let fieldValue = visit?.values && visit?.values[fieldName];
                 switch (fieldName) {
                     case "disability_status__bool__":
-                        value = "yes";
-                        fieldName = "disability_status";
-                        response = true;
+                        if (response) {
+                            value = "yes";
+                            fieldName = "disability_status";
+                        }
                         break;
-
                     case "respiratory_rate":
-                        let rate = visit?.values && visit?.values[fieldName];
                         if (
-                            rate &&
+                            fieldValue &&
                             ((age <= 12 &&
-                                !["<30", "30", "3039", "4049", "30-39"].includes(rate)) ||
-                                (age > 12 && !["<30", "30", "3039", "30-39"].includes(rate)))
+                                !["<30", "30", "3039", "4049", "30-39"].includes(fieldValue)) ||
+                                (age > 12 &&
+                                    !["<30", "30", "3039", "30-39"].includes(fieldValue)))
                         ) {
                             value = "poor";
                             response = true;
