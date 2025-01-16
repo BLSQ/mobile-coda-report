@@ -18,8 +18,7 @@ const admissionTypesByCategory: any = {
     "Old cases": [
         "returned_defaulter",
         "referred_from_other_tsfp",
-        "referred_from_otp",
-        //"referred_from_sc_itp",
+        "referred_from_other_otp",
     ],
     Discharges: ["cured", "death", "defaulter", "non_respondent__int__"],
     "Other Exits": [
@@ -76,20 +75,26 @@ const formsByCategory: any = {
         "NG - TSFP Child": [
             "anthropometric_admission",
             "Anthropometric visit child",
+            "anthropometric_second_visit_tsfp"
         ],
         "NG - OTP Child": [
             "anthropometric_admission",
             "anthropometric_admission_otp",
+            "anthropometric_second_visit_otp"
         ],
     },
     oldCase: {
         "NG - TSFP Child": [
             "anthropometric_admission",
             "Anthropometric visit child",
+            "anthropometric_second_visit_otp",
+            "anthropometric_second_visit_tsfp"
         ],
         "NG - OTP Child": [
             "anthropometric_admission",
             "anthropometric_admission_otp",
+            "anthropometric_second_visit_tsfp",
+            "anthropometric_second_visit_otp",
         ],
     },
     followUps: {
@@ -360,6 +365,7 @@ const eRegister = (
 
     const anthropometricForms = [
         "Anthropometric visit child",
+        "anthropometric_admission",
         "anthropometric_admission_otp",
         "anthropometric_second_visit_tsfp",
         "anthropometric_second_visit_otp",
