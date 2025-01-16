@@ -7,12 +7,12 @@ const stepsLinkedToProgram = (steps: Array<Form>, program: string) => {
     let orderedStepsByDate = orderBy(steps, ["createdAt"], ["asc"]);
     return orderedStepsByDate.filter(
         (step: any) =>
-            step?.values?._programme === program ||
-            step?.values?.programme === program ||
-            step?.values?._program === program ||
-            step?.values?.program === program ||
-            step?.values?._display_programme === program ||
-            step?.values?.new_programme === program
+            step?.values?._programme?.includes(program)  ||
+            step?.values?.programme?.includes(program) ||
+            step?.values?._program?.includes(program) ||
+            step?.values?.program?.includes(program) ||
+            step?.values?._display_programme?.includes(program) ||
+            step?.values?.new_programme?.includes(program)
     );
 };
 

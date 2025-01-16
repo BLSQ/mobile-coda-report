@@ -1,26 +1,26 @@
-import { categoryDictionary } from "../utils/Array";
+import { categoryDictionary } from '../utils/Array';
 
 const root = {
-    width: "100%",
-    margin: "auto",
-    textAlign: "center",
+    width: '100%',
+    margin: 'auto',
+    textAlign: 'center',
 } as const;
 
 const table = {
-    margin: "auto",
-    alignItems: "center",
-    width: "80%",
-    borderCollapse: "collapse",
-    border: "1pt solid black",
+    margin: 'auto',
+    alignItems: 'center',
+    width: '80%',
+    borderCollapse: 'collapse',
+    border: '1pt solid black',
 } as const;
 
 const th = {
-    border: "1pt solid black",
-    textAlign: "left",
+    border: '1pt solid black',
+    textAlign: 'left',
 } as const;
 
 const td = {
-    border: "1pt solid black",
+    border: '1pt solid black',
 } as const;
 
 const ReportContent = (category: any): any => {
@@ -90,25 +90,39 @@ const ReportContent = (category: any): any => {
 
                 <tbody style={table}>
                     {category?.rows?.map((subCategory: any) => {
-                        const boyBetween6And23 = subCategory.between6And23[0] ?? 0;
-                        const girlBetween6And23 = subCategory.between6And23[1] ?? 0;
-                        const boyBetween24And59 = subCategory.between24And59[0] ?? 0;
-                        const girlBetween24And59 = subCategory.between24And59[1] ?? 0;
+                        const boyBetween6And23 =
+                            subCategory.between6And23[0] ?? 0;
+                        const girlBetween6And23 =
+                            subCategory.between6And23[1] ?? 0;
+                        const boyBetween24And59 =
+                            subCategory.between24And59[0] ?? 0;
+                        const girlBetween24And59 =
+                            subCategory.between24And59[1] ?? 0;
                         between6And23 += boyBetween6And23 + girlBetween6And23;
-                        between24And59 += boyBetween24And59 + girlBetween24And59;
+                        between24And59 +=
+                            boyBetween24And59 + girlBetween24And59;
                         const boys = boyBetween6And23 + boyBetween24And59;
                         const girls = girlBetween6And23 + girlBetween24And59;
-                        let key = "";
+                        let key = '';
                         if (subCategory && subCategory.admissionType) {
+                            if (
+                                subCategory?.program === 'TSFP' &&
+                                subCategory.admissionType ===
+                                    'referred_from_other_otp'
+                            ) {
+                                subCategory.admissionType = 'referred_from_otp';
+                            }
                             const admissionType = categoryDictionary(
-                                subCategory?.admissionType
+                                subCategory?.admissionType,
                             );
                             const admissionCriteria = categoryDictionary(
-                                subCategory?.admissionCriteria
+                                subCategory?.admissionCriteria,
                             );
                             key = `${admissionType} ${admissionCriteria}`;
                         } else {
-                            key = categoryDictionary(subCategory?.key) ?? subCategory?.key;
+                            key =
+                                categoryDictionary(subCategory?.key) ??
+                                subCategory?.key;
                         }
 
                         return (
