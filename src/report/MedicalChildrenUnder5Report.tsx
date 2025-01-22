@@ -1,23 +1,29 @@
-import Entity from "../entity/Entity";
-import { ReportContent } from "./ReportContent";
-import { medicalReports } from "../utils/DataByCategory";
+import Entity from '../entity/Entity';
+import { medicalReports } from '../utils/DataByCategory';
+import { ReportContent } from './ReportContent';
 
 const root = {
-    width: "100%",
-    margin: "auto",
-    height: "80%",
-    marginBottom: "70px",
-    textAlign: "center",
+    width: '100%',
+    margin: 'auto',
+    height: '80%',
+    marginBottom: '70px',
+    textAlign: 'center',
 } as const;
 
 const MedicalChildrenUnder5Report = (
     entities: Array<Entity>,
     startDate: Date,
     endDate: Date,
-    program: string
+    program: string,
 ) => {
     const dateValue = `${startDate.toDateString()} to ${endDate.toDateString()}`;
-    let medicalData = medicalReports(entities, program, startDate, endDate);
+    let medicalData = medicalReports(
+        entities,
+        program,
+        startDate,
+        endDate,
+        'Child Under 5',
+    );
 
     return (
         <div style={root}>

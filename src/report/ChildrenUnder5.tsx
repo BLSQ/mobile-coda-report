@@ -16,15 +16,23 @@ function ChildrenUnder5(
     startDate: Date,
     endDate: Date,
     program: string,
+    entityType: string,
 ) {
     const dateValue = `${startDate.toDateString()} to ${endDate.toDateString()}`;
-    const categories = dataCategory(entities, program, startDate, endDate);
+    const categories = dataCategory(
+        entities,
+        program,
+        startDate,
+        endDate,
+        entityType,
+    );
     const rationsGivens = assistanceGiven(
         entities,
         program,
         startDate,
         endDate,
         'rationGiven',
+        entityType,
     );
     return (
         <div style={root}>
