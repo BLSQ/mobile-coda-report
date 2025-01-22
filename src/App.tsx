@@ -79,7 +79,7 @@ function App() {
                 <button
                     id="back"
                     className="back"
-                    style={{ visibility: 'visible' }}
+                    style={{ visibility: 'hidden' }}
                     onClick={() => {
                         if (reportType) {
                             setReportType(null);
