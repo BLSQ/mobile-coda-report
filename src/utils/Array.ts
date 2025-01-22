@@ -7,15 +7,22 @@ const groupBy = <T, K extends keyof any>(arr: T[], key: (i: T) => K) =>
         return groups;
     }, {} as Record<K, T[]>);
 
-const entityTypeByProgram = (program: string): string => {
+const entityTypeByProgram = (program: string, type: string): string => {
     let entityType = '';
-    if (program === 'TSFP_MAM' || program === 'TSFP') {
-        entityType = 'NG - TSFP Child';
+    if (type === 'Child Under 5') {
+        if (program === 'TSFP_MAM' || program === 'TSFP') {
+            entityType = 'TSFP';
+        } else {
+            if (program === 'OTP_SAM' || program === 'OTP') {
+                entityType = 'OTP';
+            }
+        }
     } else {
-        if (program === 'OTP_SAM' || program === 'OTP') {
-            entityType = 'NG - OTP Child';
+        if (type === undefined || type === 'PBWG') {
+            entityType = 'TSFP';
         }
     }
+
     return entityType;
 };
 
@@ -68,13 +75,24 @@ const sumByAgeOnField = (
 const defaultEmptyDataByCategory = (
     categories: Array<any>,
     program: string,
+    entityType: string,
 ) => {
     return categories.map(category => {
-        let defaultKeys: any = {
-            between6And23: [0, 0],
-            between24And59: [0, 0],
-        };
-        let admittedByCriteria = admissionTypeWithCriteria(program)[category];
+        let defaultKeys: any = null;
+        if (entityType === 'Child Under 5') {
+            defaultKeys = {
+                between6And23: [0, 0],
+                between24And59: [0, 0],
+            };
+        } else {
+            defaultKeys = {
+                under19: [0, 0],
+                over19: [0, 0],
+            };
+        }
+        let admittedByCriteria = admissionTypeWithCriteria(program, null)[
+            category
+        ];
 
         if (admittedByCriteria && admittedByCriteria !== undefined) {
             let rows = admittedByCriteria?.map((criteria: string) => {
@@ -107,6 +125,7 @@ const categoryDictionary = (key: string) => {
         referred_from_otp: 'Referred from OTP by',
         returned_referral: 'Returned Referral',
         readmission_as_non_respondent: 'Readmission as non respondent',
+        readmission_non_respondent: 'Readmission as non respondent',
         voluntarywithdrawal: 'Voluntary Withdrawal',
         voluntary_withdrawal: 'Voluntary Withdrawal',
         dismissiedduetocheating: 'Dismissals due to cheating',
@@ -218,18 +237,22 @@ const categoryDictionary = (key: string) => {
 
 const childrenUnder5Criteria = ['muac', 'oedema', 'whz'];
 
-const admissionTypeWithCriteria = (program: string) => {
-    let criteriaType: any = [];
-    let entityType = entityTypeByProgram(program);
+const admissionTypeWithCriteria = (
+    program: string,
+    beneficiaryType: string | null,
+) => {
+    let criteriaType: any = ['child_wasted', 'muac'];
+    if (beneficiaryType === 'Child Under 5') {
+        let entityType = entityTypeByProgram(program, beneficiaryType);
 
-    if (entityType === 'NG - TSFP Child') {
-        criteriaType = ['muac', 'whz'];
-    } else {
-        if (entityType === 'NG - OTP Child') {
-            criteriaType = childrenUnder5Criteria;
+        if (entityType === 'TSFP') {
+            criteriaType = ['muac', 'whz'];
+        } else {
+            if (entityType === 'OTP') {
+                criteriaType = childrenUnder5Criteria;
+            }
         }
     }
-
     let types: any = {
         new_case: criteriaType,
         referred_from_sc_itp: program.includes('OTP')
@@ -241,6 +264,8 @@ const admissionTypeWithCriteria = (program: string) => {
         referred_from_tsfp: program.includes('TSFP') ? criteriaType : undefined,
         relapse: criteriaType,
         readmission_as_non_respondent: criteriaType,
+        readmison_non_respondent: criteriaType,
+        readmission_non_respondent: criteriaType,
         returned_from_sc: criteriaType,
         transfer_from_other_tsfp: criteriaType,
         referred_from_otp: criteriaType,
