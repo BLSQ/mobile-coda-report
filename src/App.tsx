@@ -204,7 +204,7 @@ function App() {
                                     onChange={setEndDate}
                                     value={endDate}
                                     minDate={startDate}
-                                    //maxDate={new Date()}
+                                    maxDate={new Date()}
                                 />
                             </div>
                         </div>
