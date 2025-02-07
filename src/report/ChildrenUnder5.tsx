@@ -2,6 +2,8 @@ import Entity from '../entity/Entity';
 import { dataCategory, assistanceGiven } from '../utils/DataFilter';
 import { ReportContent } from './ReportContent';
 import { RationData } from './RationData';
+import { categoryWithData } from '../utils/DataFilter';
+import { Summary } from './Summary';
 
 const root = {
     width: '100%',
@@ -34,6 +36,15 @@ function ChildrenUnder5(
         'rationGiven',
         entityType,
     );
+    const discharged = categoryWithData(
+        entities,
+        program,
+        'Discharges',
+        startDate,
+        endDate,
+        entityType,
+    );
+
     return (
         <div style={root}>
             <div>
@@ -50,6 +61,8 @@ function ChildrenUnder5(
                     <div>
                         <RationData {...rationsGivens} />
                     </div>
+                    <br />
+                    <div>{Summary(discharged)}</div>
                 </div>
             </div>
         </div>

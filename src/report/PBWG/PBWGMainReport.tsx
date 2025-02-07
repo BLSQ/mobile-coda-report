@@ -2,6 +2,8 @@ import Entity from '../../entity/Entity';
 import { dataCategory, assistanceGiven } from '../../utils/DataFilter';
 import { ReportPBWGContent } from './ReportPBWGContent';
 import { RationData } from '../RationData';
+import { Summary } from '../Summary';
+import { categoryWithData } from '../../utils/DataFilter';
 
 const root = {
     width: '100%',
@@ -35,6 +37,15 @@ function PBWGMainReport(
         entityType,
     );
 
+    const discharged = categoryWithData(
+        entities,
+        program,
+        'Discharges',
+        startDate,
+        endDate,
+        entityType,
+    );
+
     return (
         <div style={root}>
             <div>
@@ -54,6 +65,9 @@ function PBWGMainReport(
                     <div>
                         <RationData {...rationsGivens} />
                     </div>
+
+                    <br />
+                    <div>{Summary(discharged)}</div>
                 </div>
             </div>
         </div>

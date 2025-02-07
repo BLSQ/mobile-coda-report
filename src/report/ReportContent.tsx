@@ -89,66 +89,73 @@ const ReportContent = (category: any): any => {
                 </thead>
 
                 <tbody style={table}>
-                    {category?.rows?.map((subCategory: any) => {
-                        const boyBetween6And23 =
-                            subCategory.between6And23[0] ?? 0;
-                        const girlBetween6And23 =
-                            subCategory.between6And23[1] ?? 0;
-                        const boyBetween24And59 =
-                            subCategory.between24And59[0] ?? 0;
-                        const girlBetween24And59 =
-                            subCategory.between24And59[1] ?? 0;
-                        between6And23 += boyBetween6And23 + girlBetween6And23;
-                        between24And59 +=
-                            boyBetween24And59 + girlBetween24And59;
-                        const boys = boyBetween6And23 + boyBetween24And59;
-                        const girls = girlBetween6And23 + girlBetween24And59;
-                        let key = '';
-                        if (subCategory && subCategory.admissionType) {
-                            if (
-                                subCategory?.program === 'TSFP' &&
-                                subCategory.admissionType ===
-                                    'referred_from_other_otp'
-                            ) {
-                                subCategory.admissionType = 'referred_from_otp';
+                    {category?.rows
+                        ?.filter(
+                            (row: { key: string }) => row.key !== 'absentees',
+                        )
+                        .map((subCategory: any) => {
+                            const boyBetween6And23 =
+                                subCategory.between6And23[0] ?? 0;
+                            const girlBetween6And23 =
+                                subCategory.between6And23[1] ?? 0;
+                            const boyBetween24And59 =
+                                subCategory.between24And59[0] ?? 0;
+                            const girlBetween24And59 =
+                                subCategory.between24And59[1] ?? 0;
+                            between6And23 +=
+                                boyBetween6And23 + girlBetween6And23;
+                            between24And59 +=
+                                boyBetween24And59 + girlBetween24And59;
+                            const boys = boyBetween6And23 + boyBetween24And59;
+                            const girls =
+                                girlBetween6And23 + girlBetween24And59;
+                            let key = '';
+                            if (subCategory && subCategory.admissionType) {
+                                if (
+                                    subCategory?.program === 'TSFP' &&
+                                    subCategory.admissionType ===
+                                        'referred_from_other_otp'
+                                ) {
+                                    subCategory.admissionType =
+                                        'referred_from_otp';
+                                }
+                                const admissionType = categoryDictionary(
+                                    subCategory?.admissionType,
+                                );
+                                const admissionCriteria = categoryDictionary(
+                                    subCategory?.admissionCriteria,
+                                );
+                                key = `${admissionType} ${admissionCriteria}`;
+                            } else {
+                                key =
+                                    categoryDictionary(subCategory?.key) ??
+                                    subCategory?.key;
                             }
-                            const admissionType = categoryDictionary(
-                                subCategory?.admissionType,
-                            );
-                            const admissionCriteria = categoryDictionary(
-                                subCategory?.admissionCriteria,
-                            );
-                            key = `${admissionType} ${admissionCriteria}`;
-                        } else {
-                            key =
-                                categoryDictionary(subCategory?.key) ??
-                                subCategory?.key;
-                        }
 
-                        return (
-                            <tr style={table}>
-                                <td style={th}>{key}</td>
-                                <td className="align" style={td}>
-                                    {boyBetween6And23}
-                                </td>
-                                <td className="align" style={td}>
-                                    {girlBetween6And23}
-                                </td>
-                                <td className="align" style={td}>
-                                    {boyBetween24And59}
-                                </td>
-                                <td className="align" style={td}>
-                                    {girlBetween24And59}
-                                </td>
-                                <td className="align" style={td}>
-                                    {boys}
-                                </td>
-                                <td className="align" style={td}>
-                                    {girls}
-                                </td>
-                            </tr>
-                        );
-                    })}
+                            return (
+                                <tr style={table}>
+                                    <td style={th}>{key}</td>
+                                    <td className="align" style={td}>
+                                        {boyBetween6And23}
+                                    </td>
+                                    <td className="align" style={td}>
+                                        {girlBetween6And23}
+                                    </td>
+                                    <td className="align" style={td}>
+                                        {boyBetween24And59}
+                                    </td>
+                                    <td className="align" style={td}>
+                                        {girlBetween24And59}
+                                    </td>
+                                    <td className="align" style={td}>
+                                        {boys}
+                                    </td>
+                                    <td className="align" style={td}>
+                                        {girls}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     {category?.showTotal && (
                         <tr style={table}>
                             <td style={th}>{category?.total?.status}</td>

@@ -123,7 +123,16 @@ const categoryWithData = (
             );
             break;
 
-        case 'Discharges':
+        case 'Discharges':            
+            const absentees = followUpData(entities,program, "absentees", entityType);
+            const allAbsentes = defaulterCases(
+                absentees,
+                startDate,
+                endDate,
+                program,
+            ).filter((entity: any) => entity?.counter === 1);
+       
+
             const defaulters = followUpData(
                 entities,
                 program,
@@ -146,8 +155,10 @@ const categoryWithData = (
                 'non_respondent__int__',
                 1,
             );
-
+            const cured = visitsDataByStatus(entities, "cured__bool__", true);
             mainData[category] = [
+                admissionByStatus(entityType, cured, category, 'cured'),
+                admissionByStatus(entityType, allAbsentes, category, 'absentees'),
                 admissionByStatus(entityType, defaulted, category, 'defaulter'),
                 admissionByStatus(entityType, deathCases, category, 'death'),
                 admissionByStatus(
@@ -351,7 +362,6 @@ const followUpData = (
             forms = pbwgFormsByCategory[status][entityType];
         }
     }
-
     let beneficiariesAdmissions = entities
         ?.map(entity => {
             let visits = orderBy(
@@ -498,6 +508,7 @@ const defaulterCases = (
     let endPeriod = timeStampToDate(endDate.toISOString());
     const anthropometricForms = [
         'Anthropometric visit child',
+        'anthropometric_admission',
         'anthropometric_admission_otp',
         'anthropometric_second_visit_tsfp',
         'anthropometric_second_visit_otp',
@@ -548,7 +559,8 @@ const defaulterCases = (
             );
             const secondNextVisitDate = timeStampToDate(secondNextVisit);
             const currentDate = timeStampToDate(new Date());
-            const currentTime = new Date().getHours();
+            const currentTime = new Date().getHours();      
+
             //check if the beneficiary missed 1 next visit!
             if (
                 nextVisitDate !== '' &&
@@ -574,10 +586,12 @@ const defaulterCases = (
             const daysDiffInTime =
                 new Date().getTime() - new Date(nextVisitDate).getTime();
             const daysDiff = Math.round(daysDiffInTime / (1000 * 3600 * 24));
+
             const sameDiffTime =
                 removeTime(new Date()).getTime() -
                 removeTime(new Date(secondNextVisitDate)).getTime();
             const sameDayDiff = Math.round(sameDiffTime / (1000 * 3600 * 24));
+
             if (
                 secondNextVisitDate !== '' &&
                 startPeriod <= secondNextVisitDate &&
@@ -700,4 +714,5 @@ export {
     visitsLinkedToForms,
     defaulterCases,
     agregatedBeneficiaryFolloWup,
+    categoryWithData
 };
