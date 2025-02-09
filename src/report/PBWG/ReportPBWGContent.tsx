@@ -92,54 +92,60 @@ const ReportPBWGContent = (category: any): any => {
                     </tr>
                 </thead>
                 <tbody style={table}>
-                    {category?.rows?.map((subCategory: any) => {
-                        const pregnantUnder19 = subCategory.under19[0] ?? 0;
-                        const lactatingUnder19 = subCategory.under19[1] || 0;
+                    {category?.rows
+                        ?.filter(
+                            (row: { key: string }) =>
+                                row && row?.key !== 'absentees',
+                        )
+                        ?.map((subCategory: any) => {
+                            const pregnantUnder19 = subCategory.under19[0] ?? 0;
+                            const lactatingUnder19 =
+                                subCategory.under19[1] || 0;
 
-                        const pregnantOver19 = subCategory.over19[0] || 0;
-                        const lactatingOver19 = subCategory.over19[1] || 0;
-                        under19 += pregnantUnder19 + lactatingUnder19;
-                        over19 += pregnantOver19 + lactatingOver19;
-                        let key = '';
+                            const pregnantOver19 = subCategory.over19[0] || 0;
+                            const lactatingOver19 = subCategory.over19[1] || 0;
+                            under19 += pregnantUnder19 + lactatingUnder19;
+                            over19 += pregnantOver19 + lactatingOver19;
+                            let key = '';
 
-                        if (subCategory && subCategory.admissionType) {
-                            const admissionType = categoryDictionary(
-                                subCategory?.admissionType,
+                            if (subCategory && subCategory.admissionType) {
+                                const admissionType = categoryDictionary(
+                                    subCategory?.admissionType,
+                                );
+                                const admissionCriteria = categoryDictionary(
+                                    subCategory?.admissionCriteria,
+                                );
+                                key = `${admissionType} ${admissionCriteria}`;
+                            } else {
+                                key =
+                                    categoryDictionary(subCategory?.key) ??
+                                    subCategory?.key;
+                            }
+
+                            return (
+                                <tr style={table}>
+                                    <td style={th}>{key}</td>
+                                    <td className="align" style={td}>
+                                        {pregnantUnder19}
+                                    </td>
+                                    <td className="align" style={td}>
+                                        {lactatingUnder19}
+                                    </td>
+                                    <td className="align" style={td}>
+                                        {pregnantOver19}
+                                    </td>
+                                    <td className="align" style={td}>
+                                        {lactatingOver19}
+                                    </td>
+                                    <td className="align" style={td}>
+                                        {pregnantUnder19 + pregnantOver19}
+                                    </td>
+                                    <td className="align" style={td}>
+                                        {lactatingUnder19 + lactatingOver19}
+                                    </td>
+                                </tr>
                             );
-                            const admissionCriteria = categoryDictionary(
-                                subCategory?.admissionCriteria,
-                            );
-                            key = `${admissionType} ${admissionCriteria}`;
-                        } else {
-                            key =
-                                categoryDictionary(subCategory?.key) ??
-                                subCategory?.key;
-                        }
-
-                        return (
-                            <tr style={table}>
-                                <td style={th}>{key}</td>
-                                <td className="align" style={td}>
-                                    {pregnantUnder19}
-                                </td>
-                                <td className="align" style={td}>
-                                    {lactatingUnder19}
-                                </td>
-                                <td className="align" style={td}>
-                                    {pregnantOver19}
-                                </td>
-                                <td className="align" style={td}>
-                                    {lactatingOver19}
-                                </td>
-                                <td className="align" style={td}>
-                                    {pregnantUnder19 + pregnantOver19}
-                                </td>
-                                <td className="align" style={td}>
-                                    {lactatingUnder19 + lactatingOver19}
-                                </td>
-                            </tr>
-                        );
-                    })}
+                        })}
                     {category?.showTotal && (
                         <tr style={table}>
                             <td style={th}>{category?.total?.status}</td>
