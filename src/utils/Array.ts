@@ -231,6 +231,7 @@ const categoryDictionary = (key: string) => {
         mebendazole: 'Mebendazole',
         art_given: 'ART',
         vitamins_given: 'Vitamin A',
+        ears_status: 'Ear Discharge'
     };
     return keyValues[key];
 };

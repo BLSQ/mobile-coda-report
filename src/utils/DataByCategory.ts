@@ -63,6 +63,7 @@ let childrenUnder5MedicalStatusByCategory: any = {
         'conjuctivae_palm',
         'eyes',
         'disability_status',
+        'ears_status'
     ],
     Immunization: [
         'fully_immunization',
@@ -251,12 +252,16 @@ const formsByCategory: any = {
             'anthropometric_second_visit_tsfp',
             'Child Medical Admission',
             'Child Medical Follow Up TSFP',
+            'child_medical_admission',
+            'Child Medical Follow Up Visit TSFP'
         ],
         OTP: [
             'anthropometric_admission',
             'anthropometric_second_visit_otp',
             'Child Medical Admission',
             'Child Medical Follow Up OTP',
+            'child_medical_admission',
+            'Child Medical Follow Up Visit OTP'
         ],
     },
 };
@@ -526,6 +531,7 @@ const childrenUnder5MedicalReport = (
         eyes: 'sunken',
         disability_status__bool__: '1',
         respiratory_rate: '',
+        ears_status: 'discharge'
     }).flat();
     let groupDefaultDataByMedicalTypes = groupBy(
         defaultData,
