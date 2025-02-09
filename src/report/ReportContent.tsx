@@ -91,7 +91,8 @@ const ReportContent = (category: any): any => {
                 <tbody style={table}>
                     {category?.rows
                         ?.filter(
-                            (row: { key: string }) => row.key !== 'absentees',
+                            (row: { key: string }) =>
+                                row && row?.key !== 'absentees',
                         )
                         .map((subCategory: any) => {
                             const boyBetween6And23 =
