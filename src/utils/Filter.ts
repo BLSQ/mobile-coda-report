@@ -32,8 +32,8 @@ const filterStepsInPeriod = (
         );
         let nextVisitDate = timeStampToDate(
             step?.values?.next_visit_date__date__ ||
-                step?.values?.new_next_visit__date__ ||
-                step?.values?.next_visit__date__,
+            step?.values?.new_next_visit__date__ ||
+            step?.values?.next_visit__date__,
         );
         let nextVisitDays =
             step?.values?.next_visit_days ??
@@ -142,7 +142,17 @@ const visitsDataByStatus = (
                         response =
                             visit?.values &&
                             visit?.values?.state_consciousness ===
-                                'apatheticpassive';
+                            'apatheticpassive';
+                        break;
+
+                    case 'skin_infections':
+                        value = fieldValue?.replace(/\[|\]/gi, "").split(",");
+                        response = (value && value.length > 0 && !value?.includes("none")) || false;
+                        break;
+
+                    case 'lymph_nodes':
+                        value = fieldValue?.replace(/\[|\]/gi, "").split(",");
+                        response = (value && value.length > 0 && !value?.includes("none")) || false;
                         break;
 
                     default:

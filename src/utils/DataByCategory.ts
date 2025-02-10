@@ -63,7 +63,9 @@ let childrenUnder5MedicalStatusByCategory: any = {
         'conjuctivae_palm',
         'eyes',
         'disability_status',
-        'ears_status'
+        'ears_status',
+        'skin_infections',
+        'lymph_nodes'
     ],
     Immunization: [
         'fully_immunization',
@@ -531,13 +533,14 @@ const childrenUnder5MedicalReport = (
         eyes: 'sunken',
         disability_status__bool__: '1',
         respiratory_rate: '',
-        ears_status: 'discharge'
+        ears_status: 'discharge',
+        skin_infections: "",
+        lymph_nodes: "",
     }).flat();
     let groupDefaultDataByMedicalTypes = groupBy(
         defaultData,
         (visit: any) => visit?.criteria,
     );
-
     let immunizations = visitsDataByFieldList(rows, {
         fully_immunization: '1',
         not_fully_immunization: '1',
