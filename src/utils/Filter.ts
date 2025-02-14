@@ -4,7 +4,7 @@ import { timeStampToDate } from './DateFormatter';
 import { orderBy } from 'lodash';
 
 const stepsLinkedToProgram = (steps: Array<Form>, program: string) => {
-    let orderedStepsByDate = orderBy(steps, ['createdAt'], ['asc']);
+    let orderedStepsByDate = orderBy(steps, ['createdAt'], ['desc']);
     return orderedStepsByDate.filter(
         (step: any) =>
             step?.values?._programme?.includes(program) ||

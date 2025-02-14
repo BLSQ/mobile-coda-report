@@ -121,8 +121,9 @@ const categoryDictionary = (key: string) => {
         returned_defaulter: 'Returned Defaulters',
         relapse: 'Relapse',
         referred_from_sc_itp: 'Transfers in from SC/ITP',
-        referred_from_tsfp: 'Referred from other TSFP by',
+        referred_from_tsfp: 'Referred from TSFP by',
         referred_from_otp: 'Referred from OTP by',
+        transfer_from_other_otp: 'Transfer from OTP ',
         returned_referral: 'Returned Referral',
         readmission_as_non_respondent: 'Readmission as non respondent',
         readmission_non_respondent: 'Readmission as non respondent',
@@ -271,6 +272,7 @@ const admissionTypeWithCriteria = (
         returned_from_sc: criteriaType,
         transfer_from_other_tsfp: criteriaType,
         referred_from_otp: criteriaType,
+        transfer_from_other_otp: criteriaType,
         referred_from_other_tsfp: criteriaType,
     };
     return types;
@@ -288,8 +290,7 @@ let beneficiaryFollowupCategories = (program: string | null) => {
     ];
     if (program?.includes('TSFP')) {
         beneficiaryCategory.push({
-            //key:'_transfer_to_otp',
-            key: 'referred_from_other_otp',
+            key: 'transfer_from_other_otp',
             label: 'Transfer in from OTP',
         });
         beneficiaryCategory.push({

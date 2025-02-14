@@ -123,15 +123,19 @@ const categoryWithData = (
             );
             break;
 
-        case 'Discharges':            
-            const absentees = followUpData(entities,program, "absentees", entityType);
+        case 'Discharges':
+            const absentees = followUpData(
+                entities,
+                program,
+                'absentees',
+                entityType,
+            );
             const allAbsentes = defaulterCases(
                 absentees,
                 startDate,
                 endDate,
                 program,
             ).filter((entity: any) => entity?.counter === 1);
-       
 
             const defaulters = followUpData(
                 entities,
@@ -155,10 +159,15 @@ const categoryWithData = (
                 'non_respondent__int__',
                 1,
             );
-            const cured = visitsDataByStatus(entities, "cured__bool__", true);
+            const cured = visitsDataByStatus(entities, 'cured__bool__', true);
             mainData[category] = [
                 admissionByStatus(entityType, cured, category, 'cured'),
-                admissionByStatus(entityType, allAbsentes, category, 'absentees'),
+                admissionByStatus(
+                    entityType,
+                    allAbsentes,
+                    category,
+                    'absentees',
+                ),
                 admissionByStatus(entityType, defaulted, category, 'defaulter'),
                 admissionByStatus(entityType, deathCases, category, 'death'),
                 admissionByStatus(
@@ -445,12 +454,14 @@ const filterDataByAdmissionType = (
     let admissions = entities.map(entity => {
         let admissionByType = entity.visits.filter(
             (visit: any) =>
+                visit?.values?.new_admission_type === admissionTypeValue ||
                 visit?.values?.admission_type === admissionTypeValue,
         );
         let groupByAdmissionCriteria = groupBy(
             admissionByType,
             (visit: any) =>
-                visit.values?.admission_type +
+                (visit?.values?.new_admission_type ??
+                    visit.values?.admission_type) +
                 ' ' +
                 visit.values?.admission_criteria,
         );
@@ -559,7 +570,7 @@ const defaulterCases = (
             );
             const secondNextVisitDate = timeStampToDate(secondNextVisit);
             const currentDate = timeStampToDate(new Date());
-            const currentTime = new Date().getHours();      
+            const currentTime = new Date().getHours();
 
             //check if the beneficiary missed 1 next visit!
             if (
@@ -571,7 +582,7 @@ const defaulterCases = (
                     anthropometricVisits.filter((visit: any) => {
                         let createdAt = timeStampToDate(
                             visit?.values?.visit_date ??
-                            visit?.values?._visit_date,
+                                visit?.values?._visit_date,
                         );
                         return createdAt === nextVisitDate;
                     });
@@ -650,7 +661,7 @@ const agregatedBeneficiaryFolloWup = (
         'transferred_to_otp',
         'referred_from_other_tsfp',
         'transferred_to_tsfp',
-        'referred_from_other_otp',
+        'transfer_from_other_otp'
     ];
 
     let allData: any[] = [];
@@ -665,10 +676,10 @@ const agregatedBeneficiaryFolloWup = (
     registers
         .filter(
             (entity: any) =>
-                entity?.admissionType !== '' || entity?.exit?.status !== '',
+               entity?.new_admission_type !== '' || entity?.admissionType !== '' || entity?.exit?.status !== '',
         )
         .forEach((entity: any) => {
-            let admissionType = entity?.admissionType ?? '';
+            let admissionType = (entity?.new_admission_type !== '' || entity?.admissionType) || '';
             let status = entity?.exit?.status ?? '';
             const {
                 caretaker_name,
@@ -678,17 +689,19 @@ const agregatedBeneficiaryFolloWup = (
             } = entity?.profile?.values;
             let profile = {
                 id: entity?.id,
-                name: `${entity?.firstName ?? ''} ${entity?.middleName ?? ''} ${entity?.lastName ?? ''
-                    }`,
+                name: `${entity?.firstName ?? ''} ${entity?.middleName ?? ''} ${
+                    entity?.lastName ?? ''
+                }`,
                 age: entity?.age,
                 gender: entity?.gender,
-                careGiver: `${caretaker_name ?? ''} ${caretaker_Last_name ?? ''
-                    }`,
+                careGiver: `${caretaker_name ?? ''} ${
+                    caretaker_Last_name ?? ''
+                }`,
                 registrationNumber: registration_number,
                 registrationDocument: registration_document,
             };
 
-            if (allCategories?.includes(status)) {
+            if (allCategories?.includes(status) || allCategories?.includes(admissionType)) {
                 allData.push({
                     ...profile,
                     status: status,
@@ -714,5 +727,5 @@ export {
     visitsLinkedToForms,
     defaulterCases,
     agregatedBeneficiaryFolloWup,
-    categoryWithData
+    categoryWithData,
 };

@@ -17,8 +17,8 @@ const admissionTypesByCategory: any = {
     'New admissions': ['new_case', 'readmission_as_non_respondent', 'relapse'],
     'Old cases': [
         'returned_defaulter',
-        '_transfer_to_tsfp',
         'referred_from_other_tsfp',
+        'transfer_from_other_otp',
         'referred_from_other_otp',
     ],
     Discharges: ['cured', 'death', 'defaulter', 'non_respondent__int__'],
@@ -65,7 +65,7 @@ let childrenUnder5MedicalStatusByCategory: any = {
         'disability_status',
         'ears_status',
         'skin_infections',
-        'lymph_nodes'
+        'lymph_nodes',
     ],
     Immunization: [
         'fully_immunization',
@@ -172,13 +172,11 @@ const formsByCategory: any = {
         TSFP: [
             'anthropometric_admission',
             'Anthropometric visit child',
-            'anthropometric_second_visit_otp',
             'anthropometric_second_visit_tsfp',
         ],
         OTP: [
             'anthropometric_admission',
             'anthropometric_admission_otp',
-            'anthropometric_second_visit_tsfp',
             'anthropometric_second_visit_otp',
         ],
     },
@@ -255,7 +253,7 @@ const formsByCategory: any = {
             'Child Medical Admission',
             'Child Medical Follow Up TSFP',
             'child_medical_admission',
-            'Child Medical Follow Up Visit TSFP'
+            'Child Medical Follow Up Visit TSFP',
         ],
         OTP: [
             'anthropometric_admission',
@@ -263,7 +261,7 @@ const formsByCategory: any = {
             'Child Medical Admission',
             'Child Medical Follow Up OTP',
             'child_medical_admission',
-            'Child Medical Follow Up Visit OTP'
+            'Child Medical Follow Up Visit OTP',
         ],
     },
 };
@@ -534,8 +532,8 @@ const childrenUnder5MedicalReport = (
         disability_status__bool__: '1',
         respiratory_rate: '',
         ears_status: 'discharge',
-        skin_infections: "",
-        lymph_nodes: "",
+        skin_infections: '',
+        lymph_nodes: '',
     }).flat();
     let groupDefaultDataByMedicalTypes = groupBy(
         defaultData,
@@ -680,7 +678,6 @@ const eRegister = (
         'non_respondent__int__',
         1,
     );
-
     const cured = visitsDataByStatus(initialData, 'cured__bool__', true);
 
     const anthropometricForms = [
@@ -730,7 +727,7 @@ const eRegister = (
             anthropometricForms,
             program,
         );
-        let exitDate = null;
+        let exitDate = visits[visits.length - 1]?.values?._visit_date;
         let exitWeight = discharges && discharges[exit_type]?.exitWeight;
 
         exitDate =
@@ -770,12 +767,15 @@ const eRegister = (
             muac: visits[0]?.values?.muac,
             whzScore: visits[0]?.values?._whz_score,
             admissionType:
+                entity?.visitLinkedToProgram?.values?.new_admission_type ??
                 entity?.visitLinkedToProgram?.values?.admission_type ??
+                visits[0]?.values?.new_admission_type ??
                 visits[0]?.values?.admission_type ??
                 visits[0]?.values?.admission_type_yellow ??
                 visits[0]?.values?.admission_type_red ??
                 entity?.profile?.values?.admission_type,
             admissionChoice:
+                entity?.visitLinkedToProgram?.values?.admission_criteria ??
                 entity?.visitLinkedToProgram?.values?.admission_choice ??
                 visits[0]?.values?.admission_choice ??
                 visits[0]?.values?.admission_criteria_yellow ??
@@ -799,7 +799,8 @@ const eRegister = (
                 discharges[exit_type] &&
                 timeStampToDateString(
                     discharges[exit_type]['exitDate'] ||
-                        discharges[exit_type]['createdAt'],
+                        discharges[exit_type]['createdAt'] ||
+                        visits[visits.length - 1]?.values?._visit_date,
                 ),
             lengthOfStay: lengthOfStay,
             exitMuac:

@@ -112,14 +112,6 @@ const ReportContent = (category: any): any => {
                                 girlBetween6And23 + girlBetween24And59;
                             let key = '';
                             if (subCategory && subCategory.admissionType) {
-                                if (
-                                    subCategory?.program === 'TSFP' &&
-                                    subCategory.admissionType ===
-                                        'referred_from_other_otp'
-                                ) {
-                                    subCategory.admissionType =
-                                        'referred_from_otp';
-                                }
                                 const admissionType = categoryDictionary(
                                     subCategory?.admissionType,
                                 );
