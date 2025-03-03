@@ -5,9 +5,12 @@ import 'react-calendar/dist/Calendar.css';
 import 'react-date-picker/dist/DatePicker.css';
 import DatePicker from 'react-date-picker';
 import { ChildrenUnder5 } from './report/ChildrenUnder5';
+import { PBWGMainReport } from './report/PBWG/PBWGMainReport';
 import { MedicalChildrenUnder5Report } from './report/MedicalChildrenUnder5Report';
+import { PBWGMedicalReport } from './report/PBWG/PBWGMedicalReport';
 import { ERegistry } from './report/ERegistry';
 import { FolloWupCategories } from './report/FollowUpCategories';
+import { PBWGFollowUpCategories } from './report/PBWG/PBWGFollowUpCategories';
 import { beneficiaryFollowupCategories } from './utils/Array';
 import { entitiesWithVisits } from './utils/DataFilter';
 
@@ -55,17 +58,14 @@ function App() {
     const [reportType, setReportType] = useState<string | null>(null);
     const [isValidated, setIsValidated] = useState<boolean | null>(null);
     const [category, setCategory] = useState<string | null>('');
+    const [physiologyStatus, setPhysiologyStatus] = useState<string | null>(
+        null,
+    );
+    let [validateCategory, setValidateCategory] = useState<string | null>(null);
 
     const beneficiaryCategory = beneficiaryFollowupCategories(program);
-    const type = program?.includes('TSFP')
-        ? 'NG - TSFP Child'
-        : program?.includes('OTP')
-        ? 'NG - OTP Child'
-        : null;
     const entitiesByEntityType = allEntities.filter(
-        entity =>
-            entity.entityTypeName === type ||
-            entity.entityTypeName === entityType,
+        entity => entity.entityTypeName === entityType,
     );
     const entities = entitiesWithVisits(
         entitiesByEntityType,
@@ -79,7 +79,7 @@ function App() {
                 <button
                     id="back"
                     className="back"
-                    style={{ visibility: 'visible' }}
+                    style={{ visibility: 'hidden' }}
                     onClick={() => {
                         if (reportType) {
                             setReportType(null);
@@ -89,6 +89,7 @@ function App() {
                             setEntityType(entityType);
                             setIsValidated(true);
                             setCategory('');
+                            setPhysiologyStatus(null);
                         } else if (program) {
                             setProgram(null);
                             setStartDate(startDate);
@@ -97,6 +98,7 @@ function App() {
                             setReportType(reportType);
                             setIsValidated(isValidated);
                             setCategory('');
+                            setPhysiologyStatus(physiologyStatus);
                         } else if (isValidated) {
                             setIsValidated(false);
                             setStartDate(startDate);
@@ -105,6 +107,7 @@ function App() {
                             setReportType(reportType);
                             setProgram(program);
                             setCategory('');
+                            setPhysiologyStatus(physiologyStatus);
                         } else if (startDate && endDate) {
                             setStartDate(null);
                             setEndDate(null);
@@ -113,6 +116,7 @@ function App() {
                             setEntityType(entityType);
                             setIsValidated(false);
                             setCategory('');
+                            setPhysiologyStatus(physiologyStatus);
                         } else if (entityType) {
                             setEntityType(null);
                             setStartDate(startDate);
@@ -121,6 +125,7 @@ function App() {
                             setReportType(reportType);
                             setIsValidated(true);
                             setCategory('');
+                            setPhysiologyStatus(physiologyStatus);
                         } else if (category) {
                             setEntityType(entityType);
                             setStartDate(startDate);
@@ -129,6 +134,28 @@ function App() {
                             setReportType(reportType);
                             setIsValidated(true);
                             setCategory(category);
+                            setPhysiologyStatus(physiologyStatus);
+                            setValidateCategory(null);
+                        } else if (validateCategory) {
+                            setEntityType(entityType);
+                            setStartDate(startDate);
+                            setEndDate(endDate);
+                            setProgram(program);
+                            setReportType(reportType);
+                            setIsValidated(true);
+                            setCategory(category);
+                            setValidateCategory(category);
+                            setPhysiologyStatus(physiologyStatus);
+                        } else if (physiologyStatus) {
+                            setEntityType(entityType);
+                            setStartDate(startDate);
+                            setEndDate(endDate);
+                            setProgram(program);
+                            setReportType(reportType);
+                            setIsValidated(true);
+                            setCategory(category);
+                            setValidateCategory(validateCategory);
+                            setPhysiologyStatus(null);
                         }
                     }}
                 >
@@ -144,10 +171,17 @@ function App() {
                     >
                         Children under 5
                     </button>
+
+                    <button
+                        className="EntityType"
+                        onClick={() => setEntityType('PBWG')}
+                    >
+                        Pregnant and breastfeeding women and girls
+                    </button>
                 </div>
             )}
             {entityType &&
-                ['Child Under 5'].includes(entityType) &&
+                ['Child Under 5', 'PBWG'].includes(entityType) &&
                 (!startDate || !endDate || !isValidated) && (
                     <div>
                         <h1>Choose a period </h1>
@@ -301,15 +335,18 @@ function App() {
                     </div>
                 )}
             {entityType &&
-                entityType === 'Child Under 5' &&
+                ['Child Under 5', 'PBWG']?.includes(entityType) &&
                 startDate &&
                 endDate &&
                 isValidated &&
-                program &&
+                ((program && program !== '') ||
+                    (physiologyStatus && physiologyStatus !== '')) &&
                 reportType &&
-                ['OTP_followup_category', 'TSFP_followup_category'].includes(
-                    reportType,
-                ) && (
+                [
+                    'OTP_followup_category',
+                    'TSFP_followup_category',
+                    'PBWG_followup',
+                ].includes(reportType) && (
                     <div style={selector}>
                         <select
                             style={validatePeriod}
@@ -333,7 +370,13 @@ function App() {
                 program &&
                 reportType &&
                 ((['OTP', 'TSFP'].includes(reportType) &&
-                    ChildrenUnder5(entities, startDate, endDate, program)) ||
+                    ChildrenUnder5(
+                        entities,
+                        startDate,
+                        endDate,
+                        program,
+                        entityType,
+                    )) ||
                     (['medical_OTP', 'medical_TSFP'].includes(reportType) &&
                         MedicalChildrenUnder5Report(
                             entities,
@@ -342,7 +385,14 @@ function App() {
                             program,
                         )) ||
                     (['TSFP_eRegister', 'OTP_eRegister'].includes(reportType) &&
-                        ERegistry(program, entities, startDate, endDate)) ||
+                        ERegistry(
+                            program,
+                            entities,
+                            startDate,
+                            endDate,
+                            'Child Under 5',
+                            '',
+                        )) ||
                     (category !== null &&
                         [
                             'OTP_followup_category',
@@ -354,6 +404,134 @@ function App() {
                             entities,
                             startDate,
                             endDate,
+                            entityType,
+                        )))}
+
+            {entityType &&
+                entityType === 'PBWG' &&
+                startDate &&
+                endDate &&
+                isValidated &&
+                !program &&
+                !reportType && (
+                    <div>
+                        <h4 style={period}>
+                            Period to report:{' '}
+                            {`${startDate.toDateString()} to ${endDate.toDateString()}`}
+                        </h4>
+                        <h2> Choose the report type for {entityType} </h2>
+                        <button
+                            className="EntityType"
+                            onClick={() => setReportType('TSFP')}
+                        >
+                            TSFP
+                        </button>
+
+                        <button
+                            className="EntityType"
+                            onClick={() => setReportType('medical')}
+                        >
+                            Medical
+                        </button>
+                        <button
+                            className="EntityType"
+                            onClick={() => setReportType('PBWG_followup')}
+                        >
+                            Followup category
+                        </button>
+                        <button
+                            className="EntityType"
+                            onClick={() => setReportType('PBWG_eRegister')}
+                        >
+                            eRegister
+                        </button>
+                    </div>
+                )}
+
+            {
+                //physiologyStatus
+                entityType &&
+                    entityType === 'PBWG' &&
+                    startDate &&
+                    endDate &&
+                    isValidated &&
+                    reportType &&
+                    //program &&
+                    ['PBWG_followup', 'PBWG_eRegister']?.includes(reportType) &&
+                    (!physiologyStatus || physiologyStatus == null) && (
+                        <div>
+                            <h4 style={period}>
+                                Period to report:{' '}
+                                {`${startDate.toDateString()} to ${endDate.toDateString()}`}
+                            </h4>
+                            <h2> Choose the physiology type </h2>
+                            <button
+                                className="EntityType"
+                                onClick={() => setPhysiologyStatus('pregnant')}
+                            >
+                                Pregnant
+                            </button>
+
+                            <button
+                                className="EntityType"
+                                onClick={() =>
+                                    setPhysiologyStatus('breastfeeding')
+                                }
+                            >
+                                Breastfeeding
+                            </button>
+                        </div>
+                    )
+            }
+
+            {entityType &&
+                entityType === 'PBWG' &&
+                startDate &&
+                endDate &&
+                isValidated &&
+                //program &&
+                reportType &&
+                ((['TSFP'].includes(reportType) &&
+                    PBWGMainReport(
+                        entities,
+                        startDate,
+                        endDate,
+                        reportType,
+                        entityType,
+                    )) ||
+                    (['medical'].includes(reportType) &&
+                        PBWGMedicalReport(
+                            entities,
+                            startDate,
+                            endDate,
+                            'TSFP',
+                        )) ||
+                    (physiologyStatus &&
+                        category !== null &&
+                        ['PBWG_followup'].includes(reportType) &&
+                        PBWGFollowUpCategories(
+                            category,
+                            'TSFP',
+                            entities,
+                            startDate,
+                            endDate,
+                            entityType,
+                            physiologyStatus,
+                        )) ||
+                    (physiologyStatus &&
+                        ['PBWG_eRegister'].includes(reportType) &&
+                        ERegistry(
+                            'TSFP',
+                            entities?.filter(
+                                entity =>
+                                    entity?.profile?.values
+                                        ?.physiology_status ===
+                                    physiologyStatus,
+                            ),
+                            startDate,
+                            endDate,
+                            entityType,
+                            physiologyStatus,
                         )))}
         </div>
     );

@@ -1,5 +1,6 @@
-import { agregatedBeneficiaryFolloWup } from '../utils/DataFilter';
-import { BeneficiariesFollowup } from './BeneficiariesFollowup';
+import { BeneficiariesFollowup } from '../BeneficiariesFollowup';
+import { agregatedBeneficiaryFolloWup } from '../../utils/DataFilter';
+import { categoryDictionary } from '../../utils/Array';
 
 const root = {
     width: '100%',
@@ -8,18 +9,23 @@ const root = {
     fontSize: '13.5px',
 } as const;
 
-const FolloWupCategories = (
+const PBWGFollowUpCategories = (
     category: string,
     program: string,
     entities: Array<any>,
     startDate: Date,
     endDate: Date,
     entityType: string,
+    physiologyStatus: string,
 ) => {
     const dateValue = `${startDate.toDateString()} to ${endDate.toDateString()}`;
+    let beneficiariesFollowup = entities?.filter(
+        entity =>
+            entity?.profile?.values?.physiology_status === physiologyStatus,
+    );
     let beneficiaries = agregatedBeneficiaryFolloWup(
         program,
-        entities,
+        beneficiariesFollowup,
         startDate,
         endDate,
         entityType,
@@ -34,7 +40,9 @@ const FolloWupCategories = (
     return (
         <div style={root}>
             <div>
-                <h3>{`${program} beneficiary followup`}</h3>
+                <h3>{`${categoryDictionary(
+                    physiologyStatus,
+                )} admitted to ${program}`}</h3>
                 <h3>{dateValue}</h3>
                 {BeneficiariesFollowup(beneficiaries, category)}
             </div>
@@ -42,4 +50,4 @@ const FolloWupCategories = (
         </div>
     );
 };
-export { FolloWupCategories };
+export { PBWGFollowUpCategories };

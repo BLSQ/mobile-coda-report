@@ -1,9 +1,9 @@
-import Entity from '../entity/Entity';
-import { dataCategory, assistanceGiven } from '../utils/DataFilter';
-import { ReportContent } from './ReportContent';
-import { RationData } from './RationData';
-import { categoryWithData } from '../utils/DataFilter';
-import { Summary } from './Summary';
+import Entity from '../../entity/Entity';
+import { dataCategory, assistanceGiven } from '../../utils/DataFilter';
+import { ReportPBWGContent } from './ReportPBWGContent';
+import { RationData } from '../RationData';
+import { Summary } from '../Summary';
+import { categoryWithData } from '../../utils/DataFilter';
 
 const root = {
     width: '100%',
@@ -13,7 +13,7 @@ const root = {
     textAlign: 'center',
 } as const;
 
-function ChildrenUnder5(
+function PBWGMainReport(
     entities: Array<Entity>,
     startDate: Date,
     endDate: Date,
@@ -36,6 +36,7 @@ function ChildrenUnder5(
         'rationGiven',
         entityType,
     );
+
     const discharged = categoryWithData(
         entities,
         program,
@@ -51,9 +52,12 @@ function ChildrenUnder5(
                 <h3>{`Report ${program}`} </h3>
                 <h3> {dateValue} </h3>
                 <div>
+                    <br />
                     <div>
                         {categories.map((category: any) => {
-                            return <ReportContent showTotal {...category} />;
+                            return (
+                                <ReportPBWGContent showTotal {...category} />
+                            );
                         })}
                     </div>
                     <br />
@@ -61,6 +65,7 @@ function ChildrenUnder5(
                     <div>
                         <RationData {...rationsGivens} />
                     </div>
+
                     <br />
                     <div>{Summary(discharged)}</div>
                 </div>
@@ -68,4 +73,4 @@ function ChildrenUnder5(
         </div>
     );
 }
-export { ChildrenUnder5 };
+export { PBWGMainReport };

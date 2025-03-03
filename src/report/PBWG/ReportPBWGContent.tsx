@@ -1,4 +1,4 @@
-import { categoryDictionary } from '../utils/Array';
+import { categoryDictionary } from '../../utils/Array';
 
 const root = {
     width: '100%',
@@ -23,47 +23,51 @@ const td = {
     border: '1pt solid black',
 } as const;
 
-const ReportContent = (category: any): any => {
-    let between6And23 = 0;
-    let between24And59 = 0;
+const ReportPBWGContent = (category: any): any => {
+    let under19 = 0;
+    let over19 = 0;
+
     return (
         <div style={root}>
             <br />
             <div>{category?.category} </div>
+
             <table style={table}>
                 <thead style={table}>
                     <tr style={table}>
-                        <th style={table}> Months </th>
+                        <th style={table}>Year</th>
+
                         <th colSpan={2} style={td}>
                             <table width={72}>
                                 <tr style={td}>
                                     <td colSpan={2} style={td}>
-                                        6 - 23
+                                        {'<= 19'}
                                     </td>
                                 </tr>
                                 <tr style={td}>
                                     <td className="align" style={td}>
-                                        M
+                                        P
                                     </td>
                                     <td className="align" style={td}>
-                                        F
+                                        L
                                     </td>
                                 </tr>
                             </table>
                         </th>
+
                         <th colSpan={2} style={td}>
                             <table width={72}>
                                 <tr style={table}>
                                     <td colSpan={2} style={td}>
-                                        24-59
+                                        {'> 19'}
                                     </td>
                                 </tr>
                                 <tr style={table}>
                                     <td className="align" style={td}>
-                                        M
+                                        P
                                     </td>
                                     <td className="align" style={td}>
-                                        F
+                                        L
                                     </td>
                                 </tr>
                             </table>
@@ -77,40 +81,33 @@ const ReportContent = (category: any): any => {
                                 </tr>
                                 <tr style={table}>
                                     <td className="align" style={td}>
-                                        M
+                                        P
                                     </td>
                                     <td className="align" style={td}>
-                                        F
+                                        L
                                     </td>
                                 </tr>
                             </table>
                         </th>
                     </tr>
                 </thead>
-
                 <tbody style={table}>
                     {category?.rows
                         ?.filter(
                             (row: { key: string }) =>
                                 row && row?.key !== 'absentees',
                         )
-                        .map((subCategory: any) => {
-                            const boyBetween6And23 =
-                                subCategory.between6And23[0] ?? 0;
-                            const girlBetween6And23 =
-                                subCategory.between6And23[1] ?? 0;
-                            const boyBetween24And59 =
-                                subCategory.between24And59[0] ?? 0;
-                            const girlBetween24And59 =
-                                subCategory.between24And59[1] ?? 0;
-                            between6And23 +=
-                                boyBetween6And23 + girlBetween6And23;
-                            between24And59 +=
-                                boyBetween24And59 + girlBetween24And59;
-                            const boys = boyBetween6And23 + boyBetween24And59;
-                            const girls =
-                                girlBetween6And23 + girlBetween24And59;
+                        ?.map((subCategory: any) => {
+                            const pregnantUnder19 = subCategory.under19[0] ?? 0;
+                            const lactatingUnder19 =
+                                subCategory.under19[1] || 0;
+
+                            const pregnantOver19 = subCategory.over19[0] || 0;
+                            const lactatingOver19 = subCategory.over19[1] || 0;
+                            under19 += pregnantUnder19 + lactatingUnder19;
+                            over19 += pregnantOver19 + lactatingOver19;
                             let key = '';
+
                             if (subCategory && subCategory.admissionType) {
                                 const admissionType = categoryDictionary(
                                     subCategory?.admissionType,
@@ -129,22 +126,22 @@ const ReportContent = (category: any): any => {
                                 <tr style={table}>
                                     <td style={th}>{key}</td>
                                     <td className="align" style={td}>
-                                        {boyBetween6And23}
+                                        {pregnantUnder19}
                                     </td>
                                     <td className="align" style={td}>
-                                        {girlBetween6And23}
+                                        {lactatingUnder19}
                                     </td>
                                     <td className="align" style={td}>
-                                        {boyBetween24And59}
+                                        {pregnantOver19}
                                     </td>
                                     <td className="align" style={td}>
-                                        {girlBetween24And59}
+                                        {lactatingOver19}
                                     </td>
                                     <td className="align" style={td}>
-                                        {boys}
+                                        {pregnantUnder19 + pregnantOver19}
                                     </td>
                                     <td className="align" style={td}>
-                                        {girls}
+                                        {lactatingUnder19 + lactatingOver19}
                                     </td>
                                 </tr>
                             );
@@ -153,20 +150,21 @@ const ReportContent = (category: any): any => {
                         <tr style={table}>
                             <td style={th}>{category?.total?.status}</td>
                             <td colSpan={2} className="align" style={td}>
-                                {between6And23}
+                                {under19}
                             </td>
                             <td colSpan={2} className="align" style={td}>
-                                {between24And59}
+                                {over19}
                             </td>
                             <td colSpan={2} className="align" style={td}>
-                                {between6And23 + between24And59}
+                                {under19 + over19}
                             </td>
                         </tr>
                     )}
                 </tbody>
             </table>
+            <br />
         </div>
     );
 };
 
-export { ReportContent };
+export { ReportPBWGContent };
