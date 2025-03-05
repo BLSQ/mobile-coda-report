@@ -1,6 +1,6 @@
-import Entity from '../entity/Entity';
-import { medicalReports } from '../utils/DataByCategory';
-import { ReportContent } from './ReportContent';
+import Entity from '../../entity/Entity';
+import { medicalReports } from '../../utils/DataByCategory';
+import { ReportPBWGContent } from './ReportPBWGContent';
 
 const root = {
     width: '100%',
@@ -10,7 +10,7 @@ const root = {
     textAlign: 'center',
 } as const;
 
-const MedicalChildrenUnder5Report = (
+const PBWGMedicalReport = (
     entities: Array<Entity>,
     startDate: Date,
     endDate: Date,
@@ -22,18 +22,18 @@ const MedicalChildrenUnder5Report = (
         program,
         startDate,
         endDate,
-        'Child Under 5',
+        'PBWG',
     );
 
     return (
         <div style={root}>
             <div>
-                <h3>{`Medical Report ${program}`} </h3>
+                <h3>{`${program} Report `} </h3>
                 <h3> {dateValue} </h3>
                 <div>
                     <div>
                         {medicalData.map((category: any) => {
-                            return <ReportContent {...category} />;
+                            return <ReportPBWGContent {...category} />;
                         })}
                     </div>
                 </div>
@@ -41,4 +41,4 @@ const MedicalChildrenUnder5Report = (
         </div>
     );
 };
-export { MedicalChildrenUnder5Report };
+export { PBWGMedicalReport };
