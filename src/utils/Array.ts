@@ -1,30 +1,12 @@
 import Entity from '../entity/Entity';
 import { sumBy } from 'lodash';
+import { countryConfig } from '../config/country';
 
 const groupBy = <T, K extends keyof any>(arr: T[], key: (i: T) => K) =>
     arr.reduce((groups, item) => {
         (groups[key(item)] ||= []).push(item);
         return groups;
     }, {} as Record<K, T[]>);
-
-const entityTypeByProgram = (program: string, type: string): string => {
-    let entityType = '';
-    if (type === 'Child Under 5') {
-        if (program === 'TSFP_MAM' || program === 'TSFP') {
-            entityType = 'TSFP';
-        } else {
-            if (program === 'OTP_SAM' || program === 'OTP') {
-                entityType = 'OTP';
-            }
-        }
-    } else {
-        if (type === undefined || type === 'PBWG') {
-            entityType = 'TSFP';
-        }
-    }
-
-    return entityType;
-};
 
 const sumByAge = (
     entities: Array<Entity>,
@@ -90,9 +72,10 @@ const defaultEmptyDataByCategory = (
                 over19: [0, 0],
             };
         }
-        let admittedByCriteria = admissionTypeWithCriteria(program, null)[
-            category
-        ];
+        let admittedByCriteria = countryConfig.admissionTypeWithCriteria(
+            program,
+            null,
+        )[category];
 
         if (admittedByCriteria && admittedByCriteria !== undefined) {
             let rows = admittedByCriteria?.map((criteria: string) => {
@@ -116,6 +99,10 @@ const defaultEmptyDataByCategory = (
 const categoryDictionary = (key: string) => {
     let keyValues: any = {
         new_case: 'New case',
+        new_case_MUAC: 'New admission (MUAC <11.5 cm)',
+        new_case_WHZ: 'New admission (WHZ scores <-3SD)',
+        new_case_MUAC_WHZ: 'New admission (Both WHZ and MUAC)',
+        new_case_OEDEMA: 'New admission (Oedema + or ++)',
         referred_from_other_otp: 'Referred from other OTP by',
         referred_from_other_tsfp: 'Referred from other TSFP by',
         returned_defaulter: 'Returned Defaulters',
@@ -148,6 +135,7 @@ const categoryDictionary = (key: string) => {
         incomplete: 'Incomplete',
         complete: 'Complete',
         'motherdoesnot recall': 'No idea',
+        motherdoesnotrecall: 'Mother does not recall',
         palmar_pallor: 'Palmar Pallor',
         conjuctivae_palm: 'Conjuctivae Palm',
         eyes_infection: 'Eyes Infection',
@@ -217,6 +205,7 @@ const categoryDictionary = (key: string) => {
         pregnant: 'Pregnant',
         returnee: 'Returnee',
         muac: 'MUAC',
+        muac_whz: 'MUAC & WHZ',
         oedema: 'Oedema',
         other: 'Other',
         birthregistration: 'Birth Registration',
@@ -233,49 +222,12 @@ const categoryDictionary = (key: string) => {
         mebendazole: 'Mebendazole',
         art_given: 'ART',
         vitamins_given: 'Vitamin A',
-        ears_status: 'Ear Discharge'
+        ears_status: 'Ear Discharge',
+        wsb: 'Super Cerial Plus/WSB+',
+        wsbp: 'Super Cereal Plus/WSB++',
+        lns_mq: 'LNS-MQ',
     };
     return keyValues[key];
-};
-
-const childrenUnder5Criteria = ['muac', 'oedema', 'whz'];
-
-const admissionTypeWithCriteria = (
-    program: string,
-    beneficiaryType: string | null,
-) => {
-    let criteriaType: any = ['child_wasted', 'muac'];
-    if (beneficiaryType === 'Child Under 5') {
-        let entityType = entityTypeByProgram(program, beneficiaryType);
-
-        if (entityType === 'TSFP') {
-            criteriaType = ['muac', 'whz'];
-        } else {
-            if (entityType === 'OTP') {
-                criteriaType = childrenUnder5Criteria;
-            }
-        }
-    }
-    let types: any = {
-        new_case: criteriaType,
-        referred_from_sc_itp: program.includes('OTP')
-            ? criteriaType
-            : undefined,
-        returned_referral: program.includes('TSFP') ? criteriaType : [],
-        returned_defaulter: criteriaType,
-        referred_from_other_otp: criteriaType,
-        referred_from_tsfp: program.includes('TSFP') ? criteriaType : undefined,
-        relapse: criteriaType,
-        readmission_as_non_respondent: criteriaType,
-        readmison_non_respondent: criteriaType,
-        readmission_non_respondent: criteriaType,
-        returned_from_sc: criteriaType,
-        transfer_from_other_tsfp: criteriaType,
-        referred_from_otp: criteriaType,
-        transfer_from_other_otp: criteriaType,
-        referred_from_other_tsfp: criteriaType,
-    };
-    return types;
 };
 
 let beneficiaryFollowupCategories = (program: string | null) => {
@@ -318,8 +270,6 @@ export {
     categoryDictionary,
     sumByAgeOnField,
     defaultEmptyDataByCategory,
-    admissionTypeWithCriteria,
-    entityTypeByProgram,
     sumByFieldValues,
     beneficiaryFollowupCategories,
 };
