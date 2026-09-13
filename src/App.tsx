@@ -1,16 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import './App.css';
-import LoadForms from './Android';
+import LoadFormsForEntityType from './Android';
+import Entity from './entity/Entity';
+import Form from './entity/Form';
 import 'react-calendar/dist/Calendar.css';
 import 'react-date-picker/dist/DatePicker.css';
 import DatePicker from 'react-date-picker';
-import { ChildrenUnder5 } from './report/ChildrenUnder5';
-import { PBWGMainReport } from './report/PBWG/PBWGMainReport';
-import { MedicalChildrenUnder5Report } from './report/MedicalChildrenUnder5Report';
-import { PBWGMedicalReport } from './report/PBWG/PBWGMedicalReport';
-import { ERegistry } from './report/ERegistry';
-import { FolloWupCategories } from './report/FollowUpCategories';
-import { PBWGFollowUpCategories } from './report/PBWG/PBWGFollowUpCategories';
+import { reportConfig, ReportContext } from './config/reportConfig';
 import { beneficiaryFollowupCategories } from './utils/Array';
 import { entitiesWithVisits } from './utils/DataFilter';
 
@@ -50,7 +46,6 @@ const validatePeriod = {
 } as const;
 
 function App() {
-    const allEntities = LoadForms();
     const [entityType, setEntityType] = useState<string | null>(null);
     const [startDate, setStartDate] = useState<any>(null);
     const [endDate, setEndDate] = useState<any>(null);
@@ -61,127 +56,140 @@ function App() {
     const [physiologyStatus, setPhysiologyStatus] = useState<string | null>(
         null,
     );
-    let [validateCategory, setValidateCategory] = useState<string | null>(null);
+    const [allForms, setAllForms] = useState<Form[]>([]);
+    const [allEntities, setAllEntities] = useState<Entity[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+
+    // Fetches only the submissions for the chosen beneficiary type — the
+    // bridge call is scoped to `entityType`, so this re-runs each time the
+    // user picks a different one (including back to null, which resolves
+    // immediately with nothing to show).
+    useEffect(() => {
+        setIsLoading(true);
+        LoadFormsForEntityType(entityType, ({ forms, entities }) => {
+            setAllForms(forms);
+            setAllEntities(entities);
+            setIsLoading(false);
+        });
+    }, [entityType]);
 
     const beneficiaryCategory = beneficiaryFollowupCategories(program);
-    const entitiesByEntityType = allEntities.filter(
-        entity => entity.entityTypeName === entityType,
+    const entities = useMemo(
+        () => entitiesWithVisits(allEntities, startDate, endDate),
+        [allEntities, startDate, endDate],
     );
-    const entities = entitiesWithVisits(
-        entitiesByEntityType,
-        startDate,
-        endDate,
+
+    const entityTypeConfig =
+        reportConfig.find(option => option.key === entityType) ?? null;
+    // Child Under 5 asks for a program (TSFP/OTP/BSFP) before showing
+    // report types; PBWG has no program step and goes straight to its
+    // report options.
+    const needsProgramStep = !!entityTypeConfig?.programs;
+    const programConfig = needsProgramStep
+        ? entityTypeConfig?.programs?.find(option => option.key === program) ??
+          null
+        : entityTypeConfig;
+    // Mirrors the original per-entity-type rule: Child Under 5 needs a
+    // program selected before showing report types; PBWG has no program
+    // step at all, so it must stay unset.
+    const programStepSatisfied = needsProgramStep ? !!program : !program;
+    const reportOption =
+        programConfig?.reportOptions?.find(
+            option => option.key === reportType,
+        ) ?? null;
+    // A report is ready to render once its option is selected and, if it
+    // needs one, a physiology status has been chosen.
+    const gatesSatisfied =
+        !!reportOption &&
+        (!reportOption.needsPhysiologyStatus || !!physiologyStatus);
+
+    const reportContext: ReportContext = useMemo(
+        () => ({
+            entities,
+            forms: allForms,
+            startDate,
+            endDate,
+            program: program ?? '',
+            reportType: reportType ?? '',
+            entityType: entityType ?? '',
+            category: category ?? '',
+            physiologyStatus,
+        }),
+        [
+            entities,
+            allForms,
+            startDate,
+            endDate,
+            program,
+            reportType,
+            entityType,
+            category,
+            physiologyStatus,
+        ],
+    );
+    // The heaviest computation in the app (each report crunches the full
+    // entity/visit list) — worth skipping when neither the resolved report
+    // option nor its context actually changed.
+    const renderedReport = useMemo(
+        () => (gatesSatisfied ? reportOption?.render(reportContext) : null),
+        [gatesSatisfied, reportOption, reportContext],
     );
 
     return (
         <div className="App">
+            {isLoading && (
+                <div className="Loading">
+                    We are fetching the data, please wait.
+                </div>
+            )}
             {entityType && (
                 <button
                     id="back"
                     className="back"
                     style={{ visibility: 'hidden' }}
                     onClick={() => {
+                        // `entityType` is always truthy here (this button
+                        // only renders once it's set), so it's the
+                        // guaranteed fallthrough once the earlier steps are
+                        // cleared — each step is undone in turn, one per
+                        // click, and the category filter always resets.
                         if (reportType) {
                             setReportType(null);
-                            setStartDate(startDate);
-                            setEndDate(endDate);
-                            setProgram(program);
-                            setEntityType(entityType);
-                            setIsValidated(true);
-                            setCategory('');
                             setPhysiologyStatus(null);
                         } else if (program) {
                             setProgram(null);
-                            setStartDate(startDate);
-                            setEndDate(endDate);
-                            setEntityType(entityType);
-                            setReportType(reportType);
-                            setIsValidated(isValidated);
-                            setCategory('');
-                            setPhysiologyStatus(physiologyStatus);
                         } else if (isValidated) {
                             setIsValidated(false);
-                            setStartDate(startDate);
-                            setEndDate(endDate);
-                            setEntityType(entityType);
-                            setReportType(reportType);
-                            setProgram(program);
-                            setCategory('');
-                            setPhysiologyStatus(physiologyStatus);
                         } else if (startDate && endDate) {
                             setStartDate(null);
                             setEndDate(null);
-                            setProgram(program);
-                            setReportType(reportType);
-                            setEntityType(entityType);
-                            setIsValidated(false);
-                            setCategory('');
-                            setPhysiologyStatus(physiologyStatus);
                         } else if (entityType) {
                             setEntityType(null);
-                            setStartDate(startDate);
-                            setEndDate(endDate);
-                            setProgram(program);
-                            setReportType(reportType);
-                            setIsValidated(true);
-                            setCategory('');
-                            setPhysiologyStatus(physiologyStatus);
-                        } else if (category) {
-                            setEntityType(entityType);
-                            setStartDate(startDate);
-                            setEndDate(endDate);
-                            setProgram(program);
-                            setReportType(reportType);
-                            setIsValidated(true);
-                            setCategory(category);
-                            setPhysiologyStatus(physiologyStatus);
-                            setValidateCategory(null);
-                        } else if (validateCategory) {
-                            setEntityType(entityType);
-                            setStartDate(startDate);
-                            setEndDate(endDate);
-                            setProgram(program);
-                            setReportType(reportType);
-                            setIsValidated(true);
-                            setCategory(category);
-                            setValidateCategory(category);
-                            setPhysiologyStatus(physiologyStatus);
-                        } else if (physiologyStatus) {
-                            setEntityType(entityType);
-                            setStartDate(startDate);
-                            setEndDate(endDate);
-                            setProgram(program);
-                            setReportType(reportType);
-                            setIsValidated(true);
-                            setCategory(category);
-                            setValidateCategory(validateCategory);
-                            setPhysiologyStatus(null);
                         }
+                        setCategory('');
                     }}
                 >
                     &lt;back
                 </button>
             )}
+
             {!entityType && (
                 <div>
                     <h1>Choose beneficiary type </h1>
-                    <button
-                        className="EntityType"
-                        onClick={() => setEntityType('Child Under 5')}
-                    >
-                        Children under 5
-                    </button>
-
-                    <button
-                        className="EntityType"
-                        onClick={() => setEntityType('PBWG')}
-                    >
-                        Pregnant and breastfeeding women and girls
-                    </button>
+                    {reportConfig.map(option => (
+                        <button
+                            key={option.key}
+                            className="EntityType"
+                            onClick={() => setEntityType(option.key)}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
                 </div>
             )}
+
             {entityType &&
-                ['Child Under 5', 'PBWG'].includes(entityType) &&
+                entityTypeConfig &&
                 (!startDate || !endDate || !isValidated) && (
                     <div>
                         <h1>Choose a period </h1>
@@ -224,7 +232,7 @@ function App() {
                 )}
 
             {entityType &&
-                entityType === 'Child Under 5' &&
+                needsProgramStep &&
                 startDate &&
                 endDate &&
                 isValidated &&
@@ -235,118 +243,53 @@ function App() {
                             {`${startDate.toDateString()} to ${endDate.toDateString()}`}
                         </h4>
                         <h2> Choose the program </h2>
-                        <button
-                            className="EntityType"
-                            onClick={() => setProgram('TSFP')}
-                        >
-                            TSFP
-                        </button>
-                        <button
-                            className="EntityType"
-                            onClick={() => setProgram('OTP')}
-                        >
-                            OTP
-                        </button>
+                        {entityTypeConfig?.programs?.map(option => (
+                            <button
+                                key={option.key}
+                                className="EntityType"
+                                onClick={() => setProgram(option.key)}
+                            >
+                                {option.label}
+                            </button>
+                        ))}
                     </div>
                 )}
 
             {entityType &&
-                entityType === 'Child Under 5' &&
+                programConfig &&
                 startDate &&
                 endDate &&
                 isValidated &&
-                program &&
+                programStepSatisfied &&
                 !reportType && (
                     <div>
                         <h4 style={period}>
                             Period to report:{' '}
                             {`${startDate.toDateString()} to ${endDate.toDateString()}`}
                         </h4>
-                        <h2> Choose the report type for {program} </h2>
-                        {program.includes('TSFP') && !reportType && (
-                            <div>
-                                <button
-                                    className="EntityType"
-                                    onClick={() => setReportType('TSFP')}
-                                >
-                                    Main Report
-                                </button>
-                                <button
-                                    className="EntityType"
-                                    onClick={() =>
-                                        setReportType('medical_TSFP')
-                                    }
-                                >
-                                    Medical Report
-                                </button>
-                                <button
-                                    className="EntityType"
-                                    onClick={() =>
-                                        setReportType('TSFP_followup_category')
-                                    }
-                                >
-                                    Followup category
-                                </button>
-
-                                <button
-                                    className="EntityType"
-                                    onClick={() =>
-                                        setReportType('TSFP_eRegister')
-                                    }
-                                >
-                                    eRegister
-                                </button>
-                            </div>
-                        )}
-
-                        {program.includes('OTP') && !reportType && (
-                            <div>
-                                <button
-                                    className="EntityType"
-                                    onClick={() => setReportType('OTP')}
-                                >
-                                    Main Report
-                                </button>
-
-                                <button
-                                    className="EntityType"
-                                    onClick={() => setReportType('medical_OTP')}
-                                >
-                                    Medical Report
-                                </button>
-                                <button
-                                    className="EntityType"
-                                    onClick={() =>
-                                        setReportType('OTP_followup_category')
-                                    }
-                                >
-                                    Followup category
-                                </button>
-                                <button
-                                    className="EntityType"
-                                    onClick={() =>
-                                        setReportType('OTP_eRegister')
-                                    }
-                                >
-                                    eRegister
-                                </button>
-                            </div>
-                        )}
+                        <h2>
+                            {' '}
+                            Choose the report type for{' '}
+                            {needsProgramStep ? program : entityType}{' '}
+                        </h2>
+                        {programConfig.reportOptions?.map(option => (
+                            <button
+                                key={option.key}
+                                className="EntityType"
+                                onClick={() => setReportType(option.key)}
+                            >
+                                {option.label}
+                            </button>
+                        ))}
                     </div>
                 )}
+
             {entityType &&
-                ['Child Under 5', 'PBWG']?.includes(entityType) &&
                 startDate &&
                 endDate &&
                 isValidated &&
-                ((program && program !== '') ||
-                    (physiologyStatus && physiologyStatus !== '')) &&
-                reportType &&
-                [
-                    'OTP_followup_category',
-                    'TSFP_followup_category',
-                    'PBWG_followup',
-                ].includes(reportType) && (
+                reportOption?.needsCategory &&
+                gatesSatisfied && (
                     <div style={selector}>
                         <select
                             style={validatePeriod}
@@ -363,176 +306,39 @@ function App() {
                 )}
 
             {entityType &&
-                entityType === 'Child Under 5' &&
                 startDate &&
                 endDate &&
                 isValidated &&
-                program &&
-                reportType &&
-                ((['OTP', 'TSFP'].includes(reportType) &&
-                    ChildrenUnder5(
-                        entities,
-                        startDate,
-                        endDate,
-                        program,
-                        entityType,
-                    )) ||
-                    (['medical_OTP', 'medical_TSFP'].includes(reportType) &&
-                        MedicalChildrenUnder5Report(
-                            entities,
-                            startDate,
-                            endDate,
-                            program,
-                        )) ||
-                    (['TSFP_eRegister', 'OTP_eRegister'].includes(reportType) &&
-                        ERegistry(
-                            program,
-                            entities,
-                            startDate,
-                            endDate,
-                            'Child Under 5',
-                            '',
-                        )) ||
-                    (category !== null &&
-                        [
-                            'OTP_followup_category',
-                            'TSFP_followup_category',
-                        ].includes(reportType) &&
-                        FolloWupCategories(
-                            category,
-                            program,
-                            entities,
-                            startDate,
-                            endDate,
-                            entityType,
-                        )))}
-
-            {entityType &&
-                entityType === 'PBWG' &&
-                startDate &&
-                endDate &&
-                isValidated &&
-                !program &&
-                !reportType && (
+                reportOption?.needsPhysiologyStatus &&
+                !physiologyStatus && (
                     <div>
                         <h4 style={period}>
                             Period to report:{' '}
                             {`${startDate.toDateString()} to ${endDate.toDateString()}`}
                         </h4>
-                        <h2> Choose the report type for {entityType} </h2>
+                        <h2> Choose the physiology type </h2>
                         <button
                             className="EntityType"
-                            onClick={() => setReportType('TSFP')}
+                            onClick={() => setPhysiologyStatus('pregnant')}
                         >
-                            TSFP
+                            Pregnant
                         </button>
 
                         <button
                             className="EntityType"
-                            onClick={() => setReportType('medical')}
+                            onClick={() => setPhysiologyStatus('breastfeeding')}
                         >
-                            Medical
-                        </button>
-                        <button
-                            className="EntityType"
-                            onClick={() => setReportType('PBWG_followup')}
-                        >
-                            Followup category
-                        </button>
-                        <button
-                            className="EntityType"
-                            onClick={() => setReportType('PBWG_eRegister')}
-                        >
-                            eRegister
+                            Breastfeeding
                         </button>
                     </div>
                 )}
 
-            {
-                //physiologyStatus
-                entityType &&
-                    entityType === 'PBWG' &&
-                    startDate &&
-                    endDate &&
-                    isValidated &&
-                    reportType &&
-                    //program &&
-                    ['PBWG_followup', 'PBWG_eRegister']?.includes(reportType) &&
-                    (!physiologyStatus || physiologyStatus == null) && (
-                        <div>
-                            <h4 style={period}>
-                                Period to report:{' '}
-                                {`${startDate.toDateString()} to ${endDate.toDateString()}`}
-                            </h4>
-                            <h2> Choose the physiology type </h2>
-                            <button
-                                className="EntityType"
-                                onClick={() => setPhysiologyStatus('pregnant')}
-                            >
-                                Pregnant
-                            </button>
-
-                            <button
-                                className="EntityType"
-                                onClick={() =>
-                                    setPhysiologyStatus('breastfeeding')
-                                }
-                            >
-                                Breastfeeding
-                            </button>
-                        </div>
-                    )
-            }
-
             {entityType &&
-                entityType === 'PBWG' &&
                 startDate &&
                 endDate &&
                 isValidated &&
-                //program &&
-                reportType &&
-                ((['TSFP'].includes(reportType) &&
-                    PBWGMainReport(
-                        entities,
-                        startDate,
-                        endDate,
-                        reportType,
-                        entityType,
-                    )) ||
-                    (['medical'].includes(reportType) &&
-                        PBWGMedicalReport(
-                            entities,
-                            startDate,
-                            endDate,
-                            'TSFP',
-                        )) ||
-                    (physiologyStatus &&
-                        category !== null &&
-                        ['PBWG_followup'].includes(reportType) &&
-                        PBWGFollowUpCategories(
-                            category,
-                            'TSFP',
-                            entities,
-                            startDate,
-                            endDate,
-                            entityType,
-                            physiologyStatus,
-                        )) ||
-                    (physiologyStatus &&
-                        ['PBWG_eRegister'].includes(reportType) &&
-                        ERegistry(
-                            'TSFP',
-                            entities?.filter(
-                                entity =>
-                                    entity?.profile?.values
-                                        ?.physiology_status ===
-                                    physiologyStatus,
-                            ),
-                            startDate,
-                            endDate,
-                            entityType,
-                            physiologyStatus,
-                        )))}
+                gatesSatisfied &&
+                renderedReport}
         </div>
     );
 }
