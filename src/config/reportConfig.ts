@@ -8,7 +8,7 @@ import { ERegistry } from '../report/ERegistry';
 import { FolloWupCategories } from '../report/FollowUpCategories';
 import { PBWGFollowUpCategories } from '../report/PBWG/PBWGFollowUpCategories';
 import { ScreeningData } from '../report/ScreeningData';
-import { SCREENING_FORMS } from '../utils/Array';
+import { countryConfig } from './country';
 import Form from '../entity/Form';
 
 // This file is the one place a different project swaps in its own
@@ -284,7 +284,9 @@ export const reportConfig: EntityTypeOption[] = [
                 render: context =>
                     ScreeningData({
                         submissions: context.forms.filter(form =>
-                            SCREENING_FORMS.includes(form.formFormId),
+                            countryConfig.screeningForms.includes(
+                                form.formFormId,
+                            ),
                         ),
                         startDate: context.startDate,
                         endDate: context.endDate,
