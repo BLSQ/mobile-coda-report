@@ -11,7 +11,17 @@ const table = {
 } as const;
 
 const RationData = (entities: any): any => {
-    let rationTypes = ['rusf', 'rutf', 'csb', 'csb1', 'csb2', 'lndf'];
+    let rationTypes = [
+        'rusf',
+        'rutf',
+        //'csb',
+        //'csb1',
+        //'csb2',
+        'lndf',
+        'wsb',
+        'wsbp',
+        'lns_mq',
+    ];
     let groupRationByType = groupBy({ ...entities }, 'ration');
 
     const rations = rationTypes.map(ration => {
@@ -28,7 +38,11 @@ const RationData = (entities: any): any => {
             if (ration === 'lndf') {
                 fieldName = '_lndf_kgs';
             } else {
-                fieldName = '_total_number_of_sachets';
+                if (ration === 'wsbp') {
+                    fieldName = '_wsb_packets';
+                } else {
+                    fieldName = '_total_number_of_sachets';
+                }
             }
         }
         quantity = sumByFieldValues(assistanceVisits, fieldName);

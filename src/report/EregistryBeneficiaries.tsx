@@ -12,7 +12,6 @@ const table = {
 
 const EregistryBeneficiaries = (
     beneficiaries: Array<any>,
-    reportType: string | undefined,
     program: string | undefined,
 ) => {
     return (
@@ -31,7 +30,9 @@ const EregistryBeneficiaries = (
                         <th style={table}>WHZ</th>
 
                         <th style={table}>Visit Date</th>
-                        {program?.includes('OTP') && <th style={table}>Oedema</th>}
+                        {program?.includes('OTP') && (
+                            <th style={table}>Oedema</th>
+                        )}
                         <th style={table}>MUAC</th>
                         <th style={table}>WHZ</th>
                         <th style={table}>Status</th>
@@ -61,10 +62,7 @@ const EregistryBeneficiaries = (
                                         {beneficiary.birth_date}
                                     </td>
 
-
-                                    <td style={table}>
-                                        {beneficiary.gender}
-                                    </td>
+                                    <td style={table}>{beneficiary.gender}</td>
 
                                     <td style={table}>
                                         {categoryDictionary(
@@ -76,16 +74,10 @@ const EregistryBeneficiaries = (
                                             beneficiary.admissionChoice,
                                         )}
                                     </td>
-                                    {!reportType && (
-                                        <th style={table}>
-                                            {beneficiary.weight}
-                                        </th>
-                                    )}
-                                    {!reportType && (
-                                        <th style={table}>
-                                            {beneficiary.whzScore}
-                                        </th>
-                                    )}
+                                    <th style={table}>{beneficiary.weight}</th>
+                                    <th style={table}>
+                                        {beneficiary.whzScore}
+                                    </th>
 
                                     <td style={table} />
                                     {program?.includes('OTP') && (
@@ -107,11 +99,9 @@ const EregistryBeneficiaries = (
                                     <td style={table}>
                                         {beneficiary?.exitVisit}
                                     </td>
-                                    {!reportType && (
-                                        <td style={table}>
-                                            {beneficiary?.exit?.exitWeight}
-                                        </td>
-                                    )}
+                                    <td style={table}>
+                                        {beneficiary?.exit?.exitWeight}
+                                    </td>
                                     <td style={table}>
                                         {beneficiary.exitMuac}
                                     </td>
@@ -119,65 +109,50 @@ const EregistryBeneficiaries = (
                                         {beneficiary?.lengthOfStay}
                                     </td>
                                 </tr>
-                                {beneficiary?.visits.map(
-                                    (visit: any, index: number) => {
-                                        let oedemaStatus = null;
+                                {beneficiary?.visits.map((visit: any) => {
+                                    let oedemaStatus = null;
 
-                                        if (
-                                            visit?.values
-                                                ?.oedema_status__int__ !== '0'
-                                        ) {
-                                            oedemaStatus =
-                                                visit?.values
-                                                    ?.oedema_severity === '1'
-                                                    ? '+'
-                                                    : visit?.values
-                                                        ?.oedema_severity ===
-                                                        '2'
-                                                        ? '++'
-                                                        : visit?.values
-                                                            ?.oedema_severity ===
-                                                            '3'
-                                                            ? '+++'
-                                                            : '';
-                                        }
-                                        return (
-                                            <tr style={table}>
-                                                <td
-                                                    style={table}
-                                                    colSpan={
-                                                        reportType ? 8 : 9
-                                                    }
-                                                />
-                                                <td style={table}>
-                                                    {timeStampToDateString(
-                                                        visit?.values
-                                                            ?.visit_date ??
+                                    if (
+                                        visit?.values?.oedema_status__int__ !==
+                                        '0'
+                                    ) {
+                                        oedemaStatus =
+                                            visit?.values?.oedema_severity ===
+                                            '1'
+                                                ? '+'
+                                                : visit?.values
+                                                      ?.oedema_severity === '2'
+                                                ? '++'
+                                                : visit?.values
+                                                      ?.oedema_severity === '3'
+                                                ? '+++'
+                                                : '';
+                                    }
+                                    return (
+                                        <tr style={table}>
+                                            <td style={table} colSpan={9} />
+                                            <td style={table}>
+                                                {timeStampToDateString(
+                                                    visit?.values?.visit_date ??
                                                         visit?.createdAt,
-                                                    )}
-                                                </td>
-                                                {program?.includes('OTP') && (
-                                                    <td style={table}>
-                                                        {oedemaStatus}
-                                                    </td>
                                                 )}
+                                            </td>
+                                            {program?.includes('OTP') && (
                                                 <td style={table}>
-                                                    {visit?.values?.muac}
+                                                    {oedemaStatus}
                                                 </td>
-                                                {!reportType && (
-                                                    <td style={table}>
-                                                        {
-                                                            visit?.values
-                                                                ?._whz_score
-                                                        }
-                                                    </td>
-                                                )}
+                                            )}
+                                            <td style={table}>
+                                                {visit?.values?.muac}
+                                            </td>
+                                            <td style={table}>
+                                                {visit?.values?._whz_score}
+                                            </td>
 
-                                                <td style={table} colSpan={7} />
-                                            </tr>
-                                        );
-                                    },
-                                )}
+                                            <td style={table} colSpan={7} />
+                                        </tr>
+                                    );
+                                })}
                             </>,
                         ];
                     })}
