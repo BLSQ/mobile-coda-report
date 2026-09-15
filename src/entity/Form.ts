@@ -5,9 +5,11 @@ interface Form {
     readonly formFormId: string;
     readonly orgUnitId: string;
     readonly orgUnitName: string;
+    readonly parentOrgUnitId: string;
+    readonly periodId: string;
     readonly createdAt: Date;
     readonly updatedAt: Date;
-    readonly values: any | null,
+    readonly values: any | null;
 }
 
-export default Form
+export default Form;
