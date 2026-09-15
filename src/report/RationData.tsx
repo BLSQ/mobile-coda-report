@@ -23,7 +23,6 @@ const RationData = (entities: any): any => {
         'lns_mq',
     ];
     let groupRationByType = groupBy({ ...entities }, 'ration');
-
     const rations = rationTypes.map(ration => {
         let quantity = 0;
         let rows = groupRationByType[ration] ?? [];
@@ -38,10 +37,14 @@ const RationData = (entities: any): any => {
             if (ration === 'lndf') {
                 fieldName = '_lndf_kgs';
             } else {
-                if (ration === 'wsbp') {
+                if (ration === 'wsb') {
                     fieldName = '_wsb_packets';
                 } else {
-                    fieldName = '_total_number_of_sachets';
+                    if (ration === 'wsbp') {
+                        fieldName = '_wsbp_packets';
+                    } else {
+                        fieldName = '_total_number_of_sachets';
+                    }
                 }
             }
         }

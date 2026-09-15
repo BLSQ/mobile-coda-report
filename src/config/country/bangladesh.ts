@@ -141,17 +141,25 @@ const pbwgFollowUpForms = [
     'wfp_coda_medical_follow_up_visit_PBWG',
     'wfp_coda_pbwg_assistance_followup',
 ];
+const pbwgMedicalForms = [
+    'wfp_coda_medical_visit_PBWG',
+    'wfp_coda_medical_follow_up_visit_PBWG',
+];
+const pbwgAssistanceForms = [
+    'wfp_coda_pbwg_assistance',
+    'wfp_coda_pbwg_assistance_followup',
+];
 
 // TODO(bangladesh): absentees/defaulters/medicals/rationGiven form lists
 // aren't in yet, same as formsByCategory above.
 const pbwgFormsByCategory: Record<string, Record<string, string[]>> = {
     admission: { TSFP: pbwgAdmissionForms },
-    oldCase: { TSFP: pbwgAdmissionForms },
+    oldCase: { TSFP: pbwgAdmissionForms.concat(pbwgFollowUpForms) },
     followUps: { TSFP: pbwgFollowUpForms },
-    defaulters: { TSFP: [] },
-    absentees: { TSFP: [] },
-    rationGiven: { TSFP: [] },
-    medicals: { TSFP: [] },
+    defaulters: { TSFP: pbwgAdmissionForms.concat(pbwgFollowUpForms) },
+    absentees: { TSFP: pbwgAdmissionForms.concat(pbwgFollowUpForms) },
+    rationGiven: { TSFP: pbwgAssistanceForms },
+    medicals: { TSFP: pbwgMedicalForms },
 };
 
 // "New admissions" swaps new_case for the 4 compound types (see
