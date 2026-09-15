@@ -10,6 +10,7 @@
         "@types/node": "^16.18.2",
         "@types/react": "^18.0.24",
         "@types/react-dom": "^18.0.8",
+        "date-fns": "^4.4.0",
         "lodash": "^4.17.21",
         "lodash.groupby": "^4.6.0",
         "react": "^18.2.0",
@@ -23,12 +24,17 @@
         "start": "react-scripts start",
         "build": "react-scripts build",
         "test": "react-scripts test",
-        "eject": "react-scripts eject"
+        "eject": "react-scripts eject",
+        "lint": "eslint \"src/**/*.{ts,tsx}\"",
+        "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
+        "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+        "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\""
     },
     "eslintConfig": {
         "extends": [
             "react-app",
-            "react-app/jest"
+            "react-app/jest",
+            "prettier"
         ]
     },
     "browserslist": {
@@ -45,8 +51,10 @@
         "@types/lodash": "^4.14.192",
         "@types/react-calendar": "^3.5.3",
         "css-loader": "^6.7.1",
+        "eslint-config-prettier": "^9.1.0",
         "html-webpack-inline-source-plugin": "^1.0.0-beta.2",
         "html-webpack-plugin": "^5.5.0",
+        "prettier": "2.8.8",
         "ts-loader": "^9.4.1",
         "typescript": "^4.8.4",
         "webpack": "^5.77.0",
