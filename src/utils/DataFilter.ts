@@ -607,7 +607,10 @@ const defaulterCases = (
         'ng_pbwg_anthropometric',
         'wfp_coda_pbwg_followup_anthro',
         'wfp_coda_pbwg_luctating_followup_anthro',
-        'Anthropometric visit child_U6'
+        'wfp_coda_pbwg_anthropometric',
+        'Anthropometric visit child_U6',
+        'child_antropometric_followUp_tsfp_2'
+
     ];
     const assistanceForms = [
         'child_assistance_admission',
@@ -616,6 +619,7 @@ const defaulterCases = (
         'assistance_admission_2nd_visit_otp',
         'ng_pbwg_assistance',
         'wfp_coda_pbwg_assistance_followup',
+        'wfp_coda_pbwg_assistance',
         'child_assistance_admission_2_u6',
         'child_assistance_follow_up_2'
     ];
@@ -736,6 +740,7 @@ const agregatedBeneficiaryFolloWup = (
     entityType: string,
 ) => {
     let allCategories = [
+        '',
         'absentees',
         'defaulters',
         'death',
