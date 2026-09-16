@@ -131,7 +131,7 @@ const formsByCategory: Record<string, Record<string, string[]>> = {
 // that filtering happens downstream (e.g. PBWGFollowUpCategories).
 const pbwgAdmissionForms = [
     'wfp_coda_pbwg_anthropometric',
-    'wfp_coda_medical_visit_PBWG',
+    'wfp_coda_medical_visit_PBWG',   
     'iycf_pregnant_women', // pregnant only
     'wfp_coda_pbwg_assistance',
 ];
@@ -140,6 +140,7 @@ const pbwgFollowUpForms = [
     'wfp_coda_pbwg_followup_anthro', // pregnant
     'wfp_coda_medical_follow_up_visit_PBWG',
     'wfp_coda_pbwg_assistance_followup',
+     'bsfp_pbwg_followup_visit',
 ];
 const pbwgMedicalForms = [
     'wfp_coda_medical_visit_PBWG',
