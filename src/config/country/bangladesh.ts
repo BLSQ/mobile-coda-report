@@ -105,12 +105,12 @@ const formsByCategory: Record<string, Record<string, string[]>> = {
         OTP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
     },
     followUps: {
-        TSFP: childUnder5FollowUpForms,
+        TSFP: childUnder5AdmissionForms,
         OTP: childUnder5FollowUpForms,
     },
     defaulters: {
         TSFP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
-        OTP: [],
+        OTP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
     },
     absentees: {
         TSFP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
