@@ -436,8 +436,10 @@ const assistanceGiven = (
                 return (
                     forms.includes(visit?.formFormId) &&
                     visit?.values &&
-                    (visit?.values?.ration_type !== '' ||
-                        visit?.values?.ration !== '' ||
+                    (
+                        (visit?.values?.ration !== ''  
+                          || visit?.values?.ration_type !== ''
+                        ) ||
                         visit?.values?.ration_type_tsfp !== '') &&
                     ((startPeriod <= createdAt && endPeriod >= createdAt) ||
                         (startPeriod <= visitDate && endPeriod >= visitDate))
@@ -448,8 +450,9 @@ const assistanceGiven = (
         let groupByRationType = groupBy(
             visits,
             (visit: any) =>
-                visit.values?.ration_type ??
+                
                 visit?.values?.ration ??
+                visit.values?.ration_type ??
                 visit?.values?.ration_type_tsfp,
         );
         let rationType = Object.keys(groupByRationType);

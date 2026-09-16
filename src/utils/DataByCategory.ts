@@ -254,7 +254,6 @@ const pbwgMedicalDataReport = (
         endDate,
     );
     let rows = followUpData(initialData, program, 'medicals', 'PBWG');
-
     let malariaStatus = visitsDataByValuesList(rows, 'malaria_result', [
         'positive',
         'negative',
@@ -267,8 +266,10 @@ const pbwgMedicalDataReport = (
     let hivStatus = visitsDataByValuesList(rows, 'hiv_status', [
         'positive',
         'negative',
+        'exposed',
         'nottested',
     ]);
+    
     let groupHIVDataByMedicalTypes = groupBy(
         hivStatus.flat(),
         (visit: any) => visit?.value,
