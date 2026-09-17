@@ -740,17 +740,11 @@ const agregatedBeneficiaryFolloWup = (
     entityType: string,
 ) => {
     let allCategories = [
-        '',
         'absentees',
         'defaulters',
-        'death',
         'referral_to_sc_itp',
         'medical_investigation',
         'home_visits',
-        'transferred_to_otp',
-        'referred_from_other_tsfp',
-        'transferred_to_tsfp',
-        'transfer_from_other_otp',
     ];
 
     let allData: any[] = [];
