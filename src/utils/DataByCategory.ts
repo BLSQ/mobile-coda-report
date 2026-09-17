@@ -54,9 +54,9 @@ let childrenUnder5MedicalStatusByCategory: any = {
         //'other',
     ],
     'Medication Given': [
-        'ab_given',
-        'anti_helminth_given',
-        'art_given',
+        // 'ab_given',
+        // 'anti_helminth_given',
+        // 'art_given',
         'vitamins_given',
     ],
 };
@@ -390,9 +390,9 @@ const childrenUnder5MedicalReport = (
     );
 
     let medicationGiven = visitsDataByFieldList(rows, {
-        ab_given: '1',
-        anti_helminth_given: 'mebendazole',
-        art_given: '1',
+        // ab_given: '1',
+        // anti_helminth_given: 'mebendazole',
+        // art_given: '1',
         vitamins_given: '1',
     });
     let groupMedicationGivenByType = groupBy(
