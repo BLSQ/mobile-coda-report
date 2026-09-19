@@ -226,6 +226,8 @@ const categoryDictionary = (key: string) => {
         wsb: 'Super Cerial Plus/ WSB+',
         wsbp: 'Super Cerial Plus Plus/ WSB++',
         lns_mq: 'LNS-MQ',
+        measles_status: 'Measles vaccination Status',
+        deworming: 'Deworming',
     };
     return keyValues[key];
 };
@@ -236,7 +238,6 @@ let beneficiaryFollowupCategories = (program: string | null) => {
         { key: 'absentees', label: 'Absentees' },
         { key: 'defaulters', label: 'Defaulters' },
         { key: 'non_respondent', label: 'Non-respondent' },
-        { key: 'referral_to_sc_itp', label: 'Referral to SC' },
         { key: 'medical_investigation', label: 'Transfer to PHC' },
         //{ key: 'death', label: 'Death' },
     ];
