@@ -33,6 +33,8 @@ let childrenUnder5MedicalStatusByCategory: any = {
         'ears_status',
         'skin_infections',
         'lymph_nodes',
+        'measles_status',
+        'deworming'
     ],
     "Immunization for Age": [
         'none',
@@ -330,6 +332,8 @@ const childrenUnder5MedicalReport = (
         ears_status: 'discharge',
         skin_infections: '',
         lymph_nodes: '',
+        measles_status: '1',
+        deworming: '1',
     }).flat();
     let groupDefaultDataByMedicalTypes = groupBy(
         defaultData,

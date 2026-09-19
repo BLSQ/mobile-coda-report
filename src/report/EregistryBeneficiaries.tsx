@@ -13,6 +13,7 @@ const table = {
 const EregistryBeneficiaries = (
     beneficiaries: Array<any>,
     program: string | undefined,
+    physiology: string,
 ) => {
     return (
         <div>
@@ -23,20 +24,21 @@ const EregistryBeneficiaries = (
                         <th style={table}>Name</th>
                         <th style={table}>Age</th>
                         <th style={table}>Birth Date</th>
-                        <th style={table}>Gender</th>
+                        {physiology === '' && <th style={table}>Gender</th>}
+
                         <th style={table}>Admission Type</th>
                         <th style={table}>Admission Criteria</th>
                         <th style={table}>Weight</th>
-                        <th style={table}>WHZ</th>
+                        {physiology === '' && <th style={table}>WHZ</th>}
 
                         <th style={table}>Visit Date</th>
                         {program?.includes('OTP') && (
                             <th style={table}>Oedema</th>
                         )}
                         <th style={table}>MUAC</th>
-                        <th style={table}>WHZ</th>
+                        {physiology === '' && <th style={table}>WHZ</th>}
                         <th style={table}>Status</th>
-                        <th style={table}>Number of visits</th>
+                        <th style={table}>Visit number</th>
                         <th style={table}>Exit Date</th>
                         <th style={table}>Exit Weight</th>
                         <th style={table}>Exit MUAC</th>
@@ -62,7 +64,11 @@ const EregistryBeneficiaries = (
                                         {beneficiary.birth_date}
                                     </td>
 
-                                    <td style={table}>{beneficiary.gender}</td>
+                                    {physiology === '' && (
+                                        <td style={table}>
+                                            {beneficiary.gender}
+                                        </td>
+                                    )}
 
                                     <td style={table}>
                                         {categoryDictionary(
@@ -74,10 +80,12 @@ const EregistryBeneficiaries = (
                                             beneficiary.admissionChoice,
                                         )}
                                     </td>
-                                    <th style={table}>{beneficiary.weight}</th>
-                                    <th style={table}>
-                                        {beneficiary.whzScore}
-                                    </th>
+                                    <td style={table}>{beneficiary.weight}</td>
+                                    {physiology === '' && (
+                                        <td style={table}>
+                                            {beneficiary.whzScore}
+                                        </td>
+                                    )}
 
                                     <td style={table} />
                                     {program?.includes('OTP') && (
@@ -87,7 +95,8 @@ const EregistryBeneficiaries = (
                                     )}
 
                                     <td style={table} />
-                                    <td style={table} />
+                                    {physiology === '' && <td style={table} />}
+
                                     <td style={table}>
                                         {categoryDictionary(
                                             beneficiary.exit_type,
@@ -130,7 +139,12 @@ const EregistryBeneficiaries = (
                                     }
                                     return (
                                         <tr style={table}>
-                                            <td style={table} colSpan={9} />
+                                            {(physiology === '' && (
+                                                <td style={table} colSpan={9} />
+                                            )) || (
+                                                <td style={table} colSpan={8} />
+                                            )}
+
                                             <td style={table}>
                                                 {timeStampToDateString(
                                                     visit?.values?.visit_date ??
@@ -145,9 +159,12 @@ const EregistryBeneficiaries = (
                                             <td style={table}>
                                                 {visit?.values?.muac}
                                             </td>
-                                            <td style={table}>
-                                                {visit?.values?._whz_score}
-                                            </td>
+
+                                            {physiology === '' && (
+                                                <td style={table}>
+                                                    {visit?.values?._whz_score}
+                                                </td>
+                                            )}
 
                                             <td style={table} colSpan={7} />
                                         </tr>

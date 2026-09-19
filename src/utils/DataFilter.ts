@@ -745,6 +745,7 @@ const agregatedBeneficiaryFolloWup = (
         'referral_to_sc_itp',
         'medical_investigation',
         'home_visits',
+        'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__'
     ];
 
     let allData: any[] = [];

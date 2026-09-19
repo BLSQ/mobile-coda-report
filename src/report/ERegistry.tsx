@@ -27,7 +27,9 @@ const ERegistry = (
                 <h3>{categoryDictionary(physiology)} </h3>
                 <h3> {dateValue} </h3>
                 <div>
-                    <div>{EregistryBeneficiaries(rows, program)}</div>
+                    <div>
+                        {EregistryBeneficiaries(rows, program, physiology)}
+                    </div>
                 </div>
             </div>
         </div>
