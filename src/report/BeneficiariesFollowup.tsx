@@ -8,7 +8,11 @@ const table = {
     border: '1pt solid black',
 } as const;
 
-function BeneficiariesFollowup(beneficiaries: Array<any>, label: string) {
+function BeneficiariesFollowup(
+    beneficiaries: Array<any>,
+    label: string,
+    entityType: string | undefined,
+) {
     return (
         <div>
             <h4>{categoryDictionary(label)}</h4>
@@ -17,10 +21,14 @@ function BeneficiariesFollowup(beneficiaries: Array<any>, label: string) {
                     <tr style={table}>
                         <th style={table}>Name</th>
                         <th style={table}>Age</th>
-                        <th style={table}>Gender</th>
-                        <th style={table}>Care giver</th>
-                        <th style={table}>Reg Doc</th>
-                        <th style={table}>Reg number</th>
+                        {(entityType && (
+                            <>
+                                <th style={table}>Gender</th>
+                                <th style={table}>Care giver</th>
+                                <th style={table}>Progress Id</th>
+                            </>
+                        )) || <th style={table}>Card Number</th>}
+
                         <th style={table}>Status</th>
                     </tr>
                 </thead>
@@ -30,13 +38,17 @@ function BeneficiariesFollowup(beneficiaries: Array<any>, label: string) {
                             <tr style={table}>
                                 <td style={table}>{beneficiary.name}</td>
                                 <td style={table}>{beneficiary.age}</td>
-                                <td style={table}>{beneficiary.gender}</td>
-                                <td style={table}>{beneficiary.careGiver}</td>
-                                <td style={table}>
-                                    {categoryDictionary(
-                                        beneficiary.registrationDocument,
-                                    )}
-                                </td>
+                                {entityType && (
+                                    <>
+                                        <td style={table}>
+                                            {beneficiary.gender}
+                                        </td>
+                                        <td style={table}>
+                                            {beneficiary.careGiver}
+                                        </td>
+                                    </>
+                                )}
+
                                 <td style={table}>
                                     {beneficiary.registrationNumber}
                                 </td>

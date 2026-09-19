@@ -126,8 +126,6 @@ const categoryWithData = (
                 'absentees',
                 entityType,
             );
-            console.info("ENTITY TYPE ...:", entityType, "ABSENTEES ...:", absentees);
-
             const allAbsentes = defaulterCases(
                 absentees,
                 startDate,
@@ -436,10 +434,8 @@ const assistanceGiven = (
                 return (
                     forms.includes(visit?.formFormId) &&
                     visit?.values &&
-                    (
-                        (visit?.values?.ration !== ''  
-                          || visit?.values?.ration_type !== ''
-                        ) ||
+                    (visit?.values?.ration !== '' ||
+                        visit?.values?.ration_type !== '' ||
                         visit?.values?.ration_type_tsfp !== '') &&
                     ((startPeriod <= createdAt && endPeriod >= createdAt) ||
                         (startPeriod <= visitDate && endPeriod >= visitDate))
@@ -450,7 +446,6 @@ const assistanceGiven = (
         let groupByRationType = groupBy(
             visits,
             (visit: any) =>
-                
                 visit?.values?.ration ??
                 visit.values?.ration_type ??
                 visit?.values?.ration_type_tsfp,
@@ -462,7 +457,6 @@ const assistanceGiven = (
             visits: visits,
         };
     });
-    console.info("ASSISTANCE DATA ...:", assistanceData)
     return assistanceData;
 };
 
@@ -609,8 +603,7 @@ const defaulterCases = (
         'wfp_coda_pbwg_luctating_followup_anthro',
         'wfp_coda_pbwg_anthropometric',
         'Anthropometric visit child_U6',
-        'child_antropometric_followUp_tsfp_2'
-
+        'child_antropometric_followUp_tsfp_2',
     ];
     const assistanceForms = [
         'child_assistance_admission',
@@ -621,7 +614,7 @@ const defaulterCases = (
         'wfp_coda_pbwg_assistance_followup',
         'wfp_coda_pbwg_assistance',
         'child_assistance_admission_2_u6',
-        'child_assistance_follow_up_2'
+        'child_assistance_follow_up_2',
     ];
     let rows = entities.map(entity => {
         let lastVisitDate = null;
@@ -740,12 +733,13 @@ const agregatedBeneficiaryFolloWup = (
     entityType: string,
 ) => {
     let allCategories = [
+        '',
         'absentees',
         'defaulters',
         'referral_to_sc_itp',
         'medical_investigation',
         'home_visits',
-        'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__'
+        'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__',
     ];
 
     let allData: any[] = [];
@@ -772,9 +766,11 @@ const agregatedBeneficiaryFolloWup = (
             let status = entity?.exit?.status ?? '';
             const {
                 caretaker_name,
+                caregiver_name,
                 caretaker_Last_name,
-                registration_number,
-                registration_document,
+                caregiver_Last_name,
+                card_number,
+                health_card,
             } = entity?.profile?.values;
             let profile = {
                 id: entity?.id,
@@ -783,11 +779,10 @@ const agregatedBeneficiaryFolloWup = (
                 }`,
                 age: entity?.age,
                 gender: entity?.gender,
-                careGiver: `${caretaker_name ?? ''} ${
-                    caretaker_Last_name ?? ''
+                careGiver: `${caretaker_name ?? caregiver_name ?? ''} ${
+                    caretaker_Last_name ?? caregiver_Last_name ?? ''
                 }`,
-                registrationNumber: registration_number,
-                registrationDocument: registration_document,
+                registrationNumber: health_card ?? card_number,
             };
 
             if (
