@@ -237,30 +237,30 @@ let beneficiaryFollowupCategories = (program: string | null) => {
         { key: 'defaulters', label: 'Defaulters' },
         { key: 'non_respondent', label: 'Non-respondent' },
         { key: 'referral_to_sc_itp', label: 'Referral to SC' },
-        { key: 'medical_investigation', label: 'Medical investigation' },
-        { key: 'death', label: 'Death' },
+        { key: 'medical_investigation', label: 'Transfer to PHC' },
+        //{ key: 'death', label: 'Death' },
     ];
-    if (program?.includes('TSFP')) {
-        beneficiaryCategory.push({
-            key: 'transfer_from_other_otp',
-            label: 'Transfer in from OTP',
-        });
-        beneficiaryCategory.push({
-            key: 'referred_from_other_tsfp',
-            label: 'Transfer in from other TSFP',
-        });
-    } else {
-        if (program?.includes('OTP')) {
-            beneficiaryCategory.push({
-                key: 'transferred_to_tsfp',
-                label: 'Transfer To TSFP',
-            });
-            beneficiaryCategory.push({
-                key: 'referred_from_other_otp',
-                label: 'Transfer in from other OTP',
-            });
-        }
-    }
+    // if (program?.includes('TSFP')) {
+    //     beneficiaryCategory.push({
+    //         key: 'transfer_from_other_otp',
+    //         label: 'Transfer in from OTP',
+    //     });
+    //     beneficiaryCategory.push({
+    //         key: 'referred_from_other_tsfp',
+    //         label: 'Transfer in from other TSFP',
+    //     });
+    // } else {
+    //     if (program?.includes('OTP')) {
+    //         beneficiaryCategory.push({
+    //             key: 'transferred_to_tsfp',
+    //             label: 'Transfer To TSFP',
+    //         });
+    //         beneficiaryCategory.push({
+    //             key: 'referred_from_other_otp',
+    //             label: 'Transfer in from other OTP',
+    //         });
+    //     }
+    // }
     return beneficiaryCategory;
 };
 
