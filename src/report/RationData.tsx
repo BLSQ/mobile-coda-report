@@ -17,7 +17,7 @@ const RationData = (entities: any): any => {
         //'csb',
         //'csb1',
         //'csb2',
-        'lndf',
+        //'lndf',
         'wsb',
         'wsbp',
         'lns_mq',
