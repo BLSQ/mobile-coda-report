@@ -141,7 +141,7 @@ const categoryDictionary = (key: string) => {
         eyes_infection: 'Eyes Infection',
         eyes: 'Eyes Sunken',
         signs_vad: 'VAD Yes',
-        skin_infections: 'Skin changes',
+        skin_infections: 'Skin problems',
         lymph_nodes: 'Lymph Nodes',
         dermatosis_dermatosis: 'Dermatosis',
         disability_status: 'Disability present',
@@ -223,8 +223,8 @@ const categoryDictionary = (key: string) => {
         art_given: 'ART',
         vitamins_given: 'Vitamin A',
         ears_status: 'Ear Discharge',
-        wsb: 'Super Cerial Plus/WSB+',
-        wsbp: 'Super Cereal Plus/WSB++',
+        wsb: 'Super Cerial Plus/ WSB+',
+        wsbp: 'Super Cerial Plus Plus/ WSB++',
         lns_mq: 'LNS-MQ',
     };
     return keyValues[key];
