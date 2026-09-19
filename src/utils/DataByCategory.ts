@@ -34,7 +34,7 @@ let childrenUnder5MedicalStatusByCategory: any = {
         'skin_infections',
         'lymph_nodes',
     ],
-    Immunization: [
+    "Immunization for Age": [
         'none',
         'incomplete',
         'complete',
@@ -402,7 +402,7 @@ const childrenUnder5MedicalReport = (
 
     return {
         '': groupDefaultDataByMedicalTypes,
-        Immunization: groupImmunizationDataByMedicalTypes,
+        "Immunization for Age": groupImmunizationDataByMedicalTypes,
         HIV: groupHIVDataByMedicalTypes,
         Complications: groupComplicationsDataByMedicalTypes,
         'Medication Given': groupMedicationGivenByType,
