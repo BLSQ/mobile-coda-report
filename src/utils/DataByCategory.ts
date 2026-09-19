@@ -41,7 +41,7 @@ let childrenUnder5MedicalStatusByCategory: any = {
         'motherdoesnotrecall',
     ],
 
-    HIV: ['positive', 'negative', 'nottested'],
+    //HIV: ['positive', 'negative', 'nottested'],
     Complications: [
        // 'apatheticpassive',
         'highfever',
