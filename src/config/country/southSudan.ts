@@ -73,6 +73,24 @@ const screeningForms = [
     'PBWG_BSFP',
 ];
 
+const stockForms: string[] = ["stock_add", "nfi_stocks"];
+const assistanceFoodItemForms = [
+  "child_assistance_2nd_visit_tsfp",
+  "child_assistance_follow_up",
+  "child_assistance_follow_up_2",
+  "assistance_admission_otp",
+  "assistance_admission_2nd_visit_otp",
+  "child_assistance_admission",
+  "child_assistance_admission_2",
+  "child_assistance_admission_2_u6",
+  "assistance_u6",
+  "Anthropometric_BSFP_child_2",
+  "PBWG_BSFP",
+  "wfp_coda_pbwg_assistance",
+  "wfp_coda_pbwg_assistance_followup",
+
+];
+
 const admissionTypesByCategory: Record<string, string[]> = {
     'Follow Ups': ['Total Follow up'],
     'New admissions': ['new_case', 'readmission_as_non_respondent', 'relapse'],
@@ -325,6 +343,8 @@ const southSudan: CountryConfig = {
     entityTypeByProgram,
     admissionTypeWithCriteria,
     matchAdmissionType,
+    stockForms,
+    assistanceFoodItemForms
 };
 
 export default southSudan;

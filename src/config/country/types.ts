@@ -55,4 +55,7 @@ export interface CountryConfig {
         baseType: string,
         beneficiaryType?: string | null,
     ) => AdmissionTypeMatch | null;
+
+    stockForms: string[];
+    assistanceFoodItemForms: string[];
 }

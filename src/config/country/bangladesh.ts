@@ -66,7 +66,13 @@ const admissionTypeWithCriteria = (
 const { entityTypeByProgram } = southSudan;
 
 // TODO(bangladesh): replace with Bangladesh's real screening formFormIds.
-const screeningForms: string[] = [];
+const screeningForms: string[] = ['screening_tally'];
+
+const stockForms: string[] = ["nfi_stocks", "food_item_stock"];
+const assistanceFoodItemForms = [
+  'child_assistance_admission_2_u6','bsfp_child_followup_visit','child_assistance_follow_up_2',
+  'bsfp_pbwg_followup_visit', 'wfp_coda_pbwg_assistance','wfp_coda_pbwg_assistance_followup'
+];
 
 // Unlike South Sudan, Bangladesh doesn't use different formFormIds per
 // program (TSFP/OTP) — the same forms are used for both, so each list below
@@ -95,30 +101,41 @@ const childUnder5AssistanceForms = [
 // TODO(bangladesh): absentees/defaulters/medicals/rationGiven form lists
 // aren't in yet — followUpData/assistanceGiven for those statuses will see
 // an empty list (no matching visits) until they're filled in.
+
+const childUnderAdmissionBSFP = ["bsfp_child_visit"];
+const childUndeFollowupBSFP = ["bsfp_child_visit"];
+
 const formsByCategory: Record<string, Record<string, string[]>> = {
     admission: {
         TSFP: childUnder5AdmissionForms,
         OTP: childUnder5AdmissionForms,
+        BSFP: childUnderAdmissionBSFP
     },
     oldCase: {
         TSFP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
         OTP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
+        BSFP: childUndeFollowupBSFP.concat(childUndeFollowupBSFP)
     },
     followUps: {
         TSFP: childUnder5AdmissionForms,
         OTP: childUnder5FollowUpForms,
+        BSFP: childUndeFollowupBSFP.concat(childUndeFollowupBSFP)
     },
     defaulters: {
         TSFP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
         OTP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
+        BSFP: childUndeFollowupBSFP.concat(childUndeFollowupBSFP)
     },
     absentees: {
         TSFP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
         OTP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
+        BSFP:childUndeFollowupBSFP.concat(childUndeFollowupBSFP)
     },
     rationGiven: {
         TSFP: childUnder5AssistanceForms,
-        OTP: childUnder5AssistanceForms,
+        OTP: childUnder5AssistanceForms,BSFP: ["bsfp_child_followup_visit"],
+        //BSFP: childUndeFollowupBSFP.concat(childUndeFollowupBSFP)
+
     },
     medicals: { TSFP: childUnder5MedicalForms, OTP: childUnder5MedicalForms },
 };
@@ -154,9 +171,9 @@ const pbwgAssistanceForms = [
 // TODO(bangladesh): absentees/defaulters/medicals/rationGiven form lists
 // aren't in yet, same as formsByCategory above.
 const pbwgFormsByCategory: Record<string, Record<string, string[]>> = {
-    admission: { TSFP: pbwgAdmissionForms },
+    admission: { TSFP: pbwgAdmissionForms,BSFP: ["bsfp_child_followup_visit"] },
     oldCase: { TSFP: pbwgAdmissionForms.concat(pbwgFollowUpForms) },
-    followUps: { TSFP: pbwgFollowUpForms },
+    followUps: { TSFP: pbwgFollowUpForms, BSFP: ["bsfp_child_followup_visit"]},
     defaulters: { TSFP: pbwgAdmissionForms.concat(pbwgFollowUpForms) },
     absentees: { TSFP: pbwgAdmissionForms.concat(pbwgFollowUpForms) },
     rationGiven: { TSFP: pbwgAssistanceForms },
@@ -176,6 +193,9 @@ const admissionTypesByCategory: Record<string, string[]> = {
 };
 const { pbwgAdmissionTypesByCategory } = southSudan;
 
+
+
+
 const bangladesh: CountryConfig = {
     screeningForms,
     formsByCategory,
@@ -185,6 +205,9 @@ const bangladesh: CountryConfig = {
     entityTypeByProgram,
     admissionTypeWithCriteria,
     matchAdmissionType,
+    stockForms,
+    assistanceFoodItemForms
+
 };
 
 export default bangladesh;

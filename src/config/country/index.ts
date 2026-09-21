@@ -1,6 +1,7 @@
 import { CountryConfig } from './types';
 import southSudan from './southSudan';
 import bangladesh from './bangladesh';
+//import FAKE_STOCK from '../../fake/FakeStockData';
 
 // One native app build == one country, and the native WebView host already
 // tells us which one it is via Android.info().app_id (the Gradle flavor's
@@ -20,7 +21,9 @@ function readAppId(): string | null {
     try {
         // @ts-ignore Android is injected globally by the native WebView bridge
         const info = JSON.parse(Android.info());
-        //const info = JSON.parse('{"app_id":"org.wfp.coda2.bangladesh","is_debug":true,"version":2880,"version_name":"2.8.8-39242ad51-BGD-QA"}')
+        // const info = JSON.parse(
+        //     '{"app_id":"org.wfp.coda2.bangladesh","is_debug":true,"version":2880,"version_name":"2.8.8-39242ad51-BGD-QA"}',
+        // );
         return info?.app_id ?? null;
     } catch {
         // No native bridge (local dev/tests outside the WebView) — fall
@@ -28,6 +31,18 @@ function readAppId(): string | null {
         return null;
     }
 }
+
+const foodInitialStock = (date: string, orgUnitId: string) => {
+    try {
+        console.info('DATE ...:', date, orgUnitId);
+        // @ts-ignore Android is injected globally by the native WebView bridge
+        const stocks = JSON.parse(Android.getStockValueAt(date, orgUnitId));
+        //const stocks = JSON.parse(FAKE_STOCK)
+        return stocks;
+    } catch {
+        return null;
+    }
+};
 
 const appId = readAppId();
 //let country = appId != null ? APP_ID_TO_COUNTRY[appId] : undefined;
@@ -42,3 +57,4 @@ country = country ?? 'southSudan';
 
 export const countryConfig: CountryConfig = configs[country];
 export type { CountryConfig, AdmissionTypeMatch } from './types';
+export { foodInitialStock };

@@ -8,6 +8,7 @@ import { ERegistry } from '../report/ERegistry';
 import { FolloWupCategories } from '../report/FollowUpCategories';
 import { PBWGFollowUpCategories } from '../report/PBWG/PBWGFollowUpCategories';
 import { ScreeningData } from '../report/ScreeningData';
+import { FoodItems } from '../report/stock/FoodItems';
 import { countryConfig } from './country';
 import Form from '../entity/Form';
 
@@ -209,7 +210,7 @@ export const reportConfig: EntityTypeOption[] = [
         reportOptions: [
             {
                 key: 'TSFP',
-                label: 'TSFP',
+                label: 'Main Report',
                 render: context =>
                     PBWGMainReport(
                         context.entities,
@@ -294,4 +295,30 @@ export const reportConfig: EntityTypeOption[] = [
             },
         ],
     },
+    {
+        key: 'STOCK',
+        label: 'Stock Data',
+        reportOptions:[
+            {
+                key: 'FOOD_ITEM',
+                label: 'Food item',
+                render: context => FoodItems({
+                    submissions: context.forms.filter(form =>
+                            countryConfig.stockForms.includes(
+                                form.formFormId,
+                            ),
+                        ),
+                        startDate: context.startDate,
+                        endDate: context.endDate,
+                })
+            },
+            {
+                key: 'NON_FOOD_ITEM',
+                label: 'Non Food item',
+                render: function (context: ReportContext): ReactNode {
+                    throw new Error('Function not implemented.');
+                }
+            }
+        ]
+    }
 ];
