@@ -33,6 +33,15 @@ export interface CountryConfig {
     admissionTypesByCategory: Record<string, string[]>;
     // Same shape, for PBWG.
     pbwgAdmissionTypesByCategory: Record<string, string[]>;
+    // Same shape, for NSEP (Child Under 5 only, Bangladesh-only program —
+    // South Sudan doesn't define this). Also reused as-is by Bangladesh's
+    // BSFP report, which shares NSEP's exact admission-type vocabulary.
+    // Kept separate from admissionTypesByCategory so these types never
+    // leak into TSFP/OTP's report as extra empty rows; NSEP's and BSFP's
+    // reports pass this explicitly to dataCategory/categoryWithData
+    // instead of relying on the entityType-keyed lookup those use by
+    // default.
+    bsfpnsepAdmissionTypesByCategory?: Record<string, string[]>;
     // Normalizes a program name (and its aliases) to the canonical
     // TSFP/OTP/BSFP key the rest of the pipeline keys its lookups on.
     entityTypeByProgram: (program: string, type: string) => string;
@@ -58,4 +67,12 @@ export interface CountryConfig {
 
     stockForms: string[];
     assistanceFoodItemForms: string[];
+
+    // Extra fallback for resolving a visit's ration/assistance type,
+    // consulted by assistanceGiven (utils/DataFilter.ts) only after its
+    // own ration/ration_type/ration_type_tsfp fields come back empty.
+    // Bangladesh-only (South Sudan doesn't define this) — its NSEP forms
+    // record the cash_voucher assistance type under assistance_given
+    // rather than one of those fields.
+    resolveRationType?: (values: any) => string | undefined;
 }

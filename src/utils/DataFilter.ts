@@ -63,10 +63,13 @@ const categoryWithData = (
     startDate: Date,
     endDate: Date,
     entityType: string,
+    admissionTypesByCategoryOverride?: Record<string, string[]>,
 ) => {
     let mainData: any = [];
     let admissionTypes = null;
-    if (entityType === 'Child Under 5') {
+    if (admissionTypesByCategoryOverride) {
+        admissionTypes = admissionTypesByCategoryOverride[category];
+    } else if (entityType === 'Child Under 5') {
         admissionTypes = countryConfig.admissionTypesByCategory[category];
     } else {
         if (entityType === 'PBWG')
@@ -319,6 +322,7 @@ const dataCategory = (
     startDate: Date,
     endDate: Date,
     entityType: string,
+    admissionTypesByCategoryOverride?: Record<string, string[]>,
 ) => {
     let initialData = filterDataOnProgram(
         entities,
@@ -327,8 +331,10 @@ const dataCategory = (
         endDate,
     );
     console.info('INITIAL DATA ...:', initialData);
-    let categories: any[] = Object.keys(countryConfig.admissionTypesByCategory);
-    if (entityType === 'PBWG') {
+    let categories: any[] = admissionTypesByCategoryOverride
+        ? Object.keys(admissionTypesByCategoryOverride)
+        : Object.keys(countryConfig.admissionTypesByCategory);
+    if (!admissionTypesByCategoryOverride && entityType === 'PBWG') {
         categories = Object.keys(countryConfig.pbwgAdmissionTypesByCategory);
     }
     console.info('ALL CATEGORY ...:', initialData);
@@ -341,6 +347,7 @@ const dataCategory = (
             startDate,
             endDate,
             entityType,
+            admissionTypesByCategoryOverride,
         );
         let total = null;
         if (data) {
@@ -368,10 +375,10 @@ const followUpData = (
     );
     let forms: any = [];
     if (beneficiaryType === 'Child Under 5') {
-        forms = countryConfig.formsByCategory[status][entityType];
+        forms = countryConfig.formsByCategory[status][entityType] ?? [];
     } else {
         if (beneficiaryType === 'PBWG') {
-            forms = countryConfig.pbwgFormsByCategory[status][entityType];
+            forms = countryConfig.pbwgFormsByCategory[status][entityType] ?? [];
         }
     }
     console.info('FORMS ...:', forms);
@@ -414,10 +421,10 @@ const assistanceGiven = (
     let forms: any = [];
 
     if (beneficiaryType === 'Child Under 5') {
-        forms = countryConfig.formsByCategory[status][entityType];
+        forms = countryConfig.formsByCategory[status][entityType] ?? [];
     } else {
         if (beneficiaryType === 'PBWG') {
-            forms = countryConfig.pbwgFormsByCategory[status][entityType];
+            forms = countryConfig.pbwgFormsByCategory[status][entityType] ?? [];
         }
     }
 
@@ -436,7 +443,8 @@ const assistanceGiven = (
                     visit?.values &&
                     (visit?.values?.ration !== '' ||
                         visit?.values?.ration_type !== '' ||
-                        visit?.values?.ration_type_tsfp !== '') &&
+                        visit?.values?.ration_type_tsfp !== '' ||
+                        !!countryConfig.resolveRationType?.(visit?.values)) &&
                     ((startPeriod <= createdAt && endPeriod >= createdAt) ||
                         (startPeriod <= visitDate && endPeriod >= visitDate))
                 );
@@ -448,7 +456,8 @@ const assistanceGiven = (
             (visit: any) =>
                 visit?.values?.ration ??
                 visit.values?.ration_type ??
-                visit?.values?.ration_type_tsfp,
+                visit?.values?.ration_type_tsfp ??
+                countryConfig.resolveRationType?.(visit?.values),
         );
         let rationType = Object.keys(groupByRationType);
         return {

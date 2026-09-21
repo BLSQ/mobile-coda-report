@@ -191,13 +191,57 @@ export const reportConfig: EntityTypeOption[] = [
                     {
                         key: 'BSFP',
                         label: 'Main Report',
+                        // Bangladesh's BSFP reports in the same shape as
+                        // NSEP (same admission types, no criteria
+                        // breakdown) — countryConfig.bsfpnsepAdmissionTypesByCategory
+                        // is only defined there, so South Sudan's BSFP
+                        // (which has no bsfp_child_visit/bsfp_child_followup_visit
+                        // forms) keeps its simpler MainReport unchanged.
                         render: context =>
-                            MainReport(
+                            countryConfig.bsfpnsepAdmissionTypesByCategory
+                                ? ChildrenUnder5(
+                                      context.entities,
+                                      context.startDate,
+                                      context.endDate,
+                                      context.program,
+                                      context.entityType,
+                                      countryConfig.bsfpnsepAdmissionTypesByCategory,
+                                      // BSFP's assistance_given field only
+                                      // ever takes these 3 values, and all
+                                      // 3 share one quantity field (unlike
+                                      // NSEP's per-type field names).
+                                      ['lns_mq', 'wsbp', 'rusf'],
+                                      'ration_quantity',
+                                  )
+                                : MainReport(
+                                      context.entities,
+                                      context.startDate,
+                                      context.endDate,
+                                      context.program,
+                                      context.entityType,
+                                  ),
+                    },
+                ],
+            },
+            {
+                key: 'NSEP',
+                label: 'NSEP',
+                reportOptions: [
+                    {
+                        key: 'NSEP',
+                        label: 'Main Report',
+                        render: context =>
+                            ChildrenUnder5(
                                 context.entities,
                                 context.startDate,
                                 context.endDate,
                                 context.program,
                                 context.entityType,
+                                countryConfig.bsfpnsepAdmissionTypesByCategory,
+                                // NSEP's ration_type field only ever takes
+                                // these 5 values — narrower than the
+                                // default ration list other programs show.
+                                ['rusf', 'wsbp', 'lns_mq', 'cash_voucher', 'in_kind'],
                             ),
                     },
                 ],
