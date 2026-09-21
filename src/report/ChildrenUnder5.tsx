@@ -19,6 +19,16 @@ function ChildrenUnder5(
     endDate: Date,
     program: string,
     entityType: string,
+    // Passed through to dataCategory — lets a program (e.g. NSEP) show its
+    // own admission-type sections without adding them to the shared
+    // admissionTypesByCategory table other Child Under 5 programs read.
+    admissionTypesByCategoryOverride?: Record<string, string[]>,
+    // Passed through to RationData — lets a program restrict the Ration
+    // section to only the ration types it actually records.
+    rationTypes?: string[],
+    // Passed through to RationData — lets a program override which field
+    // every shown ration type's quantity is read from.
+    quantityField?: string,
 ) {
     const dateValue = `${startDate.toDateString()} to ${endDate.toDateString()}`;
     const categories = dataCategory(
@@ -27,6 +37,7 @@ function ChildrenUnder5(
         startDate,
         endDate,
         entityType,
+        admissionTypesByCategoryOverride,
     );
     const rationsGivens = assistanceGiven(
         entities,
@@ -59,7 +70,11 @@ function ChildrenUnder5(
                     <br />
                     <div>Ration</div>
                     <div>
-                        <RationData {...rationsGivens} />
+                        <RationData
+                            {...rationsGivens}
+                            rationTypes={rationTypes}
+                            quantityField={quantityField}
+                        />
                     </div>
                     <br />
                     <div>{Summary(discharged)}</div>
