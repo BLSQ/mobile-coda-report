@@ -228,6 +228,13 @@ const categoryDictionary = (key: string) => {
         lns_mq: 'LNS-MQ',
         measles_status: 'Measles vaccination Status',
         deworming: 'Deworming',
+        cash_voucher: 'Cash Voucher',
+        in_kind: 'In-kind',
+        new_admission: 'New Admission',
+        readmission_after_default: 'Readmission After Default',
+        returned_defaulter_old_case: 'Returned Defaulter (Old Case)',
+        transferred_from_bsfp_nsep: 'Transferred from BSFP/NSEP',
+        transferred_from_tsfp: 'Transferred from TSFP',
     };
     return keyValues[key];
 };
