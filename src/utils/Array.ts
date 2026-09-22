@@ -248,27 +248,13 @@ let beneficiaryFollowupCategories = (program: string | null) => {
         { key: 'medical_investigation', label: 'Transfer to PHC' },
         //{ key: 'death', label: 'Death' },
     ];
-    // if (program?.includes('TSFP')) {
-    //     beneficiaryCategory.push({
-    //         key: 'transfer_from_other_otp',
-    //         label: 'Transfer in from OTP',
-    //     });
-    //     beneficiaryCategory.push({
-    //         key: 'referred_from_other_tsfp',
-    //         label: 'Transfer in from other TSFP',
-    //     });
-    // } else {
-    //     if (program?.includes('OTP')) {
-    //         beneficiaryCategory.push({
-    //             key: 'transferred_to_tsfp',
-    //             label: 'Transfer To TSFP',
-    //         });
-    //         beneficiaryCategory.push({
-    //             key: 'referred_from_other_otp',
-    //             label: 'Transfer in from other OTP',
-    //         });
-    //     }
-    // }
+    // BSFP/NSEP have no PHC referral pathway (unlike TSFP/OTP), so that
+    // category never applies to their followup report.
+    if (program === 'BSFP' || program === 'NSEP') {
+        beneficiaryCategory = beneficiaryCategory.filter(
+            row => row.key !== 'medical_investigation',
+        );
+    }
     return beneficiaryCategory;
 };
 
