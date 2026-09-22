@@ -221,6 +221,20 @@ export const reportConfig: EntityTypeOption[] = [
                                       context.entityType,
                                   ),
                     },
+                    {
+                        key: 'BSFP_followup_category',
+                        label: 'Followup category',
+                        needsCategory: true,
+                        render: context =>
+                            FolloWupCategories(
+                                context.category,
+                                context.program,
+                                context.entities,
+                                context.startDate,
+                                context.endDate,
+                                context.entityType,
+                            ),
+                    },
                 ],
             },
             {
@@ -242,6 +256,20 @@ export const reportConfig: EntityTypeOption[] = [
                                 // these 5 values — narrower than the
                                 // default ration list other programs show.
                                 ['rusf', 'wsbp', 'lns_mq', 'cash_voucher', 'in_kind'],
+                            ),
+                    },
+                    {
+                        key: 'NSEP_followup_category',
+                        label: 'Followup category',
+                        needsCategory: true,
+                        render: context =>
+                            FolloWupCategories(
+                                context.category,
+                                context.program,
+                                context.entities,
+                                context.startDate,
+                                context.endDate,
+                                context.entityType,
                             ),
                     },
                 ],

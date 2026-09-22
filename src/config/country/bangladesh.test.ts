@@ -78,7 +78,7 @@ describe('bangladesh.admissionTypeWithCriteria', () => {
         expect(criteria.new_case_OEDEMA).toEqual(allCriteria);
     });
 
-    it('leaves PBWG on South Sudan\'s plain new_case, untouched', () => {
+    it("leaves PBWG on South Sudan's plain new_case, untouched", () => {
         const criteria = bangladesh.admissionTypeWithCriteria('TSFP', 'PBWG');
         expect(criteria.new_case).toBeDefined();
         expect(criteria.new_case_MUAC).toBeUndefined();
@@ -112,5 +112,178 @@ describe('bangladesh.admissionTypesByCategory', () => {
         expect(bangladesh.pbwgAdmissionTypesByCategory).toEqual(
             southSudan.pbwgAdmissionTypesByCategory,
         );
+    });
+
+    it('does not add any NSEP types to the shared table TSFP/OTP/BSFP also read', () => {
+        const nsepTypes = [
+            'new_admission',
+            'readmission_after_default',
+            'returned_defaulter_old_case',
+            'transferred_from_bsfp_nsep',
+            'transferred_from_tsfp',
+        ];
+        const allSharedTypes = Object.values(
+            bangladesh.admissionTypesByCategory,
+        ).flat();
+        nsepTypes.forEach(nsepType => {
+            expect(allSharedTypes).not.toContain(nsepType);
+        });
+    });
+});
+
+describe('bangladesh NSEP support', () => {
+    it('bsfpnsepAdmissionTypesByCategory has exactly the 4 requested sections with the 5 NSEP types split into New admissions / Old cases', () => {
+        expect(bangladesh.bsfpnsepAdmissionTypesByCategory).toEqual({
+            'Follow Ups': ['Total Follow up'],
+            'New admissions': ['new_admission', 'readmission_after_default'],
+            'Old cases': [
+                'returned_defaulter_old_case',
+                'transferred_from_bsfp_nsep',
+                'transferred_from_tsfp',
+            ],
+            Total: ['Total Admissions', 'Follow Ups'],
+        });
+    });
+
+    it('entityTypeByProgram resolves NSEP to its own key for Child Under 5', () => {
+        expect(bangladesh.entityTypeByProgram('NSEP', 'Child Under 5')).toBe(
+            'NSEP',
+        );
+    });
+
+    it.each([
+        'new_admission',
+        'readmission_after_default',
+        'returned_defaulter_old_case',
+        'transferred_from_bsfp_nsep',
+        'transferred_from_tsfp',
+    ])(
+        'matchAdmissionType matches %s off admission_type with empty criteria',
+        nsepType => {
+            expect(
+                bangladesh.matchAdmissionType(
+                    { admission_type: nsepType },
+                    nsepType,
+                    'Child Under 5',
+                ),
+            ).toEqual({ baseType: nsepType, criteria: '' });
+        },
+    );
+
+    it('matchAdmissionType returns null for an NSEP type that does not match', () => {
+        expect(
+            bangladesh.matchAdmissionType(
+                { admission_type: 'new_admission' },
+                'readmission_after_default',
+                'Child Under 5',
+            ),
+        ).toBeNull();
+    });
+
+    it('admissionTypeWithCriteria gives each NSEP type a single empty-string criteria, matching matchAdmissionType', () => {
+        const criteria = bangladesh.admissionTypeWithCriteria(
+            'NSEP',
+            'Child Under 5',
+        );
+        expect(criteria.new_admission).toEqual(['']);
+        expect(criteria.readmission_after_default).toEqual(['']);
+        expect(criteria.returned_defaulter_old_case).toEqual(['']);
+        expect(criteria.transferred_from_bsfp_nsep).toEqual(['']);
+        expect(criteria.transferred_from_tsfp).toEqual(['']);
+    });
+
+    it('formsByCategory routes NSEP through both nsep_child_visit and nsep_child_followup_visit, except followUps which is the followup form alone', () => {
+        const bothNsepForms = ['nsep_child_visit', 'nsep_child_followup_visit'];
+        expect(bangladesh.formsByCategory.admission.NSEP).toEqual(
+            bothNsepForms,
+        );
+        expect(bangladesh.formsByCategory.oldCase.NSEP).toEqual(bothNsepForms);
+        expect(bangladesh.formsByCategory.followUps.NSEP).toEqual([
+            'nsep_child_followup_visit',
+        ]);
+        expect(bangladesh.formsByCategory.rationGiven.NSEP).toEqual(
+            bothNsepForms,
+        );
+    });
+});
+
+describe('southSudan NSEP absence', () => {
+    it('does not define NSEP forms or an NSEP entityType — NSEP is Bangladesh-only', () => {
+        expect(southSudan.formsByCategory.admission.NSEP).toBeUndefined();
+        expect(southSudan.entityTypeByProgram('NSEP', 'Child Under 5')).toBe(
+            '',
+        );
+        expect(southSudan.bsfpnsepAdmissionTypesByCategory).toBeUndefined();
+    });
+});
+
+describe('bangladesh BSFP reuses the NSEP report format', () => {
+    it('formsByCategory routes BSFP through both bsfp_child_visit and bsfp_child_followup_visit, except followUps which is the followup form alone', () => {
+        const bothBsfpForms = ['bsfp_child_visit', 'bsfp_child_followup_visit'];
+        expect(bangladesh.formsByCategory.admission.BSFP).toEqual(
+            bothBsfpForms,
+        );
+        expect(bangladesh.formsByCategory.oldCase.BSFP).toEqual(bothBsfpForms);
+        expect(bangladesh.formsByCategory.followUps.BSFP).toEqual([
+            'bsfp_child_followup_visit',
+        ]);
+        expect(bangladesh.formsByCategory.rationGiven.BSFP).toEqual(
+            bothBsfpForms,
+        );
+    });
+
+    it.each([
+        'new_admission',
+        'readmission_after_default',
+        'returned_defaulter_old_case',
+        'transferred_from_bsfp_nsep',
+        'transferred_from_tsfp',
+    ])(
+        'matchAdmissionType matches %s for BSFP the same as NSEP — with empty criteria, since the check is keyed by baseType, not program',
+        nsepType => {
+            expect(
+                bangladesh.matchAdmissionType(
+                    { admission_type: nsepType },
+                    nsepType,
+                    'Child Under 5',
+                ),
+            ).toEqual({ baseType: nsepType, criteria: '' });
+        },
+    );
+
+    it('admissionTypeWithCriteria gives BSFP the same single empty-string criteria per type as NSEP', () => {
+        const criteria = bangladesh.admissionTypeWithCriteria(
+            'BSFP',
+            'Child Under 5',
+        );
+        expect(criteria.new_admission).toEqual(['']);
+        expect(criteria.returned_defaulter_old_case).toEqual(['']);
+    });
+});
+
+describe('bangladesh.resolveRationType', () => {
+    it('reads ration_given when present', () => {
+        expect(bangladesh.resolveRationType?.({ ration_given: 'rusf' })).toBe(
+            'rusf',
+        );
+    });
+
+    it('falls back to assistance_given when ration_given is absent', () => {
+        expect(
+            bangladesh.resolveRationType?.({ assistance_given: 'in_kind' }),
+        ).toBe('in_kind');
+    });
+
+    it('prefers ration_given over assistance_given when both are present', () => {
+        expect(
+            bangladesh.resolveRationType?.({
+                ration_given: 'wsbp',
+                assistance_given: 'cash_voucher',
+            }),
+        ).toBe('wsbp');
+    });
+
+    it('returns undefined when neither field is present', () => {
+        expect(bangladesh.resolveRationType?.({})).toBeUndefined();
     });
 });
