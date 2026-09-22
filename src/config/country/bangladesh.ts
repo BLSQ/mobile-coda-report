@@ -2,26 +2,23 @@ import { CountryConfig, AdmissionTypeMatch } from './types';
 import southSudan from './southSudan';
 import { bsfpnsepAdmissionTypesByCategory } from './bsfpnsep';
 
-// NSEP is a Bangladesh-only program (South Sudan has no nsep_child_visit /
-// nsep_child_followup_visit forms), for Child Under 5 only — not PBWG.
-// Its 5 admission types are plain, single-value types with no nutrition
-// criteria breakdown (unlike TSFP's muac/whz/oedema split), so each maps
-// to a single '' placeholder criteria — matchAdmissionType and
-// admissionTypeWithCriteria below both need to agree on that same value,
-// since a report row only renders when the two sides' computed
-// "baseType + criteria" keys line up (see DataFilter.ts).
-//
-// Bangladesh's BSFP report reuses this exact same vocabulary (including
-// transferred_from_bsfp_nsep, which exists specifically to describe a
-// beneficiary moving between these two programs) — matchAdmissionType and
-// admissionTypeWithCriteria below aren't keyed by program, only by
-// baseType, so they already apply to BSFP's visits as-is.
+
 const NSEP_BASE_TYPES = [
     ...bsfpnsepAdmissionTypesByCategory['New admissions'],
     ...bsfpnsepAdmissionTypesByCategory['Old cases'],
 ];
 const NSEP_TYPE_CRITERIA: Record<string, string[]> = Object.fromEntries(
     NSEP_BASE_TYPES.map(baseType => [baseType, ['']]),
+);
+
+const BSFP_PBWG_BASE_TYPES = [
+    'new_case',
+    'returned_defaulter',
+    'transfer_from_other_bsfp',
+    'transfer_from_other_tsfp',
+];
+const BSFP_PBWG_TYPE_CRITERIA: Record<string, string[]> = Object.fromEntries(
+    BSFP_PBWG_BASE_TYPES.map(baseType => [baseType, ['']]),
 );
 
 // Bangladesh keeps South Sudan's admission-type/criteria model as-is
@@ -45,10 +42,6 @@ const NEW_CASE_TYPE_CRITERIA: Record<string, string[]> = {
     new_case_OEDEMA: ['muac', 'whz', 'muac_whz', 'oedema'],
 };
 
-// Which single criteria a visit actually gets matched under for each
-// compound type — distinct from NEW_CASE_TYPE_CRITERIA above, which lists
-// every criteria row a report shows per type, not which one a real visit
-// resolves to.
 const OWN_CRITERIA: Record<string, string> = {
     new_case_MUAC: 'muac',
     new_case_WHZ: 'whz',
@@ -60,6 +53,7 @@ const matchAdmissionType = (
     values: any,
     baseType: string,
     beneficiaryType?: string | null,
+    program?: string,
 ): AdmissionTypeMatch | null => {
     const criteria = OWN_CRITERIA[baseType];
     if (criteria != null && beneficiaryType === 'Child Under 5') {
@@ -75,6 +69,18 @@ const matchAdmissionType = (
             ? { baseType, criteria: '' }
             : null;
     }
+    if (
+        program === 'BSFP' &&
+        beneficiaryType === 'PBWG' &&
+        BSFP_PBWG_BASE_TYPES.includes(baseType)
+    ) {
+        // Checked only when program === 'BSFP': 'new_case' etc. mean
+        // something different (and criteria-bearing) for TSFP-PBWG, which
+        // must keep falling through to South Sudan's matcher below.
+        return values?.admission_type === baseType
+            ? { baseType, criteria: '' }
+            : null;
+    }
     return southSudan.matchAdmissionType(values, baseType, beneficiaryType);
 };
 
@@ -86,6 +92,9 @@ const admissionTypeWithCriteria = (
         program,
         beneficiaryType,
     );
+    if (program === 'BSFP' && beneficiaryType === 'PBWG') {
+        return { new_case, ...base, ...BSFP_PBWG_TYPE_CRITERIA };
+    }
     if (beneficiaryType !== 'Child Under 5') {
         // new_case is only replaced for Child Under 5 — PBWG (and anything
         // else) keeps South Sudan's plain new_case untouched.
@@ -97,6 +106,9 @@ const admissionTypeWithCriteria = (
 const entityTypeByProgram = (program: string, type: string): string => {
     if (type === 'Child Under 5' && program === 'NSEP') {
         return 'NSEP';
+    }
+    if (type === 'PBWG' && program === 'BSFP') {
+        return 'BSFP';
     }
     return southSudan.entityTypeByProgram(program, type);
 };
@@ -221,15 +233,40 @@ const pbwgAssistanceForms = [
     'wfp_coda_pbwg_assistance_followup',
 ];
 
-// TODO(bangladesh): absentees/defaulters/medicals/rationGiven form lists
-// aren't in yet, same as formsByCategory above.
+// BSFP-PBWG reports in the same 2-form shape as BSFP/NSEP for Child Under
+// 5: bsfp_pbwg_visit covers admission/oldCase (new_case plus the old-case
+// types) plus defaulters/absentees detection, bsfp_pbwg_followup_visit
+// covers followUps, and ration given is read off both.
+const bsfpPbwgAdmissionForms = ['bsfp_pbwg_visit'];
+const bsfpPbwgFollowupForms = ['bsfp_pbwg_followup_visit'];
+
+// TODO(bangladesh): medicals form list isn't in yet for TSFP-PBWG, same as
+// formsByCategory above. BSFP has no medical report.
 const pbwgFormsByCategory: Record<string, Record<string, string[]>> = {
-    admission: { TSFP: pbwgAdmissionForms,BSFP: ["bsfp_child_followup_visit"] },
-    oldCase: { TSFP: pbwgAdmissionForms.concat(pbwgFollowUpForms) },
-    followUps: { TSFP: pbwgFollowUpForms, BSFP: ["bsfp_child_followup_visit"]},
-    defaulters: { TSFP: pbwgAdmissionForms.concat(pbwgFollowUpForms) },
-    absentees: { TSFP: pbwgAdmissionForms.concat(pbwgFollowUpForms) },
-    rationGiven: { TSFP: pbwgAssistanceForms },
+    admission: {
+        TSFP: pbwgAdmissionForms,
+        BSFP: bsfpPbwgAdmissionForms.concat(bsfpPbwgFollowupForms),
+    },
+    oldCase: {
+        TSFP: pbwgAdmissionForms.concat(pbwgFollowUpForms),
+        BSFP: bsfpPbwgAdmissionForms.concat(bsfpPbwgFollowupForms),
+    },
+    followUps: {
+        TSFP: pbwgFollowUpForms,
+        BSFP: bsfpPbwgFollowupForms,
+    },
+    defaulters: {
+        TSFP: pbwgAdmissionForms.concat(pbwgFollowUpForms),
+        BSFP: bsfpPbwgAdmissionForms.concat(bsfpPbwgFollowupForms),
+    },
+    absentees: {
+        TSFP: pbwgAdmissionForms.concat(pbwgFollowUpForms),
+        BSFP: bsfpPbwgAdmissionForms.concat(bsfpPbwgFollowupForms),
+    },
+    rationGiven: {
+        TSFP: pbwgAssistanceForms,
+        BSFP: bsfpPbwgAdmissionForms.concat(bsfpPbwgFollowupForms),
+    },
     medicals: { TSFP: pbwgMedicalForms },
 };
 
@@ -246,6 +283,33 @@ const admissionTypesByCategory: Record<string, string[]> = {
 };
 const { pbwgAdmissionTypesByCategory } = southSudan;
 
+// BSFP-PBWG's report shape, requested explicitly (unlike Child Under 5's
+// BSFP, which reuses NSEP's vocabulary as-is): New admissions/Old cases
+// keyed off admission_type (see BSFP_PBWG_BASE_TYPES above); Discharges
+// keyed off reason_not_continue_pbwg instead — the 4 values below aren't
+// read from this table (DataFilter.ts's categoryWithData 'Discharges' case
+// hardcodes them directly for BSFP+PBWG), they're listed here only so this
+// table documents the report's full shape; Follow Ups/Total reuse the
+// generic form-count logic. Rendered the same way as every other section
+// (ReportPBWGContent), not the cured/defaulter/absentees/non_respondent
+// Summary() every other program's Discharges uses.
+const bsfpPbwgAdmissionTypesByCategory: Record<string, string[]> = {
+    'Follow Ups': ['Total Follow up'],
+    'New admissions': ['new_case'],
+    'Old cases': [
+        'returned_defaulter',
+        'transfer_from_other_bsfp',
+        'transfer_from_other_tsfp',
+    ],
+    Discharges: [
+        'transferred_out',
+        'dismissed_due_to_cheating',
+        'voluntary',
+        'other',
+    ],
+    Total: ['Total Admissions', 'Follow Ups'],
+};
+
 // NSEP's and BSFP's ration types are recorded under ration_given or
 // assistance_given instead of ration/ration_type/ration_type_tsfp —
 // assistanceGiven (DataFilter.ts) only consults this once those 3 come
@@ -260,6 +324,7 @@ const bangladesh: CountryConfig = {
     admissionTypesByCategory,
     pbwgAdmissionTypesByCategory,
     bsfpnsepAdmissionTypesByCategory,
+    bsfpPbwgAdmissionTypesByCategory,
     entityTypeByProgram,
     admissionTypeWithCriteria,
     matchAdmissionType,

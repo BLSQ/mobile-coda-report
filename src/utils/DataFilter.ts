@@ -52,7 +52,6 @@ const filterDataOnProgram = (
     let dataLinkedToProgram = rows.filter(
         row => row.visitLinkedToProgram !== undefined,
     );
-    console.info('VISIT LINKED TO PROGRAM ...:', dataLinkedToProgram, rows);
     return dataLinkedToProgram;
 };
 
@@ -76,7 +75,6 @@ const categoryWithData = (
             admissionTypes =
                 countryConfig.pbwgAdmissionTypesByCategory[category];
     }
-    console.info('ALL ADMISSION TYPES ...:', admissionTypes, category);
     switch (category) {
         case 'Follow Ups':
             let data = followUpData(entities, program, 'followUps', entityType);
@@ -96,7 +94,6 @@ const categoryWithData = (
                 'admission',
                 entityType,
             );
-            console.info('CURRENT CATEGORY ...:', newAdmissions);
             mainData[category] = subMainCategoryData(
                 program,
                 category,
@@ -123,6 +120,54 @@ const categoryWithData = (
             break;
 
         case 'Discharges':
+            if (entityType === 'PBWG' && program === 'BSFP') {
+                // BSFP-PBWG's discharges use a dedicated field/vocabulary,
+                // distinct from every other program's cured/death/
+                // defaulter/non_respondent shape above — rendered via
+                // BsfpPbwgDischargeSummary, not the generic Summary().
+                const transferredOut = visitsDataByStatus(
+                    entities,
+                    'reason_not_continue_pbwg',
+                    'transferred_out',
+                );
+                const dismissedDueToCheating = visitsDataByStatus(
+                    entities,
+                    'reason_not_continue_pbwg',
+                    'dismissed_due_to_cheating',
+                );
+                const voluntary = visitsDataByStatus(
+                    entities,
+                    'reason_not_continue_pbwg',
+                    'voluntary',
+                );
+                const other = visitsDataByStatus(
+                    entities,
+                    'reason_not_continue_pbwg',
+                    'other',
+                );
+                mainData[category] = [
+                    admissionByStatus(
+                        entityType,
+                        transferredOut,
+                        category,
+                        'transferred_out',
+                    ),
+                    admissionByStatus(
+                        entityType,
+                        dismissedDueToCheating,
+                        category,
+                        'dismissed_due_to_cheating',
+                    ),
+                    admissionByStatus(
+                        entityType,
+                        voluntary,
+                        category,
+                        'voluntary',
+                    ),
+                    admissionByStatus(entityType, other, category, 'other'),
+                ];
+                break;
+            }
             const absentees = followUpData(
                 entities,
                 program,
@@ -266,6 +311,7 @@ const subMainCategoryData = (
             caseTypes,
             admissionTypeValue,
             entityType,
+            program,
         ).filter(entity => entity?.visits.length > 0);
         let criterias = admissionTypeByCriteriaMapper(
             admissionTypeValue,
@@ -330,15 +376,12 @@ const dataCategory = (
         startDate,
         endDate,
     );
-    console.info('INITIAL DATA ...:', initialData);
     let categories: any[] = admissionTypesByCategoryOverride
         ? Object.keys(admissionTypesByCategoryOverride)
         : Object.keys(countryConfig.admissionTypesByCategory);
     if (!admissionTypesByCategoryOverride && entityType === 'PBWG') {
         categories = Object.keys(countryConfig.pbwgAdmissionTypesByCategory);
     }
-    console.info('ALL CATEGORY ...:', initialData);
-
     let rows = categories.map((category: any) => {
         let data = categoryWithData(
             initialData,
@@ -381,7 +424,6 @@ const followUpData = (
             forms = countryConfig.pbwgFormsByCategory[status][entityType] ?? [];
         }
     }
-    console.info('FORMS ...:', forms);
     let beneficiariesAdmissions = entities
         ?.map(entity => {
             let visits = orderBy(
@@ -532,9 +574,9 @@ const filterDataByAdmissionType = (
     entities: Array<Entity>,
     admissionTypeValue: string,
     beneficiaryType?: string | null,
+    program?: string,
 ) => {
     let admissions = entities.map(entity => {
-        console.info('GETTING ADMISSIONS ...:', entity);
         let matchedVisits = entity.visits
             .map((visit: any) => ({
                 visit,
@@ -542,6 +584,7 @@ const filterDataByAdmissionType = (
                     visit?.values,
                     admissionTypeValue,
                     beneficiaryType,
+                    program,
                 ),
             }))
             .filter(({ match }) => match !== null);

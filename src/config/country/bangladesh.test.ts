@@ -261,6 +261,110 @@ describe('bangladesh BSFP reuses the NSEP report format', () => {
     });
 });
 
+describe('bangladesh PBWG BSFP support', () => {
+    it('entityTypeByProgram resolves BSFP to its own key for PBWG', () => {
+        expect(bangladesh.entityTypeByProgram('BSFP', 'PBWG')).toBe('BSFP');
+    });
+
+    it('entityTypeByProgram leaves every other PBWG program on TSFP, untouched', () => {
+        expect(bangladesh.entityTypeByProgram('TSFP', 'PBWG')).toBe('TSFP');
+        expect(bangladesh.entityTypeByProgram('', 'PBWG')).toBe('TSFP');
+    });
+
+    it('bsfpPbwgAdmissionTypesByCategory has the requested sections, including Discharges', () => {
+        expect(bangladesh.bsfpPbwgAdmissionTypesByCategory).toEqual({
+            'Follow Ups': ['Total Follow up'],
+            'New admissions': ['new_case'],
+            'Old cases': [
+                'returned_defaulter',
+                'transfer_from_other_bsfp',
+                'transfer_from_other_tsfp',
+            ],
+            Discharges: [
+                'transferred_out',
+                'dismissed_due_to_cheating',
+                'voluntary',
+                'other',
+            ],
+            Total: ['Total Admissions', 'Follow Ups'],
+        });
+    });
+
+    it.each(['new_case', 'returned_defaulter', 'transfer_from_other_bsfp', 'transfer_from_other_tsfp'])(
+        'matchAdmissionType matches %s for BSFP+PBWG off admission_type with empty criteria',
+        bsfpPbwgType => {
+            expect(
+                bangladesh.matchAdmissionType(
+                    { admission_type: bsfpPbwgType },
+                    bsfpPbwgType,
+                    'PBWG',
+                    'BSFP',
+                ),
+            ).toEqual({ baseType: bsfpPbwgType, criteria: '' });
+        },
+    );
+
+    it('matchAdmissionType returns null for a BSFP+PBWG type that does not match', () => {
+        expect(
+            bangladesh.matchAdmissionType(
+                { admission_type: 'new_case' },
+                'returned_defaulter',
+                'PBWG',
+                'BSFP',
+            ),
+        ).toBeNull();
+    });
+
+    it('matchAdmissionType leaves TSFP-PBWG on South-Sudan-style matching for the same type names, since program disambiguates them', () => {
+        // Without program='BSFP' (or with program='TSFP'), 'new_case' still
+        // falls through to South Sudan's criteria-field-based matcher —
+        // same behavior as before this feature existed.
+        expect(
+            bangladesh.matchAdmissionType(
+                { admission_type: 'new_case', admission_criteria: 'muac' },
+                'new_case',
+                'PBWG',
+                'TSFP',
+            ),
+        ).toEqual({ baseType: 'new_case', criteria: 'muac' });
+    });
+
+    it('admissionTypeWithCriteria gives each BSFP+PBWG type a single empty-string criteria', () => {
+        const criteria = bangladesh.admissionTypeWithCriteria('BSFP', 'PBWG');
+        expect(criteria.new_case).toEqual(['']);
+        expect(criteria.returned_defaulter).toEqual(['']);
+        expect(criteria.transfer_from_other_bsfp).toEqual(['']);
+        expect(criteria.transfer_from_other_tsfp).toEqual(['']);
+    });
+
+    it("leaves TSFP's PBWG criteria untouched", () => {
+        const criteria = bangladesh.admissionTypeWithCriteria('TSFP', 'PBWG');
+        expect(criteria.new_case).toEqual(['child_wasted', 'muac']);
+    });
+
+    it('pbwgFormsByCategory routes BSFP through bsfp_pbwg_visit and bsfp_pbwg_followup_visit, except followUps which is the followup form alone', () => {
+        const bothForms = ['bsfp_pbwg_visit', 'bsfp_pbwg_followup_visit'];
+        expect(bangladesh.pbwgFormsByCategory.admission.BSFP).toEqual(
+            bothForms,
+        );
+        expect(bangladesh.pbwgFormsByCategory.oldCase.BSFP).toEqual(
+            bothForms,
+        );
+        expect(bangladesh.pbwgFormsByCategory.defaulters.BSFP).toEqual(
+            bothForms,
+        );
+        expect(bangladesh.pbwgFormsByCategory.absentees.BSFP).toEqual(
+            bothForms,
+        );
+        expect(bangladesh.pbwgFormsByCategory.rationGiven.BSFP).toEqual(
+            bothForms,
+        );
+        expect(bangladesh.pbwgFormsByCategory.followUps.BSFP).toEqual([
+            'bsfp_pbwg_followup_visit',
+        ]);
+    });
+});
+
 describe('bangladesh.resolveRationType', () => {
     it('reads ration_given when present', () => {
         expect(bangladesh.resolveRationType?.({ ration_given: 'rusf' })).toBe(

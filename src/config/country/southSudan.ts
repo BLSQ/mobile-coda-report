@@ -73,22 +73,21 @@ const screeningForms = [
     'PBWG_BSFP',
 ];
 
-const stockForms: string[] = ["stock_add", "nfi_stocks"];
+const stockForms: string[] = ['stock_add', 'nfi_stocks'];
 const assistanceFoodItemForms = [
-  "child_assistance_2nd_visit_tsfp",
-  "child_assistance_follow_up",
-  "child_assistance_follow_up_2",
-  "assistance_admission_otp",
-  "assistance_admission_2nd_visit_otp",
-  "child_assistance_admission",
-  "child_assistance_admission_2",
-  "child_assistance_admission_2_u6",
-  "assistance_u6",
-  "Anthropometric_BSFP_child_2",
-  "PBWG_BSFP",
-  "wfp_coda_pbwg_assistance",
-  "wfp_coda_pbwg_assistance_followup",
-
+    'child_assistance_2nd_visit_tsfp',
+    'child_assistance_follow_up',
+    'child_assistance_follow_up_2',
+    'assistance_admission_otp',
+    'assistance_admission_2nd_visit_otp',
+    'child_assistance_admission',
+    'child_assistance_admission_2',
+    'child_assistance_admission_2_u6',
+    'assistance_u6',
+    'Anthropometric_BSFP_child_2',
+    'PBWG_BSFP',
+    'wfp_coda_pbwg_assistance',
+    'wfp_coda_pbwg_assistance_followup',
 ];
 
 const admissionTypesByCategory: Record<string, string[]> = {
@@ -315,23 +314,21 @@ const formsByCategory: Record<string, Record<string, string[]>> = {
     },
 };
 
-// South Sudan's forms carry the admission type as a plain value
-// ("new_case") and the nutrition criteria in a separate admission_criteria
-// field. Unmatched/missing criteria are intentionally passed through as-is
-// (not defaulted to '') so a visit with no admission_criteria still sorts
-// into its own distinct, un-mapped subCategory bucket rather than silently
-// colliding with a real criteria value — matches the pre-extraction
-// behavior of DataFilter.ts's filterDataByAdmissionType.
 const matchAdmissionType = (
     values: any,
     baseType: string,
     _beneficiaryType?: string | null,
+    _program?: string,
 ): AdmissionTypeMatch | null => {
     const rawType = values?.new_admission_type ?? values?.admission_type;
     if (rawType !== baseType) {
         return null;
     }
-    return { baseType, criteria: values?.admission_criteria ?? values?.admission_criteria_yellow };
+    return {
+        baseType,
+        criteria:
+            values?.admission_criteria ?? values?.admission_criteria_yellow,
+    };
 };
 
 const southSudan: CountryConfig = {
@@ -344,7 +341,7 @@ const southSudan: CountryConfig = {
     admissionTypeWithCriteria,
     matchAdmissionType,
     stockForms,
-    assistanceFoodItemForms
+    assistanceFoodItemForms,
 };
 
 export default southSudan;
