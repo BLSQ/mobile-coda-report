@@ -255,7 +255,14 @@ export const reportConfig: EntityTypeOption[] = [
                                 // NSEP's ration_type field only ever takes
                                 // these 5 values — narrower than the
                                 // default ration list other programs show.
-                                ['rusf', 'wsbp', 'lns_mq', 'cash_voucher', 'in_kind'],
+                                [
+                                    'rusf',
+                                    'wsbp',
+                                    'lns_mq',
+                                    'cash_voucher',
+                                    'in_kind',
+                                ],
+                                'ration_quantity',
                             ),
                     },
                     {
@@ -279,71 +286,124 @@ export const reportConfig: EntityTypeOption[] = [
     {
         key: 'PBWG',
         label: 'Pregnant and breastfeeding women and girls',
-        reportOptions: [
+        // Bangladesh-only: BSFP added alongside TSFP, same schema as Child
+        // Under 5's program step (period first, then program, then report
+        // type). South Sudan has no BSFP-PBWG forms, so its
+        // bsfpPbwgAdmissionTypesByCategory is undefined — irrelevant here
+        // since South Sudan's app build never shows this program choice
+        // (it's only ever offered as a choice, not gated per-country; see
+        // countryConfig.bsfpPbwgAdmissionTypesByCategory below).
+        programs: [
             {
                 key: 'TSFP',
-                label: 'Main Report',
-                render: context =>
-                    PBWGMainReport(
-                        context.entities,
-                        context.startDate,
-                        context.endDate,
-                        context.reportType,
-                        context.entityType,
-                    ),
-            },
-            {
-                key: 'medical',
-                label: 'Medical',
-                render: context =>
-                    PBWGMedicalReport(
-                        context.entities,
-                        context.startDate,
-                        context.endDate,
-                        'TSFP',
-                    ),
-            },
-            {
-                key: 'PBWG_followup',
-                label: 'Followup category',
-                needsCategory: true,
-                needsPhysiologyStatus: true,
-                render: context => {
-                    // `needsPhysiologyStatus` guarantees this is set before
-                    // App.tsx ever calls render.
-                    if (!context.physiologyStatus) return null;
-                    return PBWGFollowUpCategories(
-                        context.category,
-                        'TSFP',
-                        context.entities,
-                        context.startDate,
-                        context.endDate,
-                        context.entityType,
-                        context.physiologyStatus,
-                    );
-                },
-            },
-            {
-                key: 'PBWG_eRegister',
-                label: 'eRegister',
-                needsPhysiologyStatus: true,
-                render: context => {
-                    // `needsPhysiologyStatus` guarantees this is set before
-                    // App.tsx ever calls render.
-                    if (!context.physiologyStatus) return null;
-                    return ERegistry(
-                        'TSFP',
-                        context.entities?.filter(
-                            (entity: any) =>
-                                entity?.profile?.values?.physiology_status ===
+                label: 'TSFP',
+                reportOptions: [
+                    {
+                        key: 'TSFP',
+                        label: 'Main Report',
+                        render: context =>
+                            PBWGMainReport(
+                                context.entities,
+                                context.startDate,
+                                context.endDate,
+                                context.program,
+                                context.entityType,
+                            ),
+                    },
+                    {
+                        key: 'medical',
+                        label: 'Medical',
+                        render: context =>
+                            PBWGMedicalReport(
+                                context.entities,
+                                context.startDate,
+                                context.endDate,
+                                context.program,
+                            ),
+                    },
+                    {
+                        key: 'PBWG_followup',
+                        label: 'Followup category',
+                        needsCategory: true,
+                        needsPhysiologyStatus: true,
+                        render: context => {
+                            // `needsPhysiologyStatus` guarantees this is set
+                            // before App.tsx ever calls render.
+                            if (!context.physiologyStatus) return null;
+                            return PBWGFollowUpCategories(
+                                context.category,
+                                context.program,
+                                context.entities,
+                                context.startDate,
+                                context.endDate,
+                                context.entityType,
                                 context.physiologyStatus,
-                        ),
-                        context.startDate,
-                        context.endDate,
-                        context.entityType,
-                        context.physiologyStatus,
-                    );
-                },
+                            );
+                        },
+                    },
+                    {
+                        key: 'PBWG_eRegister',
+                        label: 'eRegister',
+                        needsPhysiologyStatus: true,
+                        render: context => {
+                            // `needsPhysiologyStatus` guarantees this is set
+                            // before App.tsx ever calls render.
+                            if (!context.physiologyStatus) return null;
+                            return ERegistry(
+                                context.program,
+                                context.entities?.filter(
+                                    (entity: any) =>
+                                        entity?.profile?.values
+                                            ?.physiology_status ===
+                                        context.physiologyStatus,
+                                ),
+                                context.startDate,
+                                context.endDate,
+                                context.entityType,
+                                context.physiologyStatus,
+                            );
+                        },
+                    },
+                ],
+            },
+            {
+                key: 'BSFP',
+                label: 'BSFP',
+                reportOptions: [
+                    {
+                        key: 'BSFP',
+                        label: 'Main Report',
+                        render: context =>
+                            PBWGMainReport(
+                                context.entities,
+                                context.startDate,
+                                context.endDate,
+                                context.program,
+                                context.entityType,
+                                countryConfig.bsfpPbwgAdmissionTypesByCategory,
+                            ),
+                    },
+                    {
+                        key: 'BSFP_followup_category',
+                        label: 'Followup category',
+                        needsCategory: true,
+                        needsPhysiologyStatus: true,
+                        render: context => {
+                            // `needsPhysiologyStatus` guarantees this is set
+                            // before App.tsx ever calls render.
+                            if (!context.physiologyStatus) return null;
+                            return PBWGFollowUpCategories(
+                                context.category,
+                                context.program,
+                                context.entities,
+                                context.startDate,
+                                context.endDate,
+                                context.entityType,
+                                context.physiologyStatus,
+                            );
+                        },
+                    },
+                ],
             },
         ],
     },
@@ -370,27 +430,26 @@ export const reportConfig: EntityTypeOption[] = [
     {
         key: 'STOCK',
         label: 'Stock Data',
-        reportOptions:[
+        reportOptions: [
             {
                 key: 'FOOD_ITEM',
                 label: 'Food item',
-                render: context => FoodItems({
-                    submissions: context.forms.filter(form =>
-                            countryConfig.stockForms.includes(
-                                form.formFormId,
-                            ),
+                render: context =>
+                    FoodItems({
+                        submissions: context.forms.filter(form =>
+                            countryConfig.stockForms.includes(form.formFormId),
                         ),
                         startDate: context.startDate,
                         endDate: context.endDate,
-                })
+                    }),
             },
             {
                 key: 'NON_FOOD_ITEM',
                 label: 'Non Food item',
                 render: function (context: ReportContext): ReactNode {
                     throw new Error('Function not implemented.');
-                }
-            }
-        ]
-    }
+                },
+            },
+        ],
+    },
 ];
