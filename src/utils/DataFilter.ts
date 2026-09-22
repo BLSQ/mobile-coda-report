@@ -742,7 +742,6 @@ const agregatedBeneficiaryFolloWup = (
     entityType: string,
 ) => {
     let allCategories = [
-        '',
         'absentees',
         'defaulters',
         'referral_to_sc_itp',
