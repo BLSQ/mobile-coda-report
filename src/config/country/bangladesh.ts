@@ -2,7 +2,6 @@ import { CountryConfig, AdmissionTypeMatch } from './types';
 import southSudan from './southSudan';
 import { bsfpnsepAdmissionTypesByCategory } from './bsfpnsep';
 
-
 const NSEP_BASE_TYPES = [
     ...bsfpnsepAdmissionTypesByCategory['New admissions'],
     ...bsfpnsepAdmissionTypesByCategory['Old cases'],
@@ -114,13 +113,30 @@ const entityTypeByProgram = (program: string, type: string): string => {
 };
 
 // TODO(bangladesh): replace with Bangladesh's real screening formFormIds.
-const screeningForms: string[] = ['screening_tally'];
+const screeningForms: string[] = [
+    'screening_tally',
+    'Anthropometric visit child',
+    'Anthropometric visit child_2',
+    'Anthropometric visit child_U6',
+    'Anthropometric_BSFP_child_2',
+    'bsfp_child_visit',
+    'bsfp_child_followup_visit',
+    'nsep_child_visit',
+    'nsep_child_followup_visit',
+    'wfp_coda_pbwg_anthropometric',
+    'bsfp_pbwg_visit',
+];
 
-const stockForms: string[] = ["nfi_stocks", "food_item_stock"];
+const stockForms: string[] = ['nfi_stocks', 'food_item_stock'];
 const assistanceFoodItemForms = [
-  'child_assistance_admission_2_u6','bsfp_child_followup_visit','child_assistance_follow_up_2',
-  'bsfp_pbwg_followup_visit', 'wfp_coda_pbwg_assistance','wfp_coda_pbwg_assistance_followup',
-  'nsep_child_followup_visit', 'nsep_child_visit'
+    'child_assistance_admission_2_u6',
+    'bsfp_child_followup_visit',
+    'child_assistance_follow_up_2',
+    'bsfp_pbwg_followup_visit',
+    'wfp_coda_pbwg_assistance',
+    'wfp_coda_pbwg_assistance_followup',
+    'nsep_child_followup_visit',
+    'nsep_child_visit',
 ];
 
 // Unlike South Sudan, Bangladesh doesn't use different formFormIds per
@@ -129,6 +145,7 @@ const assistanceFoodItemForms = [
 // the same forms too, matching South Sudan's own pattern: which one a visit
 // belongs to is decided by its admission_type, not by which form was used.
 const childUnder5AdmissionForms = [
+    //'wfp_coda_pbwg_registration',
     'Anthropometric visit child_U6',
     //'Child Medical Admission_2_u6',
     'child_assistance_admission_2_u6',
@@ -157,50 +174,61 @@ const childUnder5AssistanceForms = [
 // covers followUps, and ration given is read off both.
 const bsfpAdmissionForms = ['bsfp_child_visit'];
 const bsfpFollowupForms = ['bsfp_child_followup_visit'];
+const bsfpAssistanceForms = [
+    'bsfp_child_visit_assistance',
+    'bsfp_child_followup_visit_assistance',
+];
 
 // NSEP's admission form records all 5 admission types (new admissions and
 // old cases alike), same as BSFP's single admission form above — the
 // separate followup form only covers follow-up visits and ration given.
 const nsepAdmissionForms = ['nsep_child_visit'];
 const nsepFollowupForms = ['nsep_child_followup_visit'];
+const nsepAssistanceForms = [
+    'nsep_child_visit_assistance',
+    'nsep_child_followup_visit_assistance',
+];
 
 const formsByCategory: Record<string, Record<string, string[]>> = {
     admission: {
         TSFP: childUnder5AdmissionForms,
         OTP: childUnder5AdmissionForms,
         BSFP: bsfpAdmissionForms.concat(bsfpFollowupForms),
-        NSEP: nsepAdmissionForms.concat(nsepFollowupForms)
+        NSEP: nsepAdmissionForms.concat(nsepFollowupForms),
     },
     oldCase: {
         TSFP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
         OTP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
         BSFP: bsfpAdmissionForms.concat(bsfpFollowupForms),
-        NSEP: nsepAdmissionForms.concat(nsepFollowupForms)
+        NSEP: nsepAdmissionForms.concat(nsepFollowupForms),
     },
     followUps: {
-        TSFP: childUnder5AdmissionForms,
+        TSFP: childUnder5FollowUpForms,
         OTP: childUnder5FollowUpForms,
         BSFP: bsfpFollowupForms,
-        NSEP: nsepFollowupForms
+        NSEP: nsepFollowupForms,
     },
     defaulters: {
         TSFP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
         OTP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
         BSFP: bsfpAdmissionForms.concat(bsfpFollowupForms),
-        NSEP: nsepAdmissionForms.concat(nsepFollowupForms)
+        NSEP: nsepAdmissionForms.concat(nsepFollowupForms),
     },
     absentees: {
         TSFP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
         OTP: childUnder5AdmissionForms.concat(childUnder5FollowUpForms),
         BSFP: bsfpAdmissionForms.concat(bsfpFollowupForms),
-        NSEP: nsepAdmissionForms.concat(nsepFollowupForms)
+        NSEP: nsepAdmissionForms.concat(nsepFollowupForms),
     },
     rationGiven: {
         TSFP: childUnder5AssistanceForms,
         OTP: childUnder5AssistanceForms,
-        BSFP: bsfpAdmissionForms.concat(bsfpFollowupForms),
-        NSEP: nsepAdmissionForms.concat(nsepFollowupForms)
-
+        BSFP: bsfpAdmissionForms.concat(
+            bsfpFollowupForms.concat(bsfpAssistanceForms),
+        ),
+        NSEP: nsepAdmissionForms.concat(
+            nsepFollowupForms.concat(nsepAssistanceForms),
+        ),
     },
     medicals: { TSFP: childUnder5MedicalForms, OTP: childUnder5MedicalForms },
 };
@@ -213,7 +241,7 @@ const formsByCategory: Record<string, Record<string, string[]>> = {
 // that filtering happens downstream (e.g. PBWGFollowUpCategories).
 const pbwgAdmissionForms = [
     'wfp_coda_pbwg_anthropometric',
-    'wfp_coda_medical_visit_PBWG',   
+    'wfp_coda_medical_visit_PBWG',
     'iycf_pregnant_women', // pregnant only
     'wfp_coda_pbwg_assistance',
 ];
@@ -222,7 +250,7 @@ const pbwgFollowUpForms = [
     'wfp_coda_pbwg_followup_anthro', // pregnant
     'wfp_coda_medical_follow_up_visit_PBWG',
     'wfp_coda_pbwg_assistance_followup',
-     'bsfp_pbwg_followup_visit',
+    'bsfp_pbwg_followup_visit',
 ];
 const pbwgMedicalForms = [
     'wfp_coda_medical_visit_PBWG',
@@ -239,6 +267,10 @@ const pbwgAssistanceForms = [
 // covers followUps, and ration given is read off both.
 const bsfpPbwgAdmissionForms = ['bsfp_pbwg_visit'];
 const bsfpPbwgFollowupForms = ['bsfp_pbwg_followup_visit'];
+const bsfpPbwgAssistanceForms = [
+    'bsfp_pbwg_visit_assistance',
+    'bsfp_pbwg_followup_visit_assistance',
+];
 
 // TODO(bangladesh): medicals form list isn't in yet for TSFP-PBWG, same as
 // formsByCategory above. BSFP has no medical report.
@@ -265,7 +297,9 @@ const pbwgFormsByCategory: Record<string, Record<string, string[]>> = {
     },
     rationGiven: {
         TSFP: pbwgAssistanceForms,
-        BSFP: bsfpPbwgAdmissionForms.concat(bsfpPbwgFollowupForms),
+        BSFP: bsfpPbwgAdmissionForms.concat(
+            bsfpPbwgFollowupForms.concat(bsfpPbwgAssistanceForms),
+        ),
     },
     medicals: { TSFP: pbwgMedicalForms },
 };
@@ -286,7 +320,7 @@ const { pbwgAdmissionTypesByCategory } = southSudan;
 // BSFP-PBWG's report shape, requested explicitly (unlike Child Under 5's
 // BSFP, which reuses NSEP's vocabulary as-is): New admissions/Old cases
 // keyed off admission_type (see BSFP_PBWG_BASE_TYPES above); Discharges
-// keyed off reason_not_continue_pbwg instead — the 4 values below aren't
+// keyed off reason_not_continue instead — the 4 values below aren't
 // read from this table (DataFilter.ts's categoryWithData 'Discharges' case
 // hardcodes them directly for BSFP+PBWG), they're listed here only so this
 // table documents the report's full shape; Follow Ups/Total reuse the
@@ -330,8 +364,7 @@ const bangladesh: CountryConfig = {
     matchAdmissionType,
     stockForms,
     assistanceFoodItemForms,
-    resolveRationType
-
+    resolveRationType,
 };
 
 export default bangladesh;

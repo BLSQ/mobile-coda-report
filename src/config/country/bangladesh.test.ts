@@ -290,7 +290,12 @@ describe('bangladesh PBWG BSFP support', () => {
         });
     });
 
-    it.each(['new_case', 'returned_defaulter', 'transfer_from_other_bsfp', 'transfer_from_other_tsfp'])(
+    it.each([
+        'new_case',
+        'returned_defaulter',
+        'transfer_from_other_bsfp',
+        'transfer_from_other_tsfp',
+    ])(
         'matchAdmissionType matches %s for BSFP+PBWG off admission_type with empty criteria',
         bsfpPbwgType => {
             expect(
@@ -347,9 +352,7 @@ describe('bangladesh PBWG BSFP support', () => {
         expect(bangladesh.pbwgFormsByCategory.admission.BSFP).toEqual(
             bothForms,
         );
-        expect(bangladesh.pbwgFormsByCategory.oldCase.BSFP).toEqual(
-            bothForms,
-        );
+        expect(bangladesh.pbwgFormsByCategory.oldCase.BSFP).toEqual(bothForms);
         expect(bangladesh.pbwgFormsByCategory.defaulters.BSFP).toEqual(
             bothForms,
         );

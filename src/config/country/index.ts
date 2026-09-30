@@ -1,7 +1,9 @@
 import { CountryConfig } from './types';
 import southSudan from './southSudan';
 import bangladesh from './bangladesh';
+import { callStockBridge } from '../../stock/StockBridge';
 //import FAKE_STOCK from '../../fake/FakeStockData';
+//import DEFAULT_STOCK from '../../fake/FakeDefaultStockData';
 
 // One native app build == one country, and the native WebView host already
 // tells us which one it is via Android.info().app_id (the Gradle flavor's
@@ -17,7 +19,7 @@ const configs: Record<string, CountryConfig> = {
     bangladesh,
 };
 
-function readAppId(): string | null {
+const readAppId = (): string | null => {
     try {
         // @ts-ignore Android is injected globally by the native WebView bridge
         const info = JSON.parse(Android.info());
@@ -27,17 +29,17 @@ function readAppId(): string | null {
         return info?.app_id ?? null;
     } catch {
         // No native bridge (local dev/tests outside the WebView) — fall
-        // back below rather than crash the whole app on load.
         return null;
     }
-}
+};
 
 const foodInitialStock = (date: string, orgUnitId: string) => {
     try {
-        console.info('DATE ...:', date, orgUnitId);
-        // @ts-ignore Android is injected globally by the native WebView bridge
-        const stocks = JSON.parse(Android.getStockValueAt(date, orgUnitId));
-        //const stocks = JSON.parse(FAKE_STOCK)
+        const stocks = callStockBridge<Record<string, number>>(orgUnitId, () =>
+            // @ts-ignore Android is injected globally by the native WebView bridge
+            Android.getStockValueAt(date, orgUnitId),
+        );
+        //const stocks = JSON.parse(DEFAULT_STOCK)
         return stocks;
     } catch {
         return null;
@@ -45,7 +47,6 @@ const foodInitialStock = (date: string, orgUnitId: string) => {
 };
 
 const appId = readAppId();
-//let country = appId != null ? APP_ID_TO_COUNTRY[appId] : undefined;
 let country = appId != null ? APP_ID_TO_COUNTRY[appId] : undefined;
 if (appId != null && country == null) {
     // eslint-disable-next-line no-console

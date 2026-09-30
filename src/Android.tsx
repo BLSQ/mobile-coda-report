@@ -5,6 +5,7 @@ import { dateFromJson } from './utils/DateFormatter';
 import { countryConfig } from './config/country';
 //import FAKE_DATA from './fake/FakeData';
 //import FAKE_LOCAL_HF from './fake/FakeLocalHealthFacility';
+//import FAKE_SCREENING_DATA from './fake/FakeScreeningData';
 
 function toForm(form: any): Form {
     return {
@@ -44,43 +45,54 @@ function toFlatForms(rows: any[]): Array<Form> {
 }
 
 function toEntities(rows: any[], localHealthFacilityId: string): Array<Entity> {
-    console.info('SDSD ...:', localHealthFacilityId);
-    return chain(rows)
-        .groupBy(row => row.entityId)
-        .map((entityRows: Array<any>, key) => {
-            return {
-                id: key as string,
-                entityTypeId: entityRows[0].entityTypeId,
-                entityTypeName: entityRows[0].entityTypeName,
-                profile: chain(entityRows)
-                    .filter(row => row.id === key)
-                    .map(row => toForm(row))
-                    .value()[0],
-                visits: chain(entityRows)
-                    .filter(
-                        row =>
-                            row.id !== key &&
-                            (row.orgUnitId === localHealthFacilityId ||
-                                row?.values?.org_unit_id ===
-                                    localHealthFacilityId ||
-                                row?.values?.current_ou_id ===
-                                    localHealthFacilityId ||
-                                row?.values?._ou_id === localHealthFacilityId),
-                    )
-                    .map(row => toForm(row))
-                    .sort((f1: Form, f2: Form) => {
-                        if (f1.createdAt < f2.createdAt) {
-                            return -1;
-                        }
-                        if (f1.createdAt > f2.createdAt) {
-                            return 1;
-                        }
-                        return 0;
-                    })
-                    .value(),
-            } as Entity;
-        })
-        .value();
+    return (
+        chain(rows)
+            // Rows not tied to a beneficiary (e.g. stock reports) would otherwise
+            // be grouped into a single profile-less "undefined" entity.
+            .filter(row => row.entityId != null)
+            .groupBy(row => row.entityId)
+            .map((entityRows: Array<any>, key) => {
+                return {
+                    id: key as string,
+                    entityTypeId: entityRows[0].entityTypeId,
+                    entityTypeName: entityRows[0].entityTypeName,
+                    profile: chain(entityRows)
+                        .filter(row => row.id === key)
+                        .map(row => toForm(row))
+                        .value()[0],
+                    visits: chain(entityRows)
+                        .filter(
+                            row =>
+                                row.id !== key &&
+                                (row.orgUnitId === localHealthFacilityId ||
+                                    row?.values?.org_unit_id ===
+                                        localHealthFacilityId ||
+                                    row?.values?.current_ou_id ===
+                                        localHealthFacilityId ||
+                                    row?.values?._ou_id ===
+                                        localHealthFacilityId ||
+                                    row?.values?.parent1_ou_id ===
+                                        localHealthFacilityId ||
+                                    row?.values?.parent2_ou_id ===
+                                        localHealthFacilityId ||
+                                    row?.values?.parent3_ou_id ===
+                                        localHealthFacilityId),
+                        )
+                        .map(row => toForm(row))
+                        .sort((f1: Form, f2: Form) => {
+                            if (f1.createdAt < f2.createdAt) {
+                                return -1;
+                            }
+                            if (f1.createdAt > f2.createdAt) {
+                                return 1;
+                            }
+                            return 0;
+                        })
+                        .value(),
+                } as Entity;
+            })
+            .value()
+    );
 }
 
 // Loads only the submissions relevant to one beneficiary type at a time,
@@ -104,6 +116,9 @@ function LoadFormsForEntityType(
 
     const requestId = Math.floor(Math.random() * 1000);
     const isScreening = entityTypeName === 'SCREENING';
+    // Stock submissions aren't attached to an entity type either, so they're
+    // requested by their formFormIds instead.
+    const isStock = entityTypeName === 'STOCK';
 
     function onMessage(ev: MessageEvent) {
         const payload = JSON.parse(ev.data);
@@ -121,14 +136,22 @@ function LoadFormsForEntityType(
                 ? payload.data.filter(
                       (row: any) =>
                           row?.parentOrgUnitId === localHealthFacility.id ||
-                          row?.orgUnitId === localHealthFacility.id,
+                          row?.orgUnitId === localHealthFacility.id ||
+                          row?.values?.org_unit_id === localHealthFacility.id ||
+                          row?.values?.current_ou_id ===
+                              localHealthFacility.id ||
+                          row?.values?._ou_id === localHealthFacility.id ||
+                          row?.values?.parent1_ou_id ===
+                              localHealthFacility.id ||
+                          row?.values?.parent2_ou_id ===
+                              localHealthFacility.id ||
+                          row?.values?.parent3_ou_id === localHealthFacility.id,
                   )
                 : [];
 
             callback({ forms: toFlatForms(rows), entities: [] });
         } else {
             const rows = payload?.data ?? [];
-            console.info('EACH ROWS ...:', rows);
             callback({
                 forms: toFlatForms(rows),
                 entities: toEntities(rows, localHealthFacility.id),
@@ -143,16 +166,29 @@ function LoadFormsForEntityType(
         // side, so the org unit filter is left out and applied client-side
         // instead once the data comes back.
         isScreening ? null : localHealthFacility.id,
-        isScreening ? null : entityTypeName,
+        isScreening || isStock ? null : entityTypeName,
         null,
         null,
-        isScreening ? countryConfig.screeningForms.join(',') : null,
+        isScreening
+            ? countryConfig.screeningForms.join(',')
+            : isStock
+            ? countryConfig.stockForms.join(',')
+            : null,
         null,
         requestId,
     );
-    // let formsData = JSON.parse(FAKE_DATA).filter(
-    //     (form: any) => form?.entityTypeName === entityTypeName,
-    // );
+    // let formsData = [];
+    // if (isScreening) {
+    //     formsData = JSON.parse(FAKE_SCREENING_DATA).filter((form: any) =>
+    //         countryConfig.screeningForms.includes(form?.formFormId),
+    //     );
+    // } else {
+    //     formsData = JSON.parse(FAKE_DATA).filter((form: any) =>
+    //         isStock
+    //             ? countryConfig.stockForms.includes(form?.formFormId)
+    //             : form?.entityTypeName === entityTypeName,
+    //     );
+    // }
     // console.info('FORMS DATA ...:', formsData);
     // window.postMessage(JSON.stringify({ id: requestId, data: formsData }), '*');
 }

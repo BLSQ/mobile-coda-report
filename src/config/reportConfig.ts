@@ -9,6 +9,7 @@ import { FolloWupCategories } from '../report/FollowUpCategories';
 import { PBWGFollowUpCategories } from '../report/PBWG/PBWGFollowUpCategories';
 import { ScreeningData } from '../report/ScreeningData';
 import { FoodItems } from '../report/stock/FoodItems';
+import { NonFoodItems } from '../report/stock/NonFoodItems';
 import { countryConfig } from './country';
 import Form from '../entity/Form';
 
@@ -446,9 +447,12 @@ export const reportConfig: EntityTypeOption[] = [
             {
                 key: 'NON_FOOD_ITEM',
                 label: 'Non Food item',
-                render: function (context: ReportContext): ReactNode {
-                    throw new Error('Function not implemented.');
-                },
+                render: context =>
+                    NonFoodItems({
+                        submissions: context.forms,
+                        startDate: context.startDate,
+                        endDate: context.endDate,
+                    }),
             },
         ],
     },
