@@ -33,7 +33,8 @@ const filterStepsInPeriod = (
         let nextVisitDate = timeStampToDate(
             step?.values?.next_visit_date__date__ ||
                 step?.values?.new_next_visit__date__ ||
-                step?.values?.next_visit__date__,
+                step?.values?.next_visit__date__ ||
+                step?.values?._display_next_visit,
         );
         let nextVisitDays =
             step?.values?.next_visit_days ??

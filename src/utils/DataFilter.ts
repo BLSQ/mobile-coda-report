@@ -127,22 +127,22 @@ const categoryWithData = (
                 // BsfpPbwgDischargeSummary, not the generic Summary().
                 const transferredOut = visitsDataByStatus(
                     entities,
-                    'reason_not_continue_pbwg',
+                    'reason_not_continue',
                     'transferred_out',
                 );
                 const dismissedDueToCheating = visitsDataByStatus(
                     entities,
-                    'reason_not_continue_pbwg',
+                    'reason_not_continue',
                     'dismissed_due_to_cheating',
                 );
                 const voluntary = visitsDataByStatus(
                     entities,
-                    'reason_not_continue_pbwg',
+                    'reason_not_continue',
                     'voluntary',
                 );
                 const other = visitsDataByStatus(
                     entities,
-                    'reason_not_continue_pbwg',
+                    'reason_not_continue',
                     'other',
                 );
                 mainData[category] = [
@@ -667,6 +667,7 @@ const defaulterCases = (
         'wfp_coda_pbwg_assistance',
         'child_assistance_admission_2_u6',
         'child_assistance_follow_up_2',
+        'child_antropometric_followUp_tsfp_2',
     ];
     let rows = entities.map(entity => {
         let lastVisitDate = null;
@@ -692,7 +693,8 @@ const defaulterCases = (
             let nextVisitDays =
                 visit?.values?.next_visit ??
                 visit?.values?.number_of_days__int__ ??
-                visit?.values?.next_visit_days;
+                visit?.values?.next_visit_days ??
+                visit?.values?.next_visit_date__date__;
             const nextVisit =
                 visit?.values?.new_next_visit__date__ ??
                 visit?.values?._display_next_visit ??
@@ -705,6 +707,12 @@ const defaulterCases = (
             const currentDate = timeStampToDate(new Date());
             const currentTime = new Date().getHours();
 
+            console.info(
+                'NEXT VISIT DATE ...:',
+                nextVisitDate,
+                'SECOND VISIT DATE ...:',
+                secondNextVisitDate,
+            );
             //check if the beneficiary missed 1 next visit!
             if (
                 nextVisitDate !== '' &&
@@ -716,6 +724,12 @@ const defaulterCases = (
                         let createdAt = timeStampToDate(
                             visit?.values?.visit_date ??
                                 visit?.values?._visit_date,
+                        );
+                        console.info(
+                            'CURRENT VISIT DATE ...:',
+                            createdAt,
+                            'CURRENT NEXT VISIT ...:',
+                            nextVisitDate,
                         );
                         return createdAt === nextVisitDate;
                     });
@@ -822,7 +836,7 @@ const agregatedBeneficiaryFolloWup = (
                 caregiver_Last_name,
                 card_number,
                 health_card,
-            } = entity?.profile?.values;
+            } = entity?.profile?.values ?? {};
             let profile = {
                 id: entity?.id,
                 name: `${entity?.firstName ?? ''} ${entity?.middleName ?? ''} ${

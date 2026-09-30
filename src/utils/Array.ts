@@ -14,10 +14,10 @@ const sumByAge = (
 ): number => {
     return sumBy(entities, child => {
         let age =
-            child.profile.values?.age__int__ ??
-            child.profile.values?.age_months ??
-            child.profile.values?.age ??
-            child.profile.values?.age_years;
+            child.profile?.values?.age__int__ ??
+            child.profile?.values?.age_months ??
+            child.profile?.values?.age ??
+            child.profile?.values?.age_years;
         if (age != null && ageCheck(age)) {
             return 1;
         }
@@ -42,10 +42,10 @@ const sumByAgeOnField = (
 ) => {
     return sumBy(entities, child => {
         let age =
-            child.profile.values?.age__int__ ??
-            child.profile.values?.age_months ??
-            child.profile.values?.age ??
-            child.profile.values?.age_years;
+            child.profile?.values?.age__int__ ??
+            child.profile?.values?.age_months ??
+            child.profile?.values?.age ??
+            child.profile?.values?.age_years;
         let visitSatus = child[status];
         if (age != null && ageCheck(age)) {
             return visitSatus ?? 0;
@@ -261,6 +261,37 @@ let beneficiaryFollowupCategories = (program: string | null) => {
     return beneficiaryCategory;
 };
 
+const NON_FOOD_STOCK_ITEMS: Record<string, string> = {
+    S1505046: 'Amoxillin pdr oral sus 125 mg bot 100 ml',
+    S1505045: 'Amox 250mg tab Pac 10',
+    S1505044: 'Amox 250mg tb Pac20',
+    S0189000: 'Weighing trousers  pac',
+    S1580100: 'Micronutrients film tab Pac 1000',
+    S1555370: 'Albendazole 400 mg chew pac 1000',
+    S0557000: 'Infant Scale,  Spring',
+    S1561125: 'ReSoMal 42 g sachet Car 100',
+    S0000209: 'F-100    ther diet sachet 1114 g Car 90',
+    S0000208: 'F-75 ther diet sachet 102 g Car 120',
+    S0114540: 'Portable bay/child length/height measure ',
+    adult_height_measure: 'Portable adult height measure',
+    S0141021: 'Weighing scale mother child 150 kg x 25 g',
+    S1555360: 'Mebendazole 500 mg chew tab pack 100',
+    S0145620: 'MUAC child PAC-50',
+    S0145630: 'MUAC Adult PAC-50',
+    S7800001: 'Retinol 100 K IU soft gel PAC caps. PAC-500',
+    S7800002: 'Retinol 200 K IU soft gel PAC caps. PAC-500',
+    S0114530: 'Portable bay chd L-H meas./SET-2',
+    S0145555: 'Scale infant spring type 25 kg x100g',
+    S1550025: 'Fe +folic acid 60+0.4 mg tab/PAC 1000',
+    S1580201: 'Multiple Micro. Nut pdr (PAC)',
+    S01145200: 'Port. Baby chd L-H',
+    soap_hand_wash: 'Soap for hand washing',
+    LLITN: 'Bed net (LLITN)',
+    antimalarials: 'Antimalarials',
+    NFC_cards: 'CODA NFC Cards',
+    other: 'Other Stock items',
+};
+
 export {
     groupBy,
     sumByAge,
@@ -269,4 +300,5 @@ export {
     defaultEmptyDataByCategory,
     sumByFieldValues,
     beneficiaryFollowupCategories,
+    NON_FOOD_STOCK_ITEMS,
 };

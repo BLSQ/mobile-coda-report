@@ -34,9 +34,9 @@ let childrenUnder5MedicalStatusByCategory: any = {
         'skin_infections',
         'lymph_nodes',
         'measles_status',
-        'deworming'
+        'deworming',
     ],
-    "Immunization for Age": [
+    'Immunization for Age': [
         'none',
         'incomplete',
         'complete',
@@ -45,7 +45,7 @@ let childrenUnder5MedicalStatusByCategory: any = {
 
     //HIV: ['positive', 'negative', 'nottested'],
     Complications: [
-       // 'apatheticpassive',
+        // 'apatheticpassive',
         'highfever',
         'hypothermia',
         'severedehydration',
@@ -144,11 +144,15 @@ const admissionChildUnder5ByStatus = (
     key: string,
 ) => {
     let boys = entities?.filter((entity: any) =>
-        ['Male', 'M'].includes(entity.profile?.values?.gender ?? entity.profile?.values?._gender),
+        ['Male', 'M'].includes(
+            entity.profile?.values?.gender ?? entity.profile?.values?._gender,
+        ),
     );
 
     let girls = entities?.filter((entity: any) =>
-        ['Female', 'F'].includes(entity.profile?.values?.gender ?? entity.profile?.values?._gender),
+        ['Female', 'F'].includes(
+            entity.profile?.values?.gender ?? entity.profile?.values?._gender,
+        ),
     );
 
     let boyBetween6And23,
@@ -271,7 +275,7 @@ const pbwgMedicalDataReport = (
         'exposed',
         'nottested',
     ]);
-    
+
     let groupHIVDataByMedicalTypes = groupBy(
         hivStatus.flat(),
         (visit: any) => visit?.value,
@@ -345,13 +349,21 @@ const childrenUnder5MedicalReport = (
     //     measles_vacc_proof: '1',
     //     no_measles_vacc_proof: '1',
     // });
-    let immunizations =visitsDataByValuesList(rows, 'immunization_status', ["none", "incomplete", "complete", "motherdoesnotrecall"]);
-    console.info("IMMUNIZATION ...:", immunizations)
+    let immunizations = visitsDataByValuesList(rows, 'immunization_status', [
+        'none',
+        'incomplete',
+        'complete',
+        'motherdoesnotrecall',
+    ]);
+    console.info('IMMUNIZATION ...:', immunizations);
     let groupImmunizationDataByMedicalTypes = groupBy(
         immunizations.flat(),
-        (visit: any) => visit?.value
+        (visit: any) => visit?.value,
     );
-    console.info("GROUP IMMUNIZATION ...:", groupImmunizationDataByMedicalTypes)
+    console.info(
+        'GROUP IMMUNIZATION ...:',
+        groupImmunizationDataByMedicalTypes,
+    );
 
     // let groupImmunizationDataByMedicalTypes = groupBy(
     //     immunizations.flat(),
@@ -406,7 +418,7 @@ const childrenUnder5MedicalReport = (
 
     return {
         '': groupDefaultDataByMedicalTypes,
-        "Immunization for Age": groupImmunizationDataByMedicalTypes,
+        'Immunization for Age': groupImmunizationDataByMedicalTypes,
         HIV: groupHIVDataByMedicalTypes,
         Complications: groupComplicationsDataByMedicalTypes,
         'Medication Given': groupMedicationGivenByType,
@@ -502,8 +514,8 @@ const eRegister = (
         'anthropometric_second_visit_otp',
         'ng_pbwg_anthropometric',
         'wfp_coda_pbwg_followup_anthro',
-        "Anthropometric visit child_U6",
-        "child_antropometric_followUp_tsfp_2"
+        'Anthropometric visit child_U6',
+        'child_antropometric_followUp_tsfp_2',
     ];
 
     let beneficiaries = initialData.map(entity => {

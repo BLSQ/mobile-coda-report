@@ -2,6 +2,7 @@ import {
     dateFromJson,
     removeTime,
     weekToDateStartMonday,
+    timeStampToDate,
 } from './DateFormatter';
 import Form from '../entity/Form';
 
@@ -29,8 +30,14 @@ const u5Forms = [
     'Anthropometric visit child_2',
     'Anthropometric visit child_U6',
     'Anthropometric_BSFP_child_2',
+    'nsep_child_visit',
+    'bsfp_child_visit',
 ];
-const pbwgForms = ['wfp_coda_pbwg_anthropometric', 'PBWG_BSFP'];
+const pbwgForms = [
+    'wfp_coda_pbwg_anthropometric',
+    'PBWG_BSFP',
+    'bsfp_pbwg_visit',
+];
 const passiveScreeningEntryPoints = [
     'young_child_clinic',
     'antenatal_clinic',
@@ -47,6 +54,7 @@ const passiveScreeningEntryPoints = [
     'arv_clinic',
     'opd',
     'other',
+    'community_health_worker',
 ];
 
 function processScreeningData(
@@ -57,9 +65,13 @@ function processScreeningData(
     let activeScreeningRecords = submissions
         ?.filter(submission => submission.formFormId === 'screening_tally')
         ?.map(row => {
+            const period =
+                row?.periodId && row?.periodId.includes('W')
+                    ? new Date(weekToDateStartMonday(row?.periodId))
+                    : timeStampToDate(row?.createdAt);
             return {
                 ...row,
-                period: new Date(weekToDateStartMonday(row?.periodId)),
+                period: period,
             };
         });
 
@@ -83,8 +95,10 @@ function processScreeningData(
                 );
             },
         );
-        passiveScreeningRecords = submissions.filter(
-            submission =>
+        passiveScreeningRecords = submissions.filter(submission => {
+            const visit_date =
+                submission.values?.visit_date ?? submission.values?._visit_date;
+            return (
                 (passiveScreeningEntryPoints.includes(
                     submission.values?.who_referred_green,
                 ) ||
@@ -99,22 +113,14 @@ function processScreeningData(
                     ) ||
                     passiveScreeningEntryPoints.includes(
                         submission.values?._who_referred,
+                    ) ||
+                    passiveScreeningEntryPoints.includes(
+                        submission.values?.who_referred,
                     )) &&
-                start <=
-                    removeTime(
-                        dateFromJson(
-                            submission?.values?.visit_date ??
-                                submission?.values?._visit_date,
-                        ),
-                    ) &&
-                end >=
-                    removeTime(
-                        dateFromJson(
-                            submission?.values?.visit_date ??
-                                submission?.values?._visit_date,
-                        ),
-                    ),
-        );
+                start <= removeTime(dateFromJson(visit_date)) &&
+                end >= removeTime(dateFromJson(visit_date))
+            );
+        });
         const passiveChildrenUnder5 = passiveScreeningRecords.filter(
             submission => u5Forms.includes(submission?.formFormId),
         );
