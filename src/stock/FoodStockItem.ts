@@ -1,16 +1,20 @@
 interface FoodStockItem {
-  readonly label: string;
-  readonly code: string;
-  readonly commodity: string;
-  readonly lost: number;
-  readonly opening: number;
-  readonly received: number;
-  readonly distributed: number;
-  readonly damaged: number;
-  readonly expired: number;
-  readonly transferred: number;
-  readonly end: number;
-};
+    readonly item: string;
+    readonly opening: number;
+    received: number;
+    readonly transferred: {
+        loanAndBorrowing: number;
+        other: number;
+        total: number;
+    };
+    readonly lost: {
+        infestation: number;
+        expired: number;
+        stolen: number;
+        other: number;
+        total: number;
+    };
+    end: number;
+}
 
 export default FoodStockItem;
-

@@ -1,4 +1,5 @@
-//import { processFoodItemData } from "../../utils/StockDataFormatter";
+import Form from '../../entity/Form';
+import { processFoodStockData } from '../../stock/FoodStockLedger';
 
 const root = {
     width: '100%',
@@ -23,7 +24,6 @@ const th = {
     padding: '8px',
     backgroundColor: '#f2f2f2',
     borderCollapse: 'collapse',
-    colSpan: 2,
 } as const;
 
 const tdCategory = {
@@ -34,26 +34,25 @@ const tdCategory = {
     borderCollapse: 'collapse',
 } as const;
 
+const td = {
+    border: '1pt solid black',
+    textAlign: 'center',
+    padding: '8px',
+    borderCollapse: 'collapse',
+} as const;
+
+const tdTotal = { ...td, fontWeight: 'bold' } as const;
+
 const FoodItems = ({
     submissions,
     startDate,
     endDate,
 }: {
-    submissions: any[];
+    submissions: Form[];
     startDate: Date;
     endDate: Date;
 }) => {
-    console.info(
-        'SUBMISSIONS ....',
-        submissions,
-        'START DATE ....:',
-        startDate,
-
-        'END DATE ...',
-        endDate,
-    );
-    //const foodStockData = processFoodItemData(submissions, startDate, endDate);
-    //const items = foodStockData.filter((row) => row.commodity !== undefined);
+    const items = processFoodStockData(submissions, startDate, endDate);
 
     return (
         <div style={root}>
@@ -66,32 +65,64 @@ const FoodItems = ({
             )}
             <table style={table}>
                 <thead>
-                    <tr style={th}>
-                        <th style={th}>Item</th>
-                        <th style={th}>Opening</th>
-                        <th style={th}>Received</th>
-                        <th style={th}>Distributed</th>
-                        <th style={th}>Lost</th>
-                        <th style={th}>Damaged</th>
+                    <tr>
+                        <th style={th} rowSpan={2}>
+                            Item
+                        </th>
+                        <th style={th} rowSpan={2}>
+                            Opening stock
+                        </th>
+                        <th style={th} rowSpan={2}>
+                            Received
+                        </th>
+                        <th style={th} colSpan={3}>
+                            Transferred
+                        </th>
+                        <th style={th} colSpan={5}>
+                            Lost
+                        </th>
+                        <th style={th} rowSpan={2}>
+                            End stock
+                        </th>
+                    </tr>
+                    <tr>
+                        <th style={th}>Loan and Borrowing</th>
+                        <th style={th}>Other</th>
+                        <th style={th}>Total</th>
+                        <th style={th}>Infestation</th>
                         <th style={th}>Expired</th>
-                        <th style={th}>Transferred</th>
-                        <th style={th}>End</th>
+                        <th style={th}>Stolen</th>
+                        <th style={th}>Other</th>
+                        <th style={th}>Total</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td style={tdCategory}></td>
-                        <td style={tdCategory}></td>
-                        <td style={tdCategory}></td>
-                        <td style={tdCategory}></td>
-                        <td style={tdCategory}></td>
-                        <td style={tdCategory}></td>
-                        <td style={tdCategory}></td>
-                        <td style={tdCategory}></td>
-                        <td style={tdCategory}></td>
-                    </tr>
+                    {items.length === 0 && (
+                        <tr>
+                            <td style={td} colSpan={12}>
+                                No stock data available
+                            </td>
+                        </tr>
+                    )}
+                    {items.map(row => (
+                        <tr key={row.item}>
+                            <td style={tdCategory}>{row.item}</td>
+                            <td style={td}>{row.opening}</td>
+                            <td style={td}>{row.received}</td>
+                            <td style={td}>
+                                {row.transferred.loanAndBorrowing}
+                            </td>
+                            <td style={td}>{row.transferred.other}</td>
+                            <td style={tdTotal}>{row.transferred.total}</td>
+                            <td style={td}>{row.lost.infestation}</td>
+                            <td style={td}>{row.lost.expired}</td>
+                            <td style={td}>{row.lost.stolen}</td>
+                            <td style={td}>{row.lost.other}</td>
+                            <td style={tdTotal}>{row.lost.total}</td>
+                            <td style={tdTotal}>{row.end}</td>
+                        </tr>
+                    ))}
                 </tbody>
-                <tfoot></tfoot>
             </table>
         </div>
     );
