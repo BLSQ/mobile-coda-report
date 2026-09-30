@@ -19,11 +19,8 @@ function PBWGMainReport(
     endDate: Date,
     program: string,
     entityType: string,
-    // Passed through to dataCategory — lets BSFP show its own admission-type
-    // sections (New admissions/Old cases keyed off admission_type, no
-    // criteria breakdown) without adding them to the shared
-    // pbwgAdmissionTypesByCategory table TSFP's report reads.
     admissionTypesByCategoryOverride?: Record<string, string[]>,
+    rationQuantityField?: string,
 ) {
     const dateValue = `${startDate.toDateString()} to ${endDate.toDateString()}`;
     const categories = dataCategory(
@@ -70,7 +67,10 @@ function PBWGMainReport(
                     <br />
                     <div>Ration</div>
                     <div>
-                        <RationData {...rationsGivens} />
+                        <RationData
+                            {...rationsGivens}
+                            quantityField={rationQuantityField}
+                        />
                     </div>
 
                     <br />

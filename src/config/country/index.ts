@@ -2,7 +2,6 @@ import { CountryConfig } from './types';
 import southSudan from './southSudan';
 import bangladesh from './bangladesh';
 import { callStockBridge } from '../../stock/StockBridge';
-//import FAKE_STOCK from '../../fake/FakeStockData';
 //import DEFAULT_STOCK from '../../fake/FakeDefaultStockData';
 
 // One native app build == one country, and the native WebView host already

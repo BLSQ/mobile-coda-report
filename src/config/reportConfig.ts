@@ -382,6 +382,7 @@ export const reportConfig: EntityTypeOption[] = [
                                 context.program,
                                 context.entityType,
                                 countryConfig.bsfpPbwgAdmissionTypesByCategory,
+                                'ration_quantity',
                             ),
                     },
                     {
