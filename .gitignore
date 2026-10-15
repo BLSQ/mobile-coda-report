@@ -4,3 +4,6 @@
 
 /src/fake
 /dist
+
+# Python caches of the fixture generator
+tools/__pycache__/
