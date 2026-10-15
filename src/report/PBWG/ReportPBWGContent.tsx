@@ -115,7 +115,9 @@ const ReportPBWGContent = (category: any): any => {
                                 const admissionCriteria = categoryDictionary(
                                     subCategory?.admissionCriteria,
                                 );
-                                key = `${admissionType} ${admissionCriteria}`;
+                                key = admissionCriteria
+                                    ? `${admissionType} ${admissionCriteria}`
+                                    : admissionType;
                             } else {
                                 key =
                                     categoryDictionary(subCategory?.key) ??

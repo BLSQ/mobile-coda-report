@@ -1,27 +1,22 @@
 import Entity from '../entity/Entity';
 import {
     stepsLinkedToProgram,
+    isStepLinkedToProgram,
+    isStepWithoutProgram,
     filterStepsInPeriod,
     entitiesByStatus,
     visitsDataByStatus,
 } from './Filter';
 import { timeStampToDate, removeTime } from './DateFormatter';
-import { orderBy, uniqBy } from 'lodash';
+import { keyBy, orderBy, uniqBy } from 'lodash';
 import {
-    formsByCategory,
-    pbwgFormsByCategory,
-    admissionTypesByCategory,
-    pbwgAdmissionTypesByCategory,
     admissionChildUnder5ByStatus,
     sumDataWithCommonKeys,
     eRegister,
     admissionByStatus,
 } from './DataByCategory';
-import {
-    entityTypeByProgram,
-    groupBy,
-    admissionTypeWithCriteria,
-} from './Array';
+import { groupBy } from './Array';
+import { countryConfig } from '../config/country';
 
 const entitiesWithVisits = (
     entities: Array<Entity>,
@@ -69,16 +64,19 @@ const categoryWithData = (
     startDate: Date,
     endDate: Date,
     entityType: string,
+    admissionTypesByCategoryOverride?: Record<string, string[]>,
 ) => {
     let mainData: any = [];
     let admissionTypes = null;
-    if (entityType === 'Child Under 5') {
-        admissionTypes = admissionTypesByCategory[category];
+    if (admissionTypesByCategoryOverride) {
+        admissionTypes = admissionTypesByCategoryOverride[category];
+    } else if (entityType === 'Child Under 5') {
+        admissionTypes = countryConfig.admissionTypesByCategory[category];
     } else {
         if (entityType === 'PBWG')
-            admissionTypes = pbwgAdmissionTypesByCategory[category];
+            admissionTypes =
+                countryConfig.pbwgAdmissionTypesByCategory[category];
     }
-
     switch (category) {
         case 'Follow Ups':
             let data = followUpData(entities, program, 'followUps', entityType);
@@ -124,6 +122,54 @@ const categoryWithData = (
             break;
 
         case 'Discharges':
+            if (entityType === 'PBWG' && program === 'BSFP') {
+                // BSFP-PBWG's discharges use a dedicated field/vocabulary,
+                // distinct from every other program's cured/death/
+                // defaulter/non_respondent shape above — rendered via
+                // BsfpPbwgDischargeSummary, not the generic Summary().
+                const transferredOut = visitsDataByStatus(
+                    entities,
+                    'reason_not_continue',
+                    'transferred_out',
+                );
+                const dismissedDueToCheating = visitsDataByStatus(
+                    entities,
+                    'reason_not_continue',
+                    'dismissed_due_to_cheating',
+                );
+                const voluntary = visitsDataByStatus(
+                    entities,
+                    'reason_not_continue',
+                    'voluntary',
+                );
+                const other = visitsDataByStatus(
+                    entities,
+                    'reason_not_continue',
+                    'other',
+                );
+                mainData[category] = [
+                    admissionByStatus(
+                        entityType,
+                        transferredOut,
+                        category,
+                        'transferred_out',
+                    ),
+                    admissionByStatus(
+                        entityType,
+                        dismissedDueToCheating,
+                        category,
+                        'dismissed_due_to_cheating',
+                    ),
+                    admissionByStatus(
+                        entityType,
+                        voluntary,
+                        category,
+                        'voluntary',
+                    ),
+                    admissionByStatus(entityType, other, category, 'other'),
+                ];
+                break;
+            }
             const absentees = followUpData(
                 entities,
                 program,
@@ -259,13 +305,15 @@ const subMainCategoryData = (
     program: string,
     category: string,
     caseTypes: any[],
-    admissionTypes: [],
+    admissionTypes: string[] | null,
     entityType: string,
 ) => {
     let records = admissionTypes?.map((admissionTypeValue: string) => {
         let admissionByTypeAndCriteria = filterDataByAdmissionType(
             caseTypes,
             admissionTypeValue,
+            entityType,
+            program,
         ).filter(entity => entity?.visits.length > 0);
         let criterias = admissionTypeByCriteriaMapper(
             admissionTypeValue,
@@ -302,9 +350,10 @@ const admissionTypeByCriteriaMapper = (
     program: string,
     entityType: string | null,
 ) => {
-    let criterias = admissionTypeWithCriteria(program, entityType)[
-        admissionType
-    ];
+    let criterias = countryConfig.admissionTypeWithCriteria(
+        program,
+        entityType,
+    )[admissionType];
     let admissionTypeByCriteria = criterias?.map((criteria: string) => {
         return {
             admissionTypeWithCriteria: `${admissionType} ${criteria}`,
@@ -321,6 +370,7 @@ const dataCategory = (
     startDate: Date,
     endDate: Date,
     entityType: string,
+    admissionTypesByCategoryOverride?: Record<string, string[]>,
 ) => {
     let initialData = filterDataOnProgram(
         entities,
@@ -328,11 +378,12 @@ const dataCategory = (
         startDate,
         endDate,
     );
-    let categories: any[] = Object.keys(admissionTypesByCategory);
-    if (entityType === 'PBWG') {
-        categories = Object.keys(pbwgAdmissionTypesByCategory);
+    let categories: any[] = admissionTypesByCategoryOverride
+        ? Object.keys(admissionTypesByCategoryOverride)
+        : Object.keys(countryConfig.admissionTypesByCategory);
+    if (!admissionTypesByCategoryOverride && entityType === 'PBWG') {
+        categories = Object.keys(countryConfig.pbwgAdmissionTypesByCategory);
     }
-
     let rows = categories.map((category: any) => {
         let data = categoryWithData(
             initialData,
@@ -341,6 +392,7 @@ const dataCategory = (
             startDate,
             endDate,
             entityType,
+            admissionTypesByCategoryOverride,
         );
         let total = null;
         if (data) {
@@ -362,13 +414,16 @@ const followUpData = (
     status: string,
     beneficiaryType: string,
 ) => {
-    const entityType = entityTypeByProgram(program, beneficiaryType);
+    const entityType = countryConfig.entityTypeByProgram(
+        program,
+        beneficiaryType,
+    );
     let forms: any = [];
     if (beneficiaryType === 'Child Under 5') {
-        forms = formsByCategory[status][entityType];
+        forms = countryConfig.formsByCategory[status][entityType] ?? [];
     } else {
         if (beneficiaryType === 'PBWG') {
-            forms = pbwgFormsByCategory[status][entityType];
+            forms = countryConfig.pbwgFormsByCategory[status][entityType] ?? [];
         }
     }
     let beneficiariesAdmissions = entities
@@ -389,6 +444,16 @@ const followUpData = (
         .filter(entity => entity.visitsNumber > 0);
     return beneficiariesAdmissions;
 };
+// A visit's ration type, or undefined when it records none — forms that
+// share a rationGiven list without recording a ration (e.g. anthropometric
+// follow ups) must not be counted as a ration of type "undefined".
+const rationTypeOf = (visit: any): string =>
+    visit?.values?.ration ||
+    visit?.values?.ration_type ||
+    visit?.values?.ration_type_tsfp ||
+    countryConfig.resolveRationType?.(visit?.values) ||
+    '';
+
 const assistanceGiven = (
     entities: Array<Entity>,
     program: string,
@@ -403,40 +468,50 @@ const assistanceGiven = (
         startDate,
         endDate,
     );
-    const entityType = entityTypeByProgram(program, beneficiaryType);
+    const entityType = countryConfig.entityTypeByProgram(
+        program,
+        beneficiaryType,
+    );
     let forms: any = [];
 
     if (beneficiaryType === 'Child Under 5') {
-        forms = formsByCategory[status][entityType];
+        forms = countryConfig.formsByCategory[status][entityType] ?? [];
     } else {
         if (beneficiaryType === 'PBWG') {
-            forms = pbwgFormsByCategory[status][entityType];
+            forms = countryConfig.pbwgFormsByCategory[status][entityType] ?? [];
         }
     }
 
     let startPeriod = timeStampToDate(startDate.toISOString());
     let endPeriod = timeStampToDate(endDate.toISOString());
+    const entitiesById = keyBy(entities, 'id');
 
     let assistanceData = initialData.map(entity => {
-        let visits = orderBy(entity.visits, ['createdAt'], ['asc'])?.filter(
+        // initialData only kept the visits tagged with this program, which
+        // drops assistance forms that carry no program field at all — those
+        // are taken back from the entity's full visit list, since `forms`
+        // below already scopes them to this program.
+        const candidateVisits = (entitiesById[entity.id]?.visits ?? []).filter(
+            (visit: any) =>
+                isStepLinkedToProgram(visit, program) ||
+                isStepWithoutProgram(visit),
+        );
+        let visits = orderBy(candidateVisits, ['createdAt'], ['asc'])?.filter(
             (visit: any) => {
                 let createdAt = timeStampToDate(visit?.createdAt);
-                let visitDate = timeStampToDate(visit?.values?._visit_date);
+                let visitDate = timeStampToDate(
+                    visit?.values?._visit_date ?? visit?.values?.visit_date,
+                );
                 return (
                     forms.includes(visit?.formFormId) &&
-                    visit?.values &&
-                    (visit?.values?.ration_type !== '' ||
-                        visit?.values?.ration !== '') &&
+                    !!rationTypeOf(visit) &&
                     ((startPeriod <= createdAt && endPeriod >= createdAt) ||
                         (startPeriod <= visitDate && endPeriod >= visitDate))
                 );
             },
         );
 
-        let groupByRationType = groupBy(
-            visits,
-            (visit: any) => visit.values?.ration_type || visit?.values?.ration,
-        );
+        let groupByRationType = groupBy(visits, rationTypeOf);
         let rationType = Object.keys(groupByRationType);
         return {
             ...entity,
@@ -447,23 +522,86 @@ const assistanceGiven = (
     return assistanceData;
 };
 
+const filterDataOnMedicalCriteria = (
+    entities: Array<any>,
+    medicalTypes: any,
+    entityType: string,
+) => {
+    return Object.keys(medicalTypes).map(field => {
+        const value = medicalTypes[field];
+        const dataByCriteria = visitsDataByStatus(entities, field, value);
+        return admissionByStatus(entityType, dataByCriteria, field, '');
+    });
+};
+
+const assistanceDataByCategory = (entities: Array<any>, entityType: string) => {
+    const soapYes = filterDataOnMedicalCriteria(
+        entities,
+        { soap_given: 'yes', soap_given__bool__: '1', soap: '1' },
+        entityType,
+    );
+    const rowSoapYes = sumDataWithCommonKeys(soapYes, 'soap_given', entityType);
+
+    const soapNo = filterDataOnMedicalCriteria(
+        entities,
+        { soap_given: 'no', soap_given__bool__: '0', soap: '0' },
+        entityType,
+    );
+    const rowSoapNo = sumDataWithCommonKeys(soapNo, 'soap_given', entityType);
+
+    const netYes = filterDataOnMedicalCriteria(
+        entities,
+        { net_given: 'yes', net_given__bool__: '1', net: '1' },
+        entityType,
+    );
+    const rowNetYes = sumDataWithCommonKeys(netYes, 'net_given', entityType);
+
+    const netNo = filterDataOnMedicalCriteria(
+        entities,
+        { net_given: 'no', net_given__bool__: '0', net: '0' },
+        entityType,
+    );
+    const rowNetNo = sumDataWithCommonKeys(netNo, 'net_given', entityType);
+
+    return [
+        {
+            category: 'Soap',
+            rows: [
+                { ...rowSoapYes, status: 'Yes' },
+                { ...rowSoapNo, status: 'No' },
+            ],
+        },
+        {
+            category: 'Mosquito Net',
+            rows: [
+                { ...rowNetYes, status: 'Yes' },
+                { ...rowNetNo, status: 'No' },
+            ],
+        },
+    ];
+};
+
 const filterDataByAdmissionType = (
     entities: Array<Entity>,
     admissionTypeValue: string,
+    beneficiaryType?: string | null,
+    program?: string,
 ) => {
     let admissions = entities.map(entity => {
-        let admissionByType = entity.visits.filter(
-            (visit: any) =>
-                visit?.values?.new_admission_type === admissionTypeValue ||
-                visit?.values?.admission_type === admissionTypeValue,
-        );
+        let matchedVisits = entity.visits
+            .map((visit: any) => ({
+                visit,
+                match: countryConfig.matchAdmissionType(
+                    visit?.values,
+                    admissionTypeValue,
+                    beneficiaryType,
+                    program,
+                ),
+            }))
+            .filter(({ match }) => match !== null);
         let groupByAdmissionCriteria = groupBy(
-            admissionByType,
-            (visit: any) =>
-                (visit?.values?.new_admission_type ??
-                    visit.values?.admission_type) +
-                ' ' +
-                visit.values?.admission_criteria,
+            matchedVisits,
+            ({ match }) => `${match!.baseType} ${match!.criteria}`,
         );
 
         let admissionByCriteria = Object.keys(groupByAdmissionCriteria);
@@ -471,7 +609,7 @@ const filterDataByAdmissionType = (
             ...entity,
             subCategory:
                 admissionByCriteria.length > 0 ? admissionByCriteria[0] : '',
-            visits: admissionByType,
+            visits: matchedVisits.map(({ visit }) => visit),
         };
     });
     return admissions;
@@ -526,6 +664,9 @@ const defaulterCases = (
         'ng_pbwg_anthropometric',
         'wfp_coda_pbwg_followup_anthro',
         'wfp_coda_pbwg_luctating_followup_anthro',
+        'wfp_coda_pbwg_anthropometric',
+        'Anthropometric visit child_U6',
+        'child_antropometric_followUp_tsfp_2',
     ];
     const assistanceForms = [
         'child_assistance_admission',
@@ -534,6 +675,10 @@ const defaulterCases = (
         'assistance_admission_2nd_visit_otp',
         'ng_pbwg_assistance',
         'wfp_coda_pbwg_assistance_followup',
+        'wfp_coda_pbwg_assistance',
+        'child_assistance_admission_2_u6',
+        'child_assistance_follow_up_2',
+        'child_antropometric_followUp_tsfp_2',
     ];
     let rows = entities.map(entity => {
         let lastVisitDate = null;
@@ -559,7 +704,8 @@ const defaulterCases = (
             let nextVisitDays =
                 visit?.values?.next_visit ??
                 visit?.values?.number_of_days__int__ ??
-                visit?.values?.next_visit_days;
+                visit?.values?.next_visit_days ??
+                visit?.values?.next_visit_date__date__;
             const nextVisit =
                 visit?.values?.new_next_visit__date__ ??
                 visit?.values?._display_next_visit ??
@@ -572,6 +718,12 @@ const defaulterCases = (
             const currentDate = timeStampToDate(new Date());
             const currentTime = new Date().getHours();
 
+            console.info(
+                'NEXT VISIT DATE ...:',
+                nextVisitDate,
+                'SECOND VISIT DATE ...:',
+                secondNextVisitDate,
+            );
             //check if the beneficiary missed 1 next visit!
             if (
                 nextVisitDate !== '' &&
@@ -583,6 +735,12 @@ const defaulterCases = (
                         let createdAt = timeStampToDate(
                             visit?.values?.visit_date ??
                                 visit?.values?._visit_date,
+                        );
+                        console.info(
+                            'CURRENT VISIT DATE ...:',
+                            createdAt,
+                            'CURRENT NEXT VISIT ...:',
+                            nextVisitDate,
                         );
                         return createdAt === nextVisitDate;
                     });
@@ -654,14 +812,10 @@ const agregatedBeneficiaryFolloWup = (
     let allCategories = [
         'absentees',
         'defaulters',
-        'death',
         'referral_to_sc_itp',
         'medical_investigation',
         'home_visits',
-        'transferred_to_otp',
-        'referred_from_other_tsfp',
-        'transferred_to_tsfp',
-        'transfer_from_other_otp'
+        'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__',
     ];
 
     let allData: any[] = [];
@@ -676,17 +830,24 @@ const agregatedBeneficiaryFolloWup = (
     registers
         .filter(
             (entity: any) =>
-               entity?.new_admission_type !== '' || entity?.admissionType !== '' || entity?.exit?.status !== '',
+                entity?.new_admission_type !== '' ||
+                entity?.admissionType !== '' ||
+                entity?.exit?.status !== '',
         )
         .forEach((entity: any) => {
-            let admissionType = (entity?.new_admission_type !== '' || entity?.admissionType) || '';
+            let admissionType =
+                entity?.new_admission_type !== '' ||
+                entity?.admissionType ||
+                '';
             let status = entity?.exit?.status ?? '';
             const {
                 caretaker_name,
+                caregiver_name,
                 caretaker_Last_name,
-                registration_number,
-                registration_document,
-            } = entity?.profile?.values;
+                caregiver_Last_name,
+                card_number,
+                health_card,
+            } = entity?.profile?.values ?? {};
             let profile = {
                 id: entity?.id,
                 name: `${entity?.firstName ?? ''} ${entity?.middleName ?? ''} ${
@@ -694,14 +855,16 @@ const agregatedBeneficiaryFolloWup = (
                 }`,
                 age: entity?.age,
                 gender: entity?.gender,
-                careGiver: `${caretaker_name ?? ''} ${
-                    caretaker_Last_name ?? ''
+                careGiver: `${caretaker_name ?? caregiver_name ?? ''} ${
+                    caretaker_Last_name ?? caregiver_Last_name ?? ''
                 }`,
-                registrationNumber: registration_number,
-                registrationDocument: registration_document,
+                registrationNumber: health_card ?? card_number,
             };
 
-            if (allCategories?.includes(status) || allCategories?.includes(admissionType)) {
+            if (
+                allCategories?.includes(status) ||
+                allCategories?.includes(admissionType)
+            ) {
                 allData.push({
                     ...profile,
                     status: status,
@@ -724,6 +887,7 @@ export {
     dataCategory,
     filterDataOnAdmissionCriteria,
     assistanceGiven,
+    assistanceDataByCategory,
     visitsLinkedToForms,
     defaulterCases,
     agregatedBeneficiaryFolloWup,

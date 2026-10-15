@@ -3,16 +3,28 @@ import Form from '../entity/Form';
 import { timeStampToDate } from './DateFormatter';
 import { orderBy } from 'lodash';
 
+const PROGRAM_FIELDS = [
+    '_programme',
+    'programme',
+    '_program',
+    'program',
+    '_display_programme',
+    'new_programme',
+];
+
+const isStepLinkedToProgram = (step: any, program: string) =>
+    PROGRAM_FIELDS.some(field => step?.values?.[field]?.includes(program));
+
+// Some forms (e.g. Bangladesh's BSFP-PBWG assistance forms) don't record
+// which program they belong to at all — they can only be attributed to a
+// program through their formFormId.
+const isStepWithoutProgram = (step: any) =>
+    PROGRAM_FIELDS.every(field => !step?.values?.[field]);
+
 const stepsLinkedToProgram = (steps: Array<Form>, program: string) => {
-    let orderedStepsByDate = orderBy(steps, ['createdAt'], ['desc']);
-    return orderedStepsByDate.filter(
-        (step: any) =>
-            step?.values?._programme?.includes(program) ||
-            step?.values?.programme?.includes(program) ||
-            step?.values?._program?.includes(program) ||
-            step?.values?.program?.includes(program) ||
-            step?.values?._display_programme?.includes(program) ||
-            step?.values?.new_programme?.includes(program),
+    let orderedStepsByDate = orderBy(steps, ['createdAt'], ['asc']);
+    return orderedStepsByDate.filter((step: any) =>
+        isStepLinkedToProgram(step, program),
     );
 };
 
@@ -32,8 +44,9 @@ const filterStepsInPeriod = (
         );
         let nextVisitDate = timeStampToDate(
             step?.values?.next_visit_date__date__ ||
-            step?.values?.new_next_visit__date__ ||
-            step?.values?.next_visit__date__,
+                step?.values?.new_next_visit__date__ ||
+                step?.values?.next_visit__date__ ||
+                step?.values?._display_next_visit,
         );
         let nextVisitDays =
             step?.values?.next_visit_days ??
@@ -142,17 +155,32 @@ const visitsDataByStatus = (
                         response =
                             visit?.values &&
                             visit?.values?.state_consciousness ===
-                            'apatheticpassive';
+                                'apatheticpassive';
                         break;
 
                     case 'skin_infections':
-                        value = fieldValue?.replace(/\[|\]/gi, "").split(",");
-                        response = (value && value.length > 0 && !value?.includes("none")) || false;
+                        value = fieldValue?.replace(/\[|\]/gi, '').split(',');
+                        response =
+                            (value &&
+                                value.length > 0 &&
+                                !value?.includes('none')) ||
+                            false;
                         break;
 
                     case 'lymph_nodes':
-                        value = fieldValue?.replace(/\[|\]/gi, "").split(",");
-                        response = (value && value.length > 0 && !value?.includes("none")) || false;
+                        value = fieldValue?.replace(/\[|\]/gi, '').split(',');
+                        response =
+                            (value &&
+                                value.length > 0 &&
+                                !value?.includes('none')) ||
+                            false;
+                        break;
+
+                    case 'medical_complications':
+                        response =
+                            fieldValue?.includes(value) ||
+                            visit?.values?.have_complications === '1' ||
+                            visit?.values?.have_complications === 'yes';
                         break;
 
                     default:
@@ -201,6 +229,8 @@ const visitsDataByValuesList = (
 
 export {
     stepsLinkedToProgram,
+    isStepLinkedToProgram,
+    isStepWithoutProgram,
     filterStepsInPeriod,
     visitsDataByStatus,
     entitiesByStatus,

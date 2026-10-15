@@ -12,39 +12,6 @@ import {
 } from './DataFilter';
 import { timeStampToDateString, removeTime } from './DateFormatter';
 
-const admissionTypesByCategory: any = {
-    'Follow Ups': ['Total Follow up'],
-    'New admissions': ['new_case', 'readmission_as_non_respondent', 'relapse'],
-    'Old cases': [
-        'returned_defaulter',
-        'referred_from_other_tsfp',
-        'transfer_from_other_otp',
-        'referred_from_other_otp',
-    ],
-    Discharges: ['cured', 'death', 'defaulter', 'non_respondent__int__'],
-    'Other Exits': [
-        'voluntarywithdrawal',
-        'dismissedduetocheating',
-        'transfer_to_sc_itp',
-        'transferred_out',
-    ],
-    Total: ['Total Admissions', 'Follow Ups'],
-};
-
-const pbwgAdmissionTypesByCategory: any = {
-    'Follow Ups': ['Total Follow up'],
-    'New admissions': ['new_case', 'readmission_as_non_respondent', 'relapse'],
-    'Old cases': [
-        'returned_defaulter',
-        'returned_referral',
-        'transfer_from_other_tsfp',
-        'returned_from_sc',
-    ],
-    Discharges: ['cured', 'death', 'defaulter', 'non_respondent__int__'],
-    'Other Exits': ['transferred_out', 'voluntary_withdrawal', 'dismissal'],
-    Total: ['Total Admissions', 'Follow Ups'],
-};
-
 const pbwgMedicalStatusByCategory: any = {
     Malaria: ['positive', 'negative'],
     HIV: ['positive', 'negative', 'exposed', 'unknown'],
@@ -53,7 +20,7 @@ const pbwgMedicalStatusByCategory: any = {
 };
 let childrenUnder5MedicalStatusByCategory: any = {
     '': [
-        'have_diarrhoea',
+        'have_diarrhoea__bool__',
         'passing_urine__bool__',
         'tb_therapy',
         'state_appetite',
@@ -66,17 +33,19 @@ let childrenUnder5MedicalStatusByCategory: any = {
         'ears_status',
         'skin_infections',
         'lymph_nodes',
+        'measles_status',
+        'deworming',
     ],
-    Immunization: [
-        'fully_immunization',
-        'not_fully_immunization',
-        'measles_vacc_proof',
-        'no_measles_vacc_proof',
+    'Immunization for Age': [
+        'none',
+        'incomplete',
+        'complete',
+        'motherdoesnotrecall',
     ],
 
-    HIV: ['positive', 'negative', 'nottested'],
+    //HIV: ['positive', 'negative', 'nottested'],
     Complications: [
-        'apatheticpassive',
+        // 'apatheticpassive',
         'highfever',
         'hypothermia',
         'severedehydration',
@@ -84,186 +53,14 @@ let childrenUnder5MedicalStatusByCategory: any = {
         'severeanemia',
         'eyesignsofvitadeficiency',
         'skinlesions',
-        'other',
+        //'other',
     ],
     'Medication Given': [
-        'ab_given',
-        'anti_helminth_given',
-        'art_given',
+        // 'ab_given',
+        // 'anti_helminth_given',
+        // 'art_given',
         'vitamins_given',
     ],
-};
-
-const pbwgFormsByCategory: any = {
-    admission: {
-        TSFP: ['ng_pbwg_anthropometric'],
-    },
-    oldCase: {
-        TSFP: [
-            'ng_pbwg_anthropometric',
-            'wfp_coda_pbwg_followup_anthro',
-            'wfp_coda_pbwg_luctating_followup_anthro',
-        ],
-    },
-    followUps: {
-        TSFP: [
-            'wfp_coda_pbwg_followup_anthro',
-            'wfp_coda_pbwg_luctating_followup_anthro',
-        ],
-    },
-    defaulters: {
-        TSFP: [
-            'ng_pbwg_anthropometric',
-            'wfp_coda_pbwg_followup_anthro',
-            'wfp_coda_pbwg_luctating_followup_anthro',
-            'ng_pbwg_assistance',
-            'wfp_coda_pbwg_assistance_followup',
-        ],
-    },
-    absentees: {
-        TSFP: [
-            'ng_pbwg_anthropometric',
-            'wfp_coda_pbwg_followup_anthro',
-            'wfp_coda_pbwg_luctating_followup_anthro',
-            'ng_pbwg_assistance',
-            'wfp_coda_pbwg_assistance_followup',
-        ],
-    },
-    cured: {
-        TSFP: [
-            'ng_pbwg_anthropometric',
-            'wfp_coda_pbwg_followup_anthro',
-            'wfp_coda_pbwg_luctating_followup_anthro',
-            'ng_pbwg_assistance',
-            'wfp_coda_pbwg_assistance_followup',
-        ],
-    },
-    nonRespondent: {
-        TSFP: ['ng_pbwg_anthropometric'],
-    },
-    rationGiven: {
-        TSFP: ['ng_pbwg_assistance', 'wfp_coda_pbwg_assistance_followup'],
-    },
-    medicals: {
-        TSFP: [
-            'ng_pbwg_anthropometric',
-            'wfp_coda_pbwg_luctating_followup_anthro',
-            'wfp_coda_pbwg_followup_anthro',
-            'ng_medical_visit_PBWG',
-            'wfp_coda_medical_follow_up_visit_PBWG',
-        ],
-    },
-};
-
-const formsByCategory: any = {
-    admission: {
-        TSFP: [
-            'anthropometric_admission',
-            'Anthropometric visit child',
-            'anthropometric_second_visit_tsfp',
-        ],
-        OTP: [
-            'anthropometric_admission',
-            'anthropometric_admission_otp',
-            'anthropometric_second_visit_otp',
-        ],
-    },
-    oldCase: {
-        TSFP: [
-            'anthropometric_admission',
-            'Anthropometric visit child',
-            'anthropometric_second_visit_tsfp',
-        ],
-        OTP: [
-            'anthropometric_admission',
-            'anthropometric_admission_otp',
-            'anthropometric_second_visit_otp',
-        ],
-    },
-    followUps: {
-        TSFP: ['anthropometric_second_visit_tsfp'],
-        OTP: ['anthropometric_second_visit_otp'],
-    },
-    defaulters: {
-        TSFP: [
-            'anthropometric_admission',
-            'Anthropometric visit child',
-            'child_assistance_admission',
-            'anthropometric_second_visit_tsfp',
-            'child_assistance_2nd_visit_tsfp',
-        ],
-        OTP: [
-            'anthropometric_admission',
-            'anthropometric_admission_otp',
-            'assistance_admission_otp',
-            'anthropometric_second_visit_otp',
-            'assistance_admission_2nd_visit_otp',
-        ],
-    },
-    absentees: {
-        TSFP: [
-            'anthropometric_admission',
-            'Anthropometric visit child',
-            'child_assistance_admission',
-            'anthropometric_second_visit_tsfp',
-            'child_assistance_2nd_visit_tsfp',
-        ],
-        OTP: [
-            'anthropometric_admission',
-            'anthropometric_admission_otp',
-            'assistance_admission_otp',
-            'anthropometric_second_visit_otp',
-            'assistance_admission_2nd_visit_otp',
-        ],
-    },
-    cured: {
-        TSFP: [
-            'anthropometric_admission',
-            'Anthropometric visit child',
-            'child_assistance_admission',
-            'anthropometric_second_visit_tsfp',
-            'child_assistance_2nd_visit_tsfp',
-        ],
-        OTP: [
-            'anthropometric_admission',
-            'anthropometric_admission_otp',
-            'assistance_admission_otp',
-            'anthropometric_second_visit_otp',
-            'assistance_admission_2nd_visit_otp',
-        ],
-    },
-    nonRespondent: {
-        TSFP: [
-            'Anthropometric visit child',
-            'anthropometric_second_visit_tsfp',
-        ],
-        OTP: [
-            'anthropometric_admission_otp',
-            'anthropometric_second_visit_otp',
-        ],
-    },
-    rationGiven: {
-        TSFP: ['child_assistance_admission', 'child_assistance_2nd_visit_tsfp'],
-        OTP: ['assistance_admission_otp', 'assistance_admission_2nd_visit_otp'],
-    },
-    medicals: {
-        TSFP: [
-            'anthropometric_admission',
-            'anthropometric_second_visit_tsfp',
-            'Child Medical Admission',
-            'Child Medical Follow Up TSFP',
-            'child_medical_admission',
-            'Child Medical Follow Up Visit TSFP',
-        ],
-        OTP: [
-            'anthropometric_admission',
-            'anthropometric_second_visit_otp',
-            'Child Medical Admission',
-            'Child Medical Follow Up OTP',
-            'child_medical_admission',
-            'Child Medical Follow Up Visit OTP',
-        ],
-    },
 };
 
 const admissionPBWGByStatus = (
@@ -347,11 +144,15 @@ const admissionChildUnder5ByStatus = (
     key: string,
 ) => {
     let boys = entities?.filter((entity: any) =>
-        ['Male', 'M'].includes(entity.profile?.values?.gender),
+        ['Male', 'M'].includes(
+            entity.profile?.values?.gender ?? entity.profile?.values?._gender,
+        ),
     );
 
     let girls = entities?.filter((entity: any) =>
-        ['Female', 'F'].includes(entity.profile?.values?.gender),
+        ['Female', 'F'].includes(
+            entity.profile?.values?.gender ?? entity.profile?.values?._gender,
+        ),
     );
 
     let boyBetween6And23,
@@ -459,7 +260,6 @@ const pbwgMedicalDataReport = (
         endDate,
     );
     let rows = followUpData(initialData, program, 'medicals', 'PBWG');
-
     let malariaStatus = visitsDataByValuesList(rows, 'malaria_result', [
         'positive',
         'negative',
@@ -472,8 +272,10 @@ const pbwgMedicalDataReport = (
     let hivStatus = visitsDataByValuesList(rows, 'hiv_status', [
         'positive',
         'negative',
+        'exposed',
         'nottested',
     ]);
+
     let groupHIVDataByMedicalTypes = groupBy(
         hivStatus.flat(),
         (visit: any) => visit?.value,
@@ -521,7 +323,7 @@ const childrenUnder5MedicalReport = (
     let rows = followUpData(initialData, program, 'medicals', 'Child Under 5');
 
     let defaultData = visitsDataByFieldList(rows, {
-        have_diarrhoea: '1',
+        have_diarrhoea__bool__: '1',
         passing_urine__bool__: '0',
         tb_therapy: '1',
         state_appetite: 'poor',
@@ -534,21 +336,39 @@ const childrenUnder5MedicalReport = (
         ears_status: 'discharge',
         skin_infections: '',
         lymph_nodes: '',
+        measles_status: '1',
+        deworming: '1',
     }).flat();
     let groupDefaultDataByMedicalTypes = groupBy(
         defaultData,
         (visit: any) => visit?.criteria,
     );
-    let immunizations = visitsDataByFieldList(rows, {
-        fully_immunization: '1',
-        not_fully_immunization: '1',
-        measles_vacc_proof: '1',
-        no_measles_vacc_proof: '1',
-    });
+    // let immunizations = visitsDataByFieldList(rows, {
+    //     fully_immunization: '1',
+    //     not_fully_immunization: '1',
+    //     measles_vacc_proof: '1',
+    //     no_measles_vacc_proof: '1',
+    // });
+    let immunizations = visitsDataByValuesList(rows, 'immunization_status', [
+        'none',
+        'incomplete',
+        'complete',
+        'motherdoesnotrecall',
+    ]);
+    console.info('IMMUNIZATION ...:', immunizations);
     let groupImmunizationDataByMedicalTypes = groupBy(
         immunizations.flat(),
-        (visit: any) => visit?.criteria,
+        (visit: any) => visit?.value,
     );
+    console.info(
+        'GROUP IMMUNIZATION ...:',
+        groupImmunizationDataByMedicalTypes,
+    );
+
+    // let groupImmunizationDataByMedicalTypes = groupBy(
+    //     immunizations.flat(),
+    //     (visit: any) => visit?.criteria,
+    // );
 
     let hivStatus = visitsDataByValuesList(rows, 'hiv_status', [
         'positive',
@@ -560,7 +380,12 @@ const childrenUnder5MedicalReport = (
         (visit: any) => visit?.value,
     );
 
-    let complications = visitsDataByValuesList(rows, 'specify_signs', [
+    let complications = visitsDataByValuesList(rows, 'medical_complications', [
+        'intractablevomit',
+        'convulsions',
+        'lethargynotalert',
+        'unconsciousness',
+        'hypoglycaemia',
         'highfever',
         'hypothermia',
         'severedehydration',
@@ -568,21 +393,22 @@ const childrenUnder5MedicalReport = (
         'severeanemia',
         'eyesignsofvitadeficiency',
         'skinlesions',
-        'other',
     ]);
-    let state_consciousness = visitsDataByFieldList(rows, {
-        state_consciousness: 'apatheticpassive',
-    });
-    complications.push(state_consciousness[0]);
+
+    // let state_consciousness = visitsDataByFieldList(rows, {
+    //     state_consciousness: 'apatheticpassive',
+    // });
+    // complications.push(state_consciousness[0]);
+
     let groupComplicationsDataByMedicalTypes = groupBy(
         complications.flat(),
         (visit: any) => visit?.value,
     );
 
     let medicationGiven = visitsDataByFieldList(rows, {
-        ab_given: '1',
-        anti_helminth_given: 'mebendazole',
-        art_given: '1',
+        // ab_given: '1',
+        // anti_helminth_given: 'mebendazole',
+        // art_given: '1',
         vitamins_given: '1',
     });
     let groupMedicationGivenByType = groupBy(
@@ -592,7 +418,7 @@ const childrenUnder5MedicalReport = (
 
     return {
         '': groupDefaultDataByMedicalTypes,
-        Immunization: groupImmunizationDataByMedicalTypes,
+        'Immunization for Age': groupImmunizationDataByMedicalTypes,
         HIV: groupHIVDataByMedicalTypes,
         Complications: groupComplicationsDataByMedicalTypes,
         'Medication Given': groupMedicationGivenByType,
@@ -688,6 +514,8 @@ const eRegister = (
         'anthropometric_second_visit_otp',
         'ng_pbwg_anthropometric',
         'wfp_coda_pbwg_followup_anthro',
+        'Anthropometric visit child_U6',
+        'child_antropometric_followUp_tsfp_2',
     ];
 
     let beneficiaries = initialData.map(entity => {
@@ -815,10 +643,6 @@ const eRegister = (
 };
 
 export {
-    admissionTypesByCategory,
-    pbwgAdmissionTypesByCategory,
-    formsByCategory,
-    pbwgFormsByCategory,
     admissionChildUnder5ByStatus,
     admissionPBWGByStatus,
     admissionByStatus,

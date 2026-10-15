@@ -11,7 +11,7 @@ button.EntityType {
     width: 90%;
     height: 48px;
     margin: 5px;
-    background: #0687CB;
+    background: #0687cb;
     color: white;
     position: relative;
     left: 2.5%;
@@ -21,10 +21,21 @@ button.EntityType {
     margin: 50px auto;
 }
 
-h1,h2 {
+h1,
+h2 {
     text-align: center;
 }
 
 td.align {
     text-align: center;
+}
+
+.Loading {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    text-align: center;
+    align-items: center;
+    line-height: 100px;
 }
