@@ -1,12 +1,14 @@
 import Entity from '../entity/Entity';
 import {
     stepsLinkedToProgram,
+    isStepLinkedToProgram,
+    isStepWithoutProgram,
     filterStepsInPeriod,
     entitiesByStatus,
     visitsDataByStatus,
 } from './Filter';
 import { timeStampToDate, removeTime } from './DateFormatter';
-import { orderBy, uniqBy } from 'lodash';
+import { keyBy, orderBy, uniqBy } from 'lodash';
 import {
     admissionChildUnder5ByStatus,
     sumDataWithCommonKeys,
@@ -442,6 +444,16 @@ const followUpData = (
         .filter(entity => entity.visitsNumber > 0);
     return beneficiariesAdmissions;
 };
+// A visit's ration type, or undefined when it records none — forms that
+// share a rationGiven list without recording a ration (e.g. anthropometric
+// follow ups) must not be counted as a ration of type "undefined".
+const rationTypeOf = (visit: any): string =>
+    visit?.values?.ration ||
+    visit?.values?.ration_type ||
+    visit?.values?.ration_type_tsfp ||
+    countryConfig.resolveRationType?.(visit?.values) ||
+    '';
+
 const assistanceGiven = (
     entities: Array<Entity>,
     program: string,
@@ -472,9 +484,19 @@ const assistanceGiven = (
 
     let startPeriod = timeStampToDate(startDate.toISOString());
     let endPeriod = timeStampToDate(endDate.toISOString());
+    const entitiesById = keyBy(entities, 'id');
 
     let assistanceData = initialData.map(entity => {
-        let visits = orderBy(entity.visits, ['createdAt'], ['asc'])?.filter(
+        // initialData only kept the visits tagged with this program, which
+        // drops assistance forms that carry no program field at all — those
+        // are taken back from the entity's full visit list, since `forms`
+        // below already scopes them to this program.
+        const candidateVisits = (entitiesById[entity.id]?.visits ?? []).filter(
+            (visit: any) =>
+                isStepLinkedToProgram(visit, program) ||
+                isStepWithoutProgram(visit),
+        );
+        let visits = orderBy(candidateVisits, ['createdAt'], ['asc'])?.filter(
             (visit: any) => {
                 let createdAt = timeStampToDate(visit?.createdAt);
                 let visitDate = timeStampToDate(
@@ -482,25 +504,14 @@ const assistanceGiven = (
                 );
                 return (
                     forms.includes(visit?.formFormId) &&
-                    visit?.values &&
-                    (visit?.values?.ration !== '' ||
-                        visit?.values?.ration_type !== '' ||
-                        visit?.values?.ration_type_tsfp !== '' ||
-                        !!countryConfig.resolveRationType?.(visit?.values)) &&
+                    !!rationTypeOf(visit) &&
                     ((startPeriod <= createdAt && endPeriod >= createdAt) ||
                         (startPeriod <= visitDate && endPeriod >= visitDate))
                 );
             },
         );
 
-        let groupByRationType = groupBy(
-            visits,
-            (visit: any) =>
-                visit?.values?.ration ??
-                visit.values?.ration_type ??
-                visit?.values?.ration_type_tsfp ??
-                countryConfig.resolveRationType?.(visit?.values),
-        );
+        let groupByRationType = groupBy(visits, rationTypeOf);
         let rationType = Object.keys(groupByRationType);
         return {
             ...entity,

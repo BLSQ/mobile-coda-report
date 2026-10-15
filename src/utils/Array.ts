@@ -208,6 +208,7 @@ const categoryDictionary = (key: string) => {
         pregnant: 'Pregnant',
         returnee: 'Returnee',
         muac: 'MUAC',
+        mother_muac: 'MUAC',
         muac_whz: 'MUAC & WHZ',
         oedema: 'Oedema',
         other: 'Other',
