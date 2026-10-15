@@ -48,6 +48,12 @@ const OWN_CRITERIA: Record<string, string> = {
     new_case_OEDEMA: 'oedema',
 };
 
+// Bangladesh's PBWG forms record the mother's MUAC as 'mother_muac',
+// which the report counts under South Sudan's plain 'muac' criteria row.
+const PBWG_CRITERIA_ALIASES: Record<string, string> = {
+    mother_muac: 'muac',
+};
+
 const matchAdmissionType = (
     values: any,
     baseType: string,
@@ -80,7 +86,18 @@ const matchAdmissionType = (
             ? { baseType, criteria: '' }
             : null;
     }
-    return southSudan.matchAdmissionType(values, baseType, beneficiaryType);
+    const match = southSudan.matchAdmissionType(
+        values,
+        baseType,
+        beneficiaryType,
+    );
+    if (match != null && beneficiaryType === 'PBWG') {
+        return {
+            ...match,
+            criteria: PBWG_CRITERIA_ALIASES[match.criteria] ?? match.criteria,
+        };
+    }
+    return match;
 };
 
 const admissionTypeWithCriteria = (

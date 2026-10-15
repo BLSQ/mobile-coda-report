@@ -334,6 +334,20 @@ describe('bangladesh PBWG BSFP support', () => {
         ).toEqual({ baseType: 'new_case', criteria: 'muac' });
     });
 
+    it("matchAdmissionType reads TSFP-PBWG's mother_muac criteria as muac", () => {
+        expect(
+            bangladesh.matchAdmissionType(
+                {
+                    admission_type: 'new_case',
+                    admission_criteria: 'mother_muac',
+                },
+                'new_case',
+                'PBWG',
+                'TSFP',
+            ),
+        ).toEqual({ baseType: 'new_case', criteria: 'muac' });
+    });
+
     it('admissionTypeWithCriteria gives each BSFP+PBWG type a single empty-string criteria', () => {
         const criteria = bangladesh.admissionTypeWithCriteria('BSFP', 'PBWG');
         expect(criteria.new_case).toEqual(['']);
