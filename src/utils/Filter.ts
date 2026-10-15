@@ -177,10 +177,16 @@ const visitsDataByStatus = (
                         break;
 
                     case 'medical_complications':
-                        response =
-                            fieldValue?.includes(value) ||
-                            visit?.values?.have_complications === '1' ||
-                            visit?.values?.have_complications === 'yes';
+                        if (value === 'other') {
+                            response =
+                                fieldValue?.includes(value) ||
+                                !!visit?.values?.medical_complications_other?.trim();
+                        } else {
+                            response =
+                                fieldValue?.includes(value) ||
+                                visit?.values?.have_complications === '1' ||
+                                visit?.values?.have_complications === 'yes';
+                        }
                         break;
 
                     default:

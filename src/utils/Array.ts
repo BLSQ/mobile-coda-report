@@ -239,6 +239,8 @@ const categoryDictionary = (key: string) => {
         returned_defaulter_old_case: 'Returned Defaulter (Old Case)',
         transferred_from_bsfp_nsep: 'Transferred from BSFP/NSEP',
         transferred_from_tsfp: 'Transferred from TSFP',
+        difficultydrinkingbreastfeeding:'Difficulty Drinking or Breastfeeding',
+        hyperbilirubinaemiajaundice:'hyperbilirubinaemia/\nJaundice'
     };
     return keyValues[key];
 };

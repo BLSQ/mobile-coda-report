@@ -42,10 +42,7 @@ let childrenUnder5MedicalStatusByCategory: any = {
         'complete',
         'motherdoesnotrecall',
     ],
-
-    //HIV: ['positive', 'negative', 'nottested'],
-    Complications: [
-        // 'apatheticpassive',
+    'Physical examination/Complications': [
         'highfever',
         'hypothermia',
         'severedehydration',
@@ -53,7 +50,9 @@ let childrenUnder5MedicalStatusByCategory: any = {
         'severeanemia',
         'eyesignsofvitadeficiency',
         'skinlesions',
-        //'other',
+        'difficultydrinkingbreastfeeding',
+        'hyperbilirubinaemiajaundice',
+        'other',
     ],
     'Medication Given': [
         // 'ab_given',
@@ -393,6 +392,9 @@ const childrenUnder5MedicalReport = (
         'severeanemia',
         'eyesignsofvitadeficiency',
         'skinlesions',
+        'hyperbilirubinaemiajaundice',
+        'difficultydrinkingbreastfeeding',
+        'other',
     ]);
 
     // let state_consciousness = visitsDataByFieldList(rows, {
@@ -400,10 +402,30 @@ const childrenUnder5MedicalReport = (
     // });
     // complications.push(state_consciousness[0]);
 
-    let groupComplicationsDataByMedicalTypes = groupBy(
+    let groupComplicationsDataByMedicalTypes: any = groupBy(
         complications.flat(),
         (visit: any) => visit?.value,
     );
+
+    // Split "other" into one group per value typed in medical_complications_other
+    let otherComplications = groupComplicationsDataByMedicalTypes.other ?? [];
+    delete groupComplicationsDataByMedicalTypes.other;
+    otherComplications.forEach((row: any) => {
+        let visitsByOtherValue = groupBy(
+            row.visits,
+            (visit: any) =>
+                visit?.values?.medical_complications_other?.trim() || 'other',
+        );
+        Object.keys(visitsByOtherValue).forEach((otherValue: string) => {
+            let visits = visitsByOtherValue[otherValue];
+            (groupComplicationsDataByMedicalTypes[otherValue] ||= []).push({
+                ...row,
+                visits: visits,
+                value: otherValue,
+                visitsNumber: visits.length,
+            });
+        });
+    });
 
     let medicationGiven = visitsDataByFieldList(rows, {
         // ab_given: '1',
@@ -420,7 +442,7 @@ const childrenUnder5MedicalReport = (
         '': groupDefaultDataByMedicalTypes,
         'Immunization for Age': groupImmunizationDataByMedicalTypes,
         HIV: groupHIVDataByMedicalTypes,
-        Complications: groupComplicationsDataByMedicalTypes,
+        'Physical examination/Complications': groupComplicationsDataByMedicalTypes,
         'Medication Given': groupMedicationGivenByType,
     };
 };
@@ -450,7 +472,22 @@ const medicalReports = (
     }
 
     return medicalCategories.map((category: string) => {
-        let subCategories = medicalStatusByCategory[category];
+        let subCategories = medicalStatusByCategory[category].flatMap(
+            (subCategory: string) => {
+                if (subCategory !== 'other' || !rows[category]) {
+                    return [subCategory];
+                }
+                // Values typed in medical_complications_other
+                let otherValues = Object.keys(rows[category])
+                    .filter(
+                        key =>
+                            key === 'other' ||
+                            !medicalStatusByCategory[category].includes(key),
+                    )
+                    .sort();
+                return otherValues.length > 0 ? otherValues : [subCategory];
+            },
+        );
         let subCategoriesData = subCategories.map((subCategory: any) => {
             let currentSubCategory =
                 rows[category] && rows[category][subCategory];
