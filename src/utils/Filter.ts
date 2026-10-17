@@ -232,6 +232,8 @@ const visitsDataByValuesList = (
         return entitiesWithVisitByStatus;
     });
 };
+const isChecked = (value: any) =>
+    value === '1' || value === 1 || value === true || value === 'true';
 
 export {
     stepsLinkedToProgram,
@@ -242,4 +244,5 @@ export {
     entitiesByStatus,
     visitsDataByFieldList,
     visitsDataByValuesList,
+    isChecked
 };

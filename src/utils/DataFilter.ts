@@ -6,6 +6,7 @@ import {
     filterStepsInPeriod,
     entitiesByStatus,
     visitsDataByStatus,
+    isChecked,
 } from './Filter';
 import { timeStampToDate, removeTime } from './DateFormatter';
 import { keyBy, orderBy, uniqBy } from 'lodash';
@@ -408,6 +409,22 @@ const dataCategory = (
     return rows;
 };
 
+// TSFP and OTP transfer to each other: a beneficiary transferred out of the
+// program has exited it, so missed visits afterwards are not absences.
+const isTransferredOut = (entity: any, program: string) => {
+    const transferKey = program?.includes('TSFP')
+        ? '_transfer_to_otp'
+        : program?.includes('OTP')
+        ? '_transfer_to_tsfp'
+        : undefined;
+    return (
+        transferKey !== undefined &&
+        (entity?.visits ?? []).some((visit: any) =>
+            isChecked(visit?.values?.[transferKey]),
+        )
+    );
+};
+
 const followUpData = (
     entities: Array<Entity>,
     program: string,
@@ -425,6 +442,11 @@ const followUpData = (
         if (beneficiaryType === 'PBWG') {
             forms = countryConfig.pbwgFormsByCategory[status][entityType] ?? [];
         }
+    }
+    if (status === 'absentees' || status === 'defaulters') {
+        entities = entities?.filter(
+            entity => !isTransferredOut(entity, program),
+        );
     }
     let beneficiariesAdmissions = entities
         ?.map(entity => {

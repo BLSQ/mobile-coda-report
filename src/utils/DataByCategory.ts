@@ -3,6 +3,7 @@ import {
     visitsDataByFieldList,
     visitsDataByValuesList,
     visitsDataByStatus,
+    isChecked,
 } from './Filter';
 import {
     filterDataOnProgram,
@@ -515,9 +516,6 @@ const medicalReports = (
     });
 };
 
-const isChecked = (value: any) =>
-    value === '1' || value === 1 || value === true || value === 'true';
-
 const eRegister = (
     entities: Array<any>,
     program: string,
@@ -664,7 +662,7 @@ const eRegister = (
             birth_date: timeStampToDateString(
                 entity?.profile?.values?.actual_birthday__date__,
             ),
-            address: entity?.profile?.values?.path_address ,
+            address: entity?.profile?.values?.path_address,
             visits: visits,
             weight:
                 visits[0]?.values?.previous_weight_kgs__decimal__ ||
