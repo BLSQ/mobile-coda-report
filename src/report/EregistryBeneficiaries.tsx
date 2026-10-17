@@ -158,7 +158,7 @@ const EregistryBeneficiaries = (
                                                     colSpan={10}
                                                 />
                                             )) || (
-                                                <td style={table} colSpan={9} />
+                                                <td style={table} colSpan={8} />
                                             )}
 
                                             <td style={table}>
