@@ -10,6 +10,16 @@ const table = {
     border: '1pt solid black',
 } as const;
 
+const fixedColumn = {
+    ...table,
+    width: '75px',
+    minWidth: '75px',
+    maxWidth: '75px',
+    wordWrap: 'break-word',
+    overflowWrap: 'break-word',
+    whiteSpace: 'normal',
+} as const;
+
 const EregistryBeneficiaries = (
     beneficiaries: Array<any>,
     program: string | undefined,
@@ -20,11 +30,12 @@ const EregistryBeneficiaries = (
             <table style={table}>
                 <thead style={table}>
                     <tr style={table}>
-                        <th style={table}>Admission Date</th>
+                        <th style={fixedColumn}>Admission Date</th>
                         <th style={table}>Name</th>
                         <th style={table}>Age</th>
                         <th style={table}>Birth Date</th>
                         {physiology === '' && <th style={table}>Gender</th>}
+                        <th style={fixedColumn}>Address</th>
 
                         <th style={table}>Admission Type</th>
                         <th style={table}>Admission Criteria</th>
@@ -50,7 +61,7 @@ const EregistryBeneficiaries = (
                         return [
                             <>
                                 <tr style={table}>
-                                    <td style={table}>
+                                    <td style={fixedColumn}>
                                         {beneficiary.admission_date}
                                     </td>
                                     <td style={table}>
@@ -69,7 +80,9 @@ const EregistryBeneficiaries = (
                                             {beneficiary.gender}
                                         </td>
                                     )}
-
+                                    <td style={fixedColumn}>
+                                        {beneficiary.address}
+                                    </td>
                                     <td style={table}>
                                         {categoryDictionary(
                                             beneficiary.admissionType,
@@ -140,9 +153,12 @@ const EregistryBeneficiaries = (
                                     return (
                                         <tr style={table}>
                                             {(physiology === '' && (
-                                                <td style={table} colSpan={9} />
+                                                <td
+                                                    style={table}
+                                                    colSpan={10}
+                                                />
                                             )) || (
-                                                <td style={table} colSpan={8} />
+                                                <td style={table} colSpan={9} />
                                             )}
 
                                             <td style={table}>

@@ -845,8 +845,10 @@ const agregatedBeneficiaryFolloWup = (
                 caregiver_name,
                 caretaker_Last_name,
                 caregiver_Last_name,
+                caregiver_phone_number,
                 card_number,
                 health_card,
+                path_address,
             } = entity?.profile?.values ?? {};
             let profile = {
                 id: entity?.id,
@@ -858,6 +860,8 @@ const agregatedBeneficiaryFolloWup = (
                 careGiver: `${caretaker_name ?? caregiver_name ?? ''} ${
                     caretaker_Last_name ?? caregiver_Last_name ?? ''
                 }`,
+                phoneNumber: caregiver_phone_number,
+                address: path_address,
                 registrationNumber: health_card ?? card_number,
             };
 
@@ -875,6 +879,27 @@ const agregatedBeneficiaryFolloWup = (
                     ...profile,
                     status: admissionType,
                 });
+            }
+            // TSFP and OTP refer to SC, and transfer to each other.
+            if (program === 'TSFP' || program === 'OTP') {
+                if (entity?.referralToSc && status !== 'referral_to_sc_itp') {
+                    allData.push({
+                        ...profile,
+                        status: 'referral_to_sc_itp',
+                    });
+                }
+                if (program === 'TSFP' && entity?.transferToOtp) {
+                    allData.push({
+                        ...profile,
+                        status: 'transfer_to_otp',
+                    });
+                }
+                if (program === 'OTP' && entity?.transferToTsfp) {
+                    allData.push({
+                        ...profile,
+                        status: 'transfer_to_tsfp',
+                    });
+                }
             }
         });
     return allData;

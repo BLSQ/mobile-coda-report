@@ -204,6 +204,8 @@ const categoryDictionary = (key: string) => {
         medical_investigation: 'Medical investigation',
         home_visits: 'Home visits',
         referral_to_sc_itp: 'Referral to SC',
+        transfer_to_otp: 'Referral to OTP',
+        transfer_to_tsfp: 'Referral to TSFP',
         breastfeeding: 'Lactating',
         pregnant: 'Pregnant',
         returnee: 'Returnee',
@@ -239,8 +241,8 @@ const categoryDictionary = (key: string) => {
         returned_defaulter_old_case: 'Returned Defaulter (Old Case)',
         transferred_from_bsfp_nsep: 'Transferred from BSFP/NSEP',
         transferred_from_tsfp: 'Transferred from TSFP',
-        difficultydrinkingbreastfeeding:'Difficulty Drinking or Breastfeeding',
-        hyperbilirubinaemiajaundice:'hyperbilirubinaemia/\nJaundice'
+        difficultydrinkingbreastfeeding: 'Difficulty Drinking or Breastfeeding',
+        hyperbilirubinaemiajaundice: 'hyperbilirubinaemia/\nJaundice',
     };
     return keyValues[key];
 };
@@ -252,8 +254,21 @@ let beneficiaryFollowupCategories = (program: string | null) => {
         { key: 'defaulters', label: 'Defaulters' },
         { key: 'non_respondent', label: 'Non-respondent' },
         { key: 'medical_investigation', label: 'Transfer to PHC' },
-        //{ key: 'death', label: 'Death' },
+        { key: 'weight_loss_2_visits_or_no_weight_gain_in_3_visits', label: 'Failure to gain weight' },
     ];
+    // TSFP and OTP refer to SC, and transfer to each other.
+    if (program === 'TSFP') {
+        beneficiaryCategory.push(
+            { key: 'referral_to_sc_itp', label: 'Referral to SC' },
+            { key: 'transfer_to_otp', label: 'Referral to OTP' },
+        );
+    }
+    if (program === 'OTP') {
+        beneficiaryCategory.push(
+            { key: 'referral_to_sc_itp', label: 'Referral to SC' },
+            { key: 'transfer_to_tsfp', label: 'Referral to TSFP' },
+        );
+    }
     // BSFP/NSEP have no PHC referral pathway (unlike TSFP/OTP), so that
     // category never applies to their followup report.
     if (program === 'BSFP' || program === 'NSEP') {

@@ -8,6 +8,16 @@ const table = {
     border: '1pt solid black',
 } as const;
 
+const fixedColumn = {
+    ...table,
+    width: '75px',
+    minWidth: '75px',
+    maxWidth: '75px',
+    wordWrap: 'break-word',
+    overflowWrap: 'break-word',
+    whiteSpace: 'normal',
+} as const;
+
 function BeneficiariesFollowup(
     beneficiaries: Array<any>,
     label: string,
@@ -28,7 +38,8 @@ function BeneficiariesFollowup(
                                 <th style={table}>Progress Id</th>
                             </>
                         )) || <th style={table}>Card Number</th>}
-
+                        <th style={fixedColumn}>Adress</th>
+                        <th style={table}>Phone Number</th>
                         <th style={table}>Status</th>
                     </tr>
                 </thead>
@@ -52,6 +63,10 @@ function BeneficiariesFollowup(
                                 <td style={table}>
                                     {beneficiary.registrationNumber}
                                 </td>
+                                <td style={fixedColumn}>
+                                    {beneficiary.address}
+                                </td>
+                                <td style={table}>{beneficiary.phoneNumber}</td>
                                 <td style={table}>
                                     {categoryDictionary(beneficiary.status)}
                                 </td>

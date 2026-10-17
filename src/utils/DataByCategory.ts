@@ -442,7 +442,8 @@ const childrenUnder5MedicalReport = (
         '': groupDefaultDataByMedicalTypes,
         'Immunization for Age': groupImmunizationDataByMedicalTypes,
         HIV: groupHIVDataByMedicalTypes,
-        'Physical examination/Complications': groupComplicationsDataByMedicalTypes,
+        'Physical examination/Complications':
+            groupComplicationsDataByMedicalTypes,
         'Medication Given': groupMedicationGivenByType,
     };
 };
@@ -514,6 +515,9 @@ const medicalReports = (
     });
 };
 
+const isChecked = (value: any) =>
+    value === '1' || value === 1 || value === true || value === 'true';
+
 const eRegister = (
     entities: Array<any>,
     program: string,
@@ -573,11 +577,35 @@ const eRegister = (
                 (current_entity: any) => current_entity.id === entity.id,
             ),
         };
+        // TSFP and OTP transfer to each other: the transfer visit is the exit.
+        const transferVisit = (key: string) => {
+            const visit = (entity?.visits ?? []).find((visit: any) =>
+                isChecked(visit?.values?.[`_${key}`]),
+            );
+            return (
+                visit && {
+                    exitDate: visit?.values?._visit_date ?? visit?.createdAt,
+                    exitWeight:
+                        visit?.values?.weight_kgs ??
+                        visit?.values?.previous_weight_kgs__decimal__,
+                }
+            );
+        };
+        if (program?.includes('TSFP')) {
+            discharges.transfer_to_otp = transferVisit('transfer_to_otp');
+        }
+        if (program?.includes('OTP')) {
+            discharges.transfer_to_tsfp = transferVisit('transfer_to_tsfp');
+        }
 
         const exit_type = discharges.cured
             ? 'cured'
             : discharges.non_respondent
             ? 'non_respondent'
+            : discharges.transfer_to_otp
+            ? 'transfer_to_otp'
+            : discharges.transfer_to_tsfp
+            ? 'transfer_to_tsfp'
             : discharges.defaulters
             ? 'defaulters'
             : discharges.absentees
@@ -585,6 +613,17 @@ const eRegister = (
             : discharges.death
             ? 'death'
             : '';
+        // Read before `visits` is narrowed to the anthropometric forms below:
+        // the SC referral is confirmed on the medical form.
+        const referralToSc = (entity?.visits ?? []).some((visit: any) =>
+            isChecked(visit?.values?.confirm_referral_medical_first__bool__),
+        );
+        const transferToOtp = (entity?.visits ?? []).some((visit: any) =>
+            isChecked(visit?.values?._transfer_to_otp),
+        );
+        const transferToTsfp = (entity?.visits ?? []).some((visit: any) =>
+            isChecked(visit?.values?._transfer_to_tsfp),
+        );
         const visits = visitsLinkedToForms(
             startDate,
             endDate,
@@ -625,6 +664,7 @@ const eRegister = (
             birth_date: timeStampToDateString(
                 entity?.profile?.values?.actual_birthday__date__,
             ),
+            address: entity?.profile?.values?.path_address ,
             visits: visits,
             weight:
                 visits[0]?.values?.previous_weight_kgs__decimal__ ||
@@ -656,6 +696,9 @@ const eRegister = (
                     : visits[0]?.values?.oedema_severity === '3'
                     ? '+++'
                     : '',
+            referralToSc: referralToSc,
+            transferToOtp: transferToOtp,
+            transferToTsfp: transferToTsfp,
             exit_type: exit_type,
             exit: discharges && discharges[exit_type],
             exitWeight: exitWeight,
