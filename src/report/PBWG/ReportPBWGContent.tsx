@@ -49,7 +49,7 @@ const ReportPBWGContent = (category: any): any => {
                                         P
                                     </td>
                                     <td className="align" style={td}>
-                                        L
+                                        B
                                     </td>
                                 </tr>
                             </table>
@@ -67,7 +67,7 @@ const ReportPBWGContent = (category: any): any => {
                                         P
                                     </td>
                                     <td className="align" style={td}>
-                                        L
+                                        B
                                     </td>
                                 </tr>
                             </table>
@@ -84,7 +84,7 @@ const ReportPBWGContent = (category: any): any => {
                                         P
                                     </td>
                                     <td className="align" style={td}>
-                                        L
+                                        B
                                     </td>
                                 </tr>
                             </table>

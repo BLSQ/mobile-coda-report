@@ -43,7 +43,7 @@ function BeneficiariesFollowup(
                         <th style={table}>Status</th>
                     </tr>
                 </thead>
-                <tbody style={table}>
+                <tbody style={table} key={label}>
                     {beneficiaries.map((beneficiary: any) => {
                         return (
                             <tr style={table}>
