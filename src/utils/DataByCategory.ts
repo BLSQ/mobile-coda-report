@@ -10,6 +10,7 @@ import {
     followUpData,
     visitsLinkedToForms,
     defaulterCases,
+    isReferredToSc,
 } from './DataFilter';
 import { timeStampToDateString, removeTime } from './DateFormatter';
 
@@ -613,9 +614,7 @@ const eRegister = (
             : '';
         // Read before `visits` is narrowed to the anthropometric forms below:
         // the SC referral is confirmed on the medical form.
-        const referralToSc = (entity?.visits ?? []).some((visit: any) =>
-            isChecked(visit?.values?.confirm_referral_medical_first__bool__),
-        );
+        const referralToSc = isReferredToSc(entity);
         const transferToOtp = (entity?.visits ?? []).some((visit: any) =>
             isChecked(visit?.values?._transfer_to_otp),
         );

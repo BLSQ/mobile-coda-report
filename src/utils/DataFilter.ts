@@ -171,31 +171,23 @@ const categoryWithData = (
                 ];
                 break;
             }
-            const absentees = followUpData(
+            // Read off the E-Register exit so the main report counts the same
+            // absentees/defaulters as the Follow-up report: only beneficiaries
+            // of this program in the period (TSFP and OTP share the same
+            // forms), and only when no other exit (cured, transfer...) wins.
+            const registers = eRegister(
                 entities,
                 program,
-                'absentees',
-                entityType,
-            );
-            const allAbsentes = defaulterCases(
-                absentees,
                 startDate,
                 endDate,
-                program,
-            ).filter((entity: any) => entity?.counter === 1);
-
-            const defaulters = followUpData(
-                entities,
-                program,
-                'defaulters',
                 entityType,
             );
-            let defaulted = defaulterCases(
-                defaulters,
-                startDate,
-                endDate,
-                program,
-            ).filter((entity: any) => entity?.counter > 1);
+            const exitsOfType = (exitType: string) =>
+                registers
+                    .filter((entity: any) => entity?.exit_type === exitType)
+                    .map((entity: any) => entity?.exit);
+            const allAbsentes = exitsOfType('absentees');
+            const defaulted = exitsOfType('defaulters');
             const deathCases = visitsDataByStatus(
                 entities,
                 'reason_not_continue',
@@ -425,6 +417,14 @@ const isTransferredOut = (entity: any, program: string) => {
     );
 };
 
+// TSFP and OTP refer to SC: a beneficiary referred to SC has left the
+// program for inpatient care, so missed visits afterwards are not absences.
+// The SC referral is confirmed on the medical form.
+const isReferredToSc = (entity: any) =>
+    (entity?.visits ?? []).some((visit: any) =>
+        isChecked(visit?.values?.confirm_referral_medical_first__bool__),
+    );
+
 const followUpData = (
     entities: Array<Entity>,
     program: string,
@@ -445,7 +445,12 @@ const followUpData = (
     }
     if (status === 'absentees' || status === 'defaulters') {
         entities = entities?.filter(
-            entity => !isTransferredOut(entity, program),
+            entity =>
+                !isTransferredOut(entity, program) &&
+                !(
+                    (program?.includes('TSFP') || program?.includes('OTP')) &&
+                    isReferredToSc(entity)
+                ),
         );
     }
     let beneficiariesAdmissions = entities
@@ -939,4 +944,5 @@ export {
     defaulterCases,
     agregatedBeneficiaryFolloWup,
     categoryWithData,
+    isReferredToSc,
 };
