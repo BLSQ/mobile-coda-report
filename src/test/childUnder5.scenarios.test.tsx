@@ -6,6 +6,7 @@ import { useSubmissions } from './bridge';
 import { render, screen, within } from '@testing-library/react';
 import LoadFormsForEntityType from '../Android';
 import { ChildrenUnder5 } from '../report/ChildrenUnder5';
+import { FolloWupCategories } from '../report/FollowUpCategories';
 import Entity from '../entity/Entity';
 import submissions from './fixtures/child_under5.json';
 
@@ -146,5 +147,105 @@ describe('Child Under 5 report, with the forms of the server', () => {
             '1',
             '0',
         ]);
+    });
+
+    describe('followup categories', () => {
+        // The bridge sends dates as ISO strings: with the numbers of the fixtures, the medical
+        // forms (which have no visit date) would fall out of the period.
+        const dated = submissions.map(row => ({
+            ...row,
+            createdAt: new Date(row.createdAt).toISOString(),
+            updatedAt: new Date(row.updatedAt).toISOString(),
+        }));
+        // Sets `values` on the submissions with the given ids.
+        function flag(ids: string[], values: Record<string, string>) {
+            return dated.map(row =>
+                ids.includes(row.id)
+                    ? { ...row, values: { ...row.values, ...values } }
+                    : row,
+            );
+        }
+
+        function renderFollowup(program: string, category: string) {
+            return loadEntities(CHILD_UNDER_5).then(entities =>
+                render(
+                    FolloWupCategories(
+                        category,
+                        program,
+                        entities,
+                        START,
+                        END,
+                        CHILD_UNDER_5,
+                    ),
+                ),
+            );
+        }
+
+        const SC = { confirm_referral_medical_first__bool__: '1' };
+
+        // [program, child, flagged submissions, flagged values, category, label]
+        it.each([
+            [
+                'TSFP',
+                'Rahim',
+                ['child-tsfp-muac-6'],
+                SC,
+                'referral_to_sc_itp',
+                'Referral to SC',
+            ],
+            [
+                'OTP',
+                'Karim',
+                ['child-otp-red-2'],
+                SC,
+                'referral_to_sc_itp',
+                'Referral to SC',
+            ],
+            [
+                'TSFP',
+                'Rahim',
+                ['child-tsfp-muac-5'],
+                { _transfer_to_otp: '1' },
+                'transfer_to_otp',
+                'Referral to OTP',
+            ],
+            [
+                'OTP',
+                'Karim',
+                ['child-otp-red-1'],
+                { _transfer_to_tsfp: '1' },
+                'transfer_to_tsfp',
+                'Referral to TSFP',
+            ],
+        ])(
+            'lists the %s child %s under %s when its form flagged it',
+            async (program, name, ids, values, category, label) => {
+                useSubmissions(flag(ids as string[], values));
+                await renderFollowup(program as string, category as string);
+
+                const row = screen
+                    .getAllByRole('row')
+                    .find(candidate =>
+                        candidate.textContent?.includes(name as string),
+                    );
+                expect(row?.textContent).toContain(label);
+            },
+        );
+
+        it.each([
+            ['TSFP', 'referral_to_sc_itp'],
+            ['TSFP', 'transfer_to_otp'],
+            ['OTP', 'referral_to_sc_itp'],
+            ['OTP', 'transfer_to_tsfp'],
+        ])(
+            'lists nobody in %s under %s when the forms did not flag it',
+            async (program, category) => {
+                useSubmissions(dated);
+                await renderFollowup(program, category);
+
+                // Only the header row.
+                expect(screen.getAllByRole('row')).toHaveLength(1);
+            },
+        );
     });
 });
