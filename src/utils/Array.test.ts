@@ -11,6 +11,7 @@ describe('beneficiaryFollowupCategories', () => {
             'defaulters',
             'non_respondent',
             'medical_investigation',
+            'weight_loss_2_visits_or_no_weight_gain_in_3_visits',
             'referral_to_sc_itp',
             'transfer_to_otp',
         ]);
@@ -23,6 +24,7 @@ describe('beneficiaryFollowupCategories', () => {
             'defaulters',
             'non_respondent',
             'medical_investigation',
+            'weight_loss_2_visits_or_no_weight_gain_in_3_visits',
             'referral_to_sc_itp',
             'transfer_to_tsfp',
         ]);
@@ -36,6 +38,7 @@ describe('beneficiaryFollowupCategories', () => {
                 'absentees',
                 'defaulters',
                 'non_respondent',
+                'weight_loss_2_visits_or_no_weight_gain_in_3_visits'
             ]);
         },
     );
