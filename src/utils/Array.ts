@@ -269,6 +269,14 @@ let beneficiaryFollowupCategories = (program: string | null) => {
             { key: 'transfer_to_tsfp', label: 'Referral to TSFP' },
         );
     }
+    // BSFP transfers to TSFP and OTP (confirmed with `confirm_tsfp_referral`
+    // and `confirm_otp_referral`).
+    if (program === 'BSFP') {
+        beneficiaryCategory.push(
+            { key: 'transfer_to_tsfp', label: 'Referral to TSFP' },
+            { key: 'transfer_to_otp', label: 'Referral to OTP' },
+        );
+    }
     // BSFP/NSEP have no PHC referral pathway (unlike TSFP/OTP), so that
     // category never applies to their followup report.
     if (program === 'BSFP' || program === 'NSEP') {
