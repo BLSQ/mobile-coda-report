@@ -12,8 +12,26 @@ const PROGRAM_FIELDS = [
     'new_programme',
 ];
 
+// BSFP confirms its transfers to TSFP and OTP with `confirm_tsfp_referral`
+// and `confirm_otp_referral` on its admission and followup forms (Child
+// Under 5 and PBWG).
+const BSFP_REFERRAL_FORMS = [
+    'bsfp_child_visit',
+    'bsfp_child_followup_visit',
+    'bsfp_pbwg_visit',
+    'bsfp_pbwg_followup_visit',
+];
+
+// The BSFP visit confirming a referral sets `_programme` to NONE (the
+// beneficiary leaves BSFP), so it is only linked to BSFP through its form.
+const isBsfpReferralStep = (step: any) =>
+    BSFP_REFERRAL_FORMS.includes(step?.formFormId) &&
+    (isChecked(step?.values?.confirm_tsfp_referral) ||
+        isChecked(step?.values?.confirm_otp_referral));
+
 const isStepLinkedToProgram = (step: any, program: string) =>
-    PROGRAM_FIELDS.some(field => step?.values?.[field]?.includes(program));
+    PROGRAM_FIELDS.some(field => step?.values?.[field]?.includes(program)) ||
+    (program === 'BSFP' && isBsfpReferralStep(step));
 
 // Some forms (e.g. Bangladesh's BSFP-PBWG assistance forms) don't record
 // which program they belong to at all — they can only be attributed to a
@@ -236,6 +254,7 @@ const isChecked = (value: any) =>
     value === '1' || value === 1 || value === true || value === 'true';
 
 export {
+    BSFP_REFERRAL_FORMS,
     stepsLinkedToProgram,
     isStepLinkedToProgram,
     isStepWithoutProgram,

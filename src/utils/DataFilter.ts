@@ -1,5 +1,6 @@
 import Entity from '../entity/Entity';
 import {
+    BSFP_REFERRAL_FORMS,
     stepsLinkedToProgram,
     isStepLinkedToProgram,
     isStepWithoutProgram,
@@ -400,16 +401,6 @@ const dataCategory = (
     });
     return rows;
 };
-
-// BSFP confirms its transfers to TSFP and OTP with `confirm_tsfp_referral`
-// and `confirm_otp_referral` on its admission and followup forms (Child
-// Under 5 and PBWG).
-const BSFP_REFERRAL_FORMS = [
-    'bsfp_child_visit',
-    'bsfp_child_followup_visit',
-    'bsfp_pbwg_visit',
-    'bsfp_pbwg_followup_visit',
-];
 
 const hasBsfpReferral = (entity: any, field: string) =>
     (entity?.visits ?? []).some(
