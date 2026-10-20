@@ -401,20 +401,57 @@ const dataCategory = (
     return rows;
 };
 
-// TSFP and OTP transfer to each other: a beneficiary transferred out of the
-// program has exited it, so missed visits afterwards are not absences.
-const isTransferredOut = (entity: any, program: string) => {
-    const transferKey = program?.includes('TSFP')
-        ? '_transfer_to_otp'
-        : program?.includes('OTP')
-        ? '_transfer_to_tsfp'
-        : undefined;
-    return (
-        transferKey !== undefined &&
-        (entity?.visits ?? []).some((visit: any) =>
-            isChecked(visit?.values?.[transferKey]),
-        )
+// BSFP confirms its transfers to TSFP and OTP with `confirm_tsfp_referral`
+// and `confirm_otp_referral` on its admission and followup forms (Child
+// Under 5 and PBWG).
+const BSFP_REFERRAL_FORMS = [
+    'bsfp_child_visit',
+    'bsfp_child_followup_visit',
+    'bsfp_pbwg_visit',
+    'bsfp_pbwg_followup_visit',
+];
+
+const hasBsfpReferral = (entity: any, field: string) =>
+    (entity?.visits ?? []).some(
+        (visit: any) =>
+            BSFP_REFERRAL_FORMS.includes(visit?.formFormId) &&
+            isChecked(visit?.values?.[field]),
     );
+
+const hasVisitFlag = (entity: any, field: string) =>
+    (entity?.visits ?? []).some((visit: any) =>
+        isChecked(visit?.values?.[field]),
+    );
+
+// OTP flags its transfer to TSFP with `_transfer_to_tsfp`.
+const isTransferredToTsfp = (entity: any, program: string) =>
+    program === 'BSFP'
+        ? hasBsfpReferral(entity, 'confirm_tsfp_referral')
+        : hasVisitFlag(entity, '_transfer_to_tsfp');
+
+// TSFP flags its transfer to OTP with `_transfer_to_otp`.
+const isTransferredToOtp = (entity: any, program: string) =>
+    program === 'BSFP'
+        ? hasBsfpReferral(entity, 'confirm_otp_referral')
+        : hasVisitFlag(entity, '_transfer_to_otp');
+
+// TSFP and OTP transfer to each other, and BSFP transfers to both: a
+// beneficiary transferred out of the program has exited it, so missed visits
+// afterwards are not absences.
+const isTransferredOut = (entity: any, program: string) => {
+    if (program === 'BSFP') {
+        return (
+            isTransferredToTsfp(entity, program) ||
+            isTransferredToOtp(entity, program)
+        );
+    }
+    if (program?.includes('TSFP')) {
+        return isTransferredToOtp(entity, program);
+    }
+    if (program?.includes('OTP')) {
+        return isTransferredToTsfp(entity, program);
+    }
+    return false;
 };
 
 // TSFP and OTP refer to SC: a beneficiary referred to SC has left the
@@ -928,6 +965,21 @@ const agregatedBeneficiaryFolloWup = (
                     });
                 }
             }
+            // BSFP transfers to TSFP and OTP.
+            if (program === 'BSFP') {
+                if (entity?.transferToTsfp) {
+                    allData.push({
+                        ...profile,
+                        status: 'transfer_to_tsfp',
+                    });
+                }
+                if (entity?.transferToOtp) {
+                    allData.push({
+                        ...profile,
+                        status: 'transfer_to_otp',
+                    });
+                }
+            }
         });
     return allData;
 };
@@ -945,4 +997,6 @@ export {
     agregatedBeneficiaryFolloWup,
     categoryWithData,
     isReferredToSc,
+    isTransferredToTsfp,
+    isTransferredToOtp,
 };

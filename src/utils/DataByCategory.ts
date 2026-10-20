@@ -11,12 +11,15 @@ import {
     visitsLinkedToForms,
     defaulterCases,
     isReferredToSc,
+    isTransferredToTsfp,
+    isTransferredToOtp,
 } from './DataFilter';
 import { timeStampToDateString, removeTime } from './DateFormatter';
 
 const pbwgMedicalStatusByCategory: any = {
     Malaria: ['positive', 'negative'],
     HIV: ['positive', 'negative', 'exposed', 'unknown'],
+    Fever: ['yes', 'no'],
     'Breastfeeding problems': ['yes', 'no'],
     'Referred for treatment': ['yes', 'no'],
 };
@@ -282,6 +285,12 @@ const pbwgMedicalDataReport = (
         (visit: any) => visit?.value,
     );
 
+    let fever = visitsDataByValuesList(rows, 'fever', ['yes', 'no']);
+    let groupFeverDataByMedicalTypes = groupBy(
+        fever.flat(),
+        (visit: any) => visit?.value,
+    );
+
     let breastfeedingProblems = visitsDataByValuesList(
         rows,
         'breastfeeding_problems',
@@ -304,6 +313,7 @@ const pbwgMedicalDataReport = (
     return {
         Malaria: groupMalariaDataByMedicalTypes,
         HIV: groupHIVDataByMedicalTypes,
+        Fever: groupFeverDataByMedicalTypes,
         'Breastfeeding problems': groupbreastfeedingProblems,
         'Referred for treatment': groupBreastFeedingTreatment,
     };
@@ -615,12 +625,8 @@ const eRegister = (
         // Read before `visits` is narrowed to the anthropometric forms below:
         // the SC referral is confirmed on the medical form.
         const referralToSc = isReferredToSc(entity);
-        const transferToOtp = (entity?.visits ?? []).some((visit: any) =>
-            isChecked(visit?.values?._transfer_to_otp),
-        );
-        const transferToTsfp = (entity?.visits ?? []).some((visit: any) =>
-            isChecked(visit?.values?._transfer_to_tsfp),
-        );
+        const transferToOtp = isTransferredToOtp(entity, program);
+        const transferToTsfp = isTransferredToTsfp(entity, program);
         const visits = visitsLinkedToForms(
             startDate,
             endDate,
