@@ -195,23 +195,16 @@ const visitsDataByStatus = (
                         break;
 
                     case 'medical_complications':
-                        if (value === 'other') {
-                            const codes =
-                                fieldValue
-                                    ?.replace(/\[|\]/g, '')
-                                    .split(',')
-                                    .map((c: string) => c.trim()) ?? [];
-                            response =
-                                codes.includes(value) ||
-                                !!visit?.values?.medical_complications_other?.trim();
-                        } else {
-                            response =
-                                fieldValue?.includes(value) ||
-                                visit?.values?.have_complications === '1' ||
-                                visit?.values?.have_complications === 'yes';
-                        }
+                        const codes =
+                            fieldValue
+                                ?.replace(/\[|\]/g, '')
+                                .split(',')
+                                .map((c: string) => c.trim()) ?? [];
+                        response =
+                            codes.includes(value) ||
+                            (value === 'other' &&
+                                !!visit?.values?.medical_complications_other?.trim());
                         break;
-
                     default:
                         response = visit?.values[fieldName] === value;
                         break;
