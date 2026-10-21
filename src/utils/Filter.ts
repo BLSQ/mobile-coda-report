@@ -196,8 +196,13 @@ const visitsDataByStatus = (
 
                     case 'medical_complications':
                         if (value === 'other') {
+                            const codes =
+                                fieldValue
+                                    ?.replace(/\[|\]/g, '')
+                                    .split(',')
+                                    .map((c: string) => c.trim()) ?? [];
                             response =
-                                fieldValue?.includes(value) ||
+                                codes.includes(value) ||
                                 !!visit?.values?.medical_complications_other?.trim();
                         } else {
                             response =
