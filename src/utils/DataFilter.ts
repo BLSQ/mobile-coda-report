@@ -767,12 +767,12 @@ const defaulterCases = (
             let nextVisitDays =
                 visit?.values?.next_visit ??
                 visit?.values?.number_of_days__int__ ??
-                visit?.values?.next_visit_days ??
-                visit?.values?.next_visit_date__date__;
+                visit?.values?.next_visit_days;
             const nextVisit =
                 visit?.values?.new_next_visit__date__ ??
                 visit?.values?._display_next_visit ??
-                visit?.values?.next_visit__date__;
+                visit?.values?.next_visit__date__ ??
+                visit?.values?.next_visit_date__date__;;
             const nextVisitDate = timeStampToDate(nextVisit);
             const secondNextVisit = new Date(nextVisitDate).setDate(
                 new Date(nextVisitDate).getDate() + nextVisitDays,
