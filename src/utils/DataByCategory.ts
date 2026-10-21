@@ -13,6 +13,7 @@ import {
     isReferredToSc,
     isTransferredToTsfp,
     isTransferredToOtp,
+    hasFailedToGainWeight,
 } from './DataFilter';
 import { timeStampToDateString, removeTime } from './DateFormatter';
 
@@ -627,6 +628,7 @@ const eRegister = (
         const referralToSc = isReferredToSc(entity);
         const transferToOtp = isTransferredToOtp(entity, program);
         const transferToTsfp = isTransferredToTsfp(entity, program);
+        const failureToGainWeight = hasFailedToGainWeight(entity);
         const visits = visitsLinkedToForms(
             startDate,
             endDate,
@@ -702,6 +704,7 @@ const eRegister = (
             referralToSc: referralToSc,
             transferToOtp: transferToOtp,
             transferToTsfp: transferToTsfp,
+            failureToGainWeight: failureToGainWeight,
             exit_type: exit_type,
             exit: discharges && discharges[exit_type],
             exitWeight: exitWeight,

@@ -195,6 +195,8 @@ const categoryDictionary = (key: string) => {
         defaulter: 'Defaulters',
         non_respondent: 'Non-respondent',
         non_respondent__int__: 'Non-respondent',
+        weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__:
+            'Failure to gain weight',
         dismissedduetocheating: 'Dismissals due to cheating',
         transferred_to_otp: 'Referrals to OTP',
         transferred_to_tsfp: 'Transfers to TSFP/Cured',
@@ -254,7 +256,7 @@ let beneficiaryFollowupCategories = (program: string | null) => {
         { key: 'defaulters', label: 'Defaulters' },
         { key: 'non_respondent', label: 'Non-respondent' },
         { key: 'medical_investigation', label: 'Transfer to PHC' },
-        { key: 'weight_loss_2_visits_or_no_weight_gain_in_3_visits', label: 'Failure to gain weight' },
+        { key: 'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__', label: 'Failure to gain weight' },
     ];
     // TSFP and OTP refer to SC, and transfer to each other.
     if (program === 'TSFP') {

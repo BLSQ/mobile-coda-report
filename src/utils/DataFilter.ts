@@ -448,6 +448,14 @@ const isTransferredOut = (entity: any, program: string) => {
 // TSFP and OTP refer to SC: a beneficiary referred to SC has left the
 // program for inpatient care, so missed visits afterwards are not absences.
 // The SC referral is confirmed on the medical form.
+const FAILURE_TO_GAIN_WEIGHT =
+    'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__';
+
+// The followup forms flag a beneficiary losing weight over 2 visits or not
+// gaining weight over 3 visits.
+const hasFailedToGainWeight = (entity: any) =>
+    hasVisitFlag(entity, FAILURE_TO_GAIN_WEIGHT);
+
 const isReferredToSc = (entity: any) =>
     (entity?.visits ?? []).some((visit: any) =>
         isChecked(visit?.values?.confirm_referral_medical_first__bool__),
@@ -870,7 +878,6 @@ const agregatedBeneficiaryFolloWup = (
         'referral_to_sc_itp',
         'medical_investigation',
         'home_visits',
-        'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__',
     ];
 
     let allData: any[] = [];
@@ -891,9 +898,7 @@ const agregatedBeneficiaryFolloWup = (
         )
         .forEach((entity: any) => {
             let admissionType =
-                entity?.new_admission_type !== '' ||
-                entity?.admissionType ||
-                '';
+                entity?.new_admission_type ?? entity?.admissionType ?? '';
             let status = entity?.exit?.status ?? '';
             const {
                 caretaker_name,
@@ -903,6 +908,7 @@ const agregatedBeneficiaryFolloWup = (
                 caregiver_phone_number,
                 card_number,
                 health_card,
+                registration_number,
                 path_address,
             } = entity?.profile?.values ?? {};
             let profile = {
@@ -917,7 +923,7 @@ const agregatedBeneficiaryFolloWup = (
                 }`,
                 phoneNumber: caregiver_phone_number,
                 address: path_address,
-                registrationNumber: health_card ?? card_number,
+                registrationNumber: health_card ?? card_number ?? registration_number,
             };
 
             if (
@@ -933,6 +939,12 @@ const agregatedBeneficiaryFolloWup = (
                 allData.push({
                     ...profile,
                     status: admissionType,
+                });
+            }
+            if (entity?.failureToGainWeight) {
+                allData.push({
+                    ...profile,
+                    status: FAILURE_TO_GAIN_WEIGHT,
                 });
             }
             // TSFP and OTP refer to SC, and transfer to each other.
@@ -990,4 +1002,5 @@ export {
     isReferredToSc,
     isTransferredToTsfp,
     isTransferredToOtp,
+    hasFailedToGainWeight,
 };
