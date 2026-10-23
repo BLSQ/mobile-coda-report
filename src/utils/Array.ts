@@ -136,7 +136,6 @@ const categoryDictionary = (key: string) => {
         none: 'None',
         incomplete: 'Incomplete',
         complete: 'Complete',
-        'motherdoesnot recall': 'No idea',
         motherdoesnotrecall: 'Mother does not recall',
         palmar_pallor: 'Palmar Pallor',
         conjuctivae_palm: 'Conjuctivae Palm',
