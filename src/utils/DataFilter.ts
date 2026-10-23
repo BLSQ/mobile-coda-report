@@ -903,7 +903,7 @@ const agregatedBeneficiaryFolloWup = (
         'referral_to_sc_itp',
         'medical_investigation',
         'home_visits',
-        'non_respondent'
+        'non_respondent',
     ];
 
     let allData: any[] = [];
@@ -918,13 +918,10 @@ const agregatedBeneficiaryFolloWup = (
     registers
         .filter(
             (entity: any) =>
-                entity?.new_admission_type !== '' ||
-                entity?.admissionType !== '' ||
-                entity?.exit_type !== '',
+                !!entity?.admissionType || entity?.exit_type !== '',
         )
         .forEach((entity: any) => {
-            let admissionType =
-                entity?.new_admission_type ?? entity?.admissionType ?? '';
+            let admissionType = entity?.admissionType ?? '';
             let status = entity?.exit_type ?? '';
             const {
                 caretaker_name,
