@@ -8,12 +8,14 @@ const groupBy = <T, K extends keyof any>(arr: T[], key: (i: T) => K) =>
         return groups;
     }, {} as Record<K, T[]>);
 
-const getBeneficiaryAge = (beneficiary: any) =>{
-    return beneficiary.profile?.values?.age__int__ ??
-            beneficiary.profile?.values?.age_months ??
-            beneficiary.profile?.values?.age ??
-            beneficiary.profile?.values?.age_years;
-}
+const getBeneficiaryAge = (beneficiary: any) => {
+    return (
+        beneficiary.profile?.values?.age__int__ ??
+        beneficiary.profile?.values?.age_months ??
+        beneficiary.profile?.values?.age ??
+        beneficiary.profile?.values?.age_years
+    );
+};
 
 const sumByAge = (
     entities: Array<Entity>,
@@ -254,7 +256,10 @@ let beneficiaryFollowupCategories = (program: string | null) => {
         { key: 'defaulters', label: 'Defaulters' },
         { key: 'non_respondent', label: 'Non-respondent' },
         { key: 'medical_investigation', label: 'Transfer to PHC' },
-        { key: 'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__', label: 'Failure to gain weight' },
+        {
+            key: 'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__',
+            label: 'Failure to gain weight',
+        },
     ];
     // TSFP and OTP refer to SC, and transfer to each other.
     if (program === 'TSFP') {

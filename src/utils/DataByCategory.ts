@@ -449,10 +449,10 @@ const eRegister = (
 
         // Death wins over every exit but cured: a child who died after
         // missing visits is a death, not an absentee or a defaulter.
-        const exitType = discharges.cured
-            ? 'cured'
-            : discharges.death
+        const exitType = discharges.death
             ? 'death'
+            : discharges.cured
+            ? 'cured'
             : discharges.transfer_to_otp
             ? 'transfer_to_otp'
             : discharges.transfer_to_tsfp
@@ -478,16 +478,14 @@ const eRegister = (
             program,
         );
         const exit = discharges[exitType];
-
-        let exitWeight = exit?.exitWeight;
-        let exitDate = ""
-        if(exit){
+        let exitDate = '';
+        if (exit) {
             exitDate = timeStampToDateString(
-                  exit.exitDate ||
-                      exit.createdAt ||
-                      visits[visits.length - 1]?.values?._visit_date ||
-                      visits[visits.length - 1]?.values?.visit_date,
-              )
+                exit.exitDate ||
+                    exit.createdAt ||
+                    visits[visits.length - 1]?.values?._visit_date ||
+                    visits[visits.length - 1]?.values?.visit_date,
+            );
         }
 
         let lengthOfStay = 0;
@@ -548,8 +546,8 @@ const eRegister = (
             transferToTsfp: transferToTsfp,
             failureToGainWeight: failureToGainWeight,
             exit_type: exitType,
-            exit: discharges && discharges[exitType],
-            exitWeight: exitWeight,
+            exit: exit,
+            exitWeight: exit?.exitWeight,
             exitDate: exitDate,
             lengthOfStay: lengthOfStay,
             exitMuac:

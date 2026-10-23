@@ -920,12 +920,12 @@ const agregatedBeneficiaryFolloWup = (
             (entity: any) =>
                 entity?.new_admission_type !== '' ||
                 entity?.admissionType !== '' ||
-                entity?.exit?.status !== '',
+                entity?.exit_type !== '',
         )
         .forEach((entity: any) => {
             let admissionType =
                 entity?.new_admission_type ?? entity?.admissionType ?? '';
-            let status = entity?.exit?.status ?? entity?.exit_type ?? '';
+            let status = entity?.exit_type ?? '';
             const {
                 caretaker_name,
                 caregiver_name,
