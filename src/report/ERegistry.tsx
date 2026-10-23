@@ -28,7 +28,13 @@ const ERegistry = (
                 <h3> {dateValue} </h3>
                 <div>
                     <div>
-                        {EregistryBeneficiaries(rows, program, physiology)}
+                        <EregistryBeneficiaries
+                            // Remount (back to page 1) when the report inputs change.
+                            key={`${program}-${physiology}-${dateValue}`}
+                            beneficiaries={rows}
+                            program={program}
+                            physiology={physiology}
+                        />
                     </div>
                 </div>
             </div>

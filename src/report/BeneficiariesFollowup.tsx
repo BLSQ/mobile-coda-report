@@ -38,7 +38,7 @@ function BeneficiariesFollowup(
                                 <th style={table}>Progress Id</th>
                             </>
                         )) || <th style={table}>Card Number</th>}
-                        <th style={fixedColumn}>Adress</th>
+                        <th style={fixedColumn}>Address</th>
                         <th style={table}>Phone Number</th>
                         <th style={table}>Status</th>
                     </tr>

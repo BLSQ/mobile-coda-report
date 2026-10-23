@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { categoryDictionary } from '../utils/Array';
 import { timeStampToDateString } from '../utils/DateFormatter';
 
@@ -20,11 +21,49 @@ const fixedColumn = {
     whiteSpace: 'normal',
 } as const;
 
-const EregistryBeneficiaries = (
-    beneficiaries: Array<any>,
-    program: string | undefined,
-    physiology: string,
-) => {
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+const DEFAULT_PAGE_SIZE = 20;
+// Sentinel page size meaning "show every beneficiary on one page".
+const ALL = 0;
+
+// Page numbers to show: always first/last, a window around the current
+// page, and `null` where a gap should be rendered as an ellipsis.
+const getPageItems = (current: number, total: number): Array<number | null> => {
+    const pages = new Set([1, total, current - 1, current, current + 1]);
+    const sorted = Array.from(pages)
+        .filter(p => p >= 1 && p <= total)
+        .sort((a, b) => a - b);
+    const items: Array<number | null> = [];
+    sorted.forEach((p, i) => {
+        if (i > 0 && p - sorted[i - 1] > 1) items.push(null);
+        items.push(p);
+    });
+    return items;
+};
+
+type Props = {
+    beneficiaries: Array<any>;
+    program: string | undefined;
+    physiology: string;
+};
+
+const EregistryBeneficiaries = ({
+    beneficiaries,
+    program,
+    physiology,
+}: Props) => {
+    const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+    const [page, setPage] = useState<number>(1);
+
+    const total = beneficiaries.length;
+    const effectivePageSize = pageSize === ALL ? Math.max(total, 1) : pageSize;
+    const totalPages = Math.max(1, Math.ceil(total / effectivePageSize));
+    // Clamp in case the dataset shrank since the page was selected.
+    const currentPage = Math.min(page, totalPages);
+    const startIndex = (currentPage - 1) * effectivePageSize;
+    const endIndex = Math.min(startIndex + effectivePageSize, total);
+    const displayedBeneficiaries = beneficiaries.slice(startIndex, endIndex);
+
     return (
         <div>
             <table style={table}>
@@ -57,7 +96,7 @@ const EregistryBeneficiaries = (
                     </tr>
                 </thead>
                 <tbody style={table}>
-                    {beneficiaries.map((beneficiary: any) => {
+                    {displayedBeneficiaries.map((beneficiary: any) => {
                         return [
                             <>
                                 <tr style={table}>
@@ -191,6 +230,77 @@ const EregistryBeneficiaries = (
                     })}
                 </tbody>
             </table>
+            <div className="pagination">
+                <div className="pagination-info">
+                    {total === 0 ? (
+                        'No beneficiaries'
+                    ) : (
+                        <>
+                            Showing <strong>{startIndex + 1}</strong>–
+                            <strong>{endIndex}</strong> of{' '}
+                            <strong>{total}</strong> beneficiaries
+                        </>
+                    )}
+                </div>
+                <div className="pagination-pages">
+                    <button
+                        className="pagination-button"
+                        onClick={() => setPage(currentPage - 1)}
+                        disabled={currentPage <= 1}
+                        aria-label="Previous page"
+                    >
+                        ‹
+                    </button>
+                    {getPageItems(currentPage, totalPages).map((item, i) =>
+                        item === null ? (
+                            <span
+                                key={`gap-${i}`}
+                                className="pagination-ellipsis"
+                            >
+                                …
+                            </span>
+                        ) : (
+                            <button
+                                key={item}
+                                className={`pagination-button${
+                                    item === currentPage ? ' active' : ''
+                                }`}
+                                onClick={() => setPage(item)}
+                                aria-current={
+                                    item === currentPage ? 'page' : undefined
+                                }
+                            >
+                                {item}
+                            </button>
+                        ),
+                    )}
+                    <button
+                        className="pagination-button"
+                        onClick={() => setPage(currentPage + 1)}
+                        disabled={currentPage >= totalPages}
+                        aria-label="Next page"
+                    >
+                        ›
+                    </button>
+                </div>
+                <label className="pagination-size">
+                    Rows per page
+                    <select
+                        value={pageSize}
+                        onChange={e => {
+                            setPageSize(Number(e.target.value));
+                            setPage(1);
+                        }}
+                    >
+                        {PAGE_SIZE_OPTIONS.map(size => (
+                            <option key={size} value={size}>
+                                {size}
+                            </option>
+                        ))}
+                        <option value={ALL}>All</option>
+                    </select>
+                </label>
+            </div>
         </div>
     );
 };
