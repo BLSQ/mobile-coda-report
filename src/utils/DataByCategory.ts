@@ -38,49 +38,20 @@ const admissionPBWGByStatus = (
             entity.profile?.values?.physiology_status === 'breastfeeding',
     );
 
-    let pregnantUnder19 = 0;
-    let lactatingUnder19 = 0;
-    let pregnantOver19 = 0;
-    let lactatingOver19 = 0;
-    let fieldToSum = '';
+    const count = (group: Array<any>, ageCheck: (age: number) => boolean) =>
+        ['Total Follow up', 'Follow Ups'].includes(status)
+            ? sumByAgeOnField(group, ageCheck, 'visitsNumber')
+            : sumByAge(group, ageCheck);
 
-    if (
-        status === 'defaulter' ||
-        !['Total Follow up', 'Follow Ups'].includes(status)
-    ) {
-        pregnantUnder19 = sumByAge(pregnant, age => age <= 19);
-        lactatingUnder19 = sumByAge(lactating, age => age <= 19);
-        pregnantOver19 = sumByAge(pregnant, age => age > 19);
-        lactatingOver19 = sumByAge(lactating, age => age > 19);
-    } else {
-        if (['Total Follow up', 'Follow Ups'].includes(status)) {
-            fieldToSum = 'visitsNumber';
-        } else {
-            key = '';
-            fieldToSum = status;
-        }
-        pregnantUnder19 = sumByAgeOnField(
-            pregnant,
-            age => age <= 19,
-            fieldToSum,
-        );
-        lactatingUnder19 = sumByAgeOnField(
-            lactating,
-            age => age <= 19,
-            fieldToSum,
-        );
-        pregnantOver19 = sumByAgeOnField(pregnant, age => age > 19, fieldToSum);
-        lactatingOver19 = sumByAgeOnField(
-            lactating,
-            age => age > 19,
-            fieldToSum,
-        );
-    }
+    const byPhysiology = (ageCheck: (age: number) => boolean) => [
+        count(pregnant, ageCheck),
+        count(lactating, ageCheck),
+    ];
     return {
         key: key !== 'undefined' ? key : '',
         status: status,
-        under19: [pregnantUnder19, lactatingUnder19],
-        over19: [pregnantOver19, lactatingOver19],
+        under19: byPhysiology(age => age <= 19),
+        over19: byPhysiology(age => age > 19),
     };
 };
 
@@ -446,9 +417,6 @@ const eRegister = (
         if (program?.includes('OTP')) {
             discharges.transfer_to_tsfp = transferVisit('transfer_to_tsfp');
         }
-
-        // Death wins over every exit but cured: a child who died after
-        // missing visits is a death, not an absentee or a defaulter.
         const exitType = discharges.death
             ? 'death'
             : discharges.cured
