@@ -7,6 +7,7 @@ import { countryConfig } from './config/country';
 //import FAKE_LOCAL_HF from './fake/FakeLocalHealthFacility';
 //import FAKE_SCREENING_DATA from './fake/FakeScreeningData';
 
+
 function toForm(form: any): Form {
     return {
         id: form.id,
@@ -122,7 +123,6 @@ function LoadFormsForEntityType(
 
     function onMessage(ev: MessageEvent) {
         const payload = JSON.parse(ev.data);
-        console.info('PAYLOAD ...:', payload);
         // We receive a string and compare it with a number, so eqeqeq is
         // deliberately relaxed here.
         // eslint-disable-next-line eqeqeq
@@ -189,7 +189,6 @@ function LoadFormsForEntityType(
     //             : form?.entityTypeName === entityTypeName,
     //     );
     // }
-    // console.info('FORMS DATA ...:', formsData);
     // window.postMessage(JSON.stringify({ id: requestId, data: formsData }), '*');
 }
 
