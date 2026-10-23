@@ -24,7 +24,6 @@ const FolloWupCategories = (
         endDate,
         entityType,
     );
-
     if (category !== '') {
         beneficiaries = beneficiaries.filter(
             (entity: any) => entity?.status === category,
@@ -36,7 +35,7 @@ const FolloWupCategories = (
             <div>
                 <h3>{`${program} beneficiary followup`}</h3>
                 <h3>{dateValue}</h3>
-                {BeneficiariesFollowup(beneficiaries, category)}
+                {BeneficiariesFollowup(beneficiaries, category, entityType)}
             </div>
             <br />
         </div>

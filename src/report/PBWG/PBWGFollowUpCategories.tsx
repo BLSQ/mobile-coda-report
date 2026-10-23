@@ -44,7 +44,7 @@ const PBWGFollowUpCategories = (
                     physiologyStatus,
                 )} admitted to ${program}`}</h3>
                 <h3>{dateValue}</h3>
-                {BeneficiariesFollowup(beneficiaries, category)}
+                {BeneficiariesFollowup(beneficiaries, category, undefined)}
             </div>
             <br />
         </div>

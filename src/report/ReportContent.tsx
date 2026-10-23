@@ -23,9 +23,68 @@ const td = {
     border: '1pt solid black',
 } as const;
 
+// The age columns of a table, in months: 0-5 only when its rows carry it.
+const AGE_BANDS = [
+    { title: '0 - 5', field: 'under6' },
+    { title: '6 - 23', field: 'between6And23' },
+    { title: '24-59', field: 'between24And59' },
+];
+
+const BandHeader = ({ title }: { title: string }) => (
+    <th colSpan={2} style={td}>
+        <table width={72}>
+            <tr style={td}>
+                <td colSpan={2} style={td}>
+                    {title}
+                </td>
+            </tr>
+            <tr style={td}>
+                <td className="align" style={td}>
+                    M
+                </td>
+                <td className="align" style={td}>
+                    F
+                </td>
+            </tr>
+        </table>
+    </th>
+);
+
+const rowLabel = (subCategory: any) => {
+    if (subCategory && subCategory.admissionType) {
+        const admissionType = categoryDictionary(subCategory?.admissionType);
+        const admissionCriteria = categoryDictionary(
+            subCategory?.admissionCriteria,
+        );
+        return admissionCriteria
+            ? `${admissionType} ${admissionCriteria}`
+            : admissionType;
+    }
+    return (
+        subCategory?.label ??
+        categoryDictionary(subCategory?.key) ??
+        subCategory?.key
+    );
+};
+
 const ReportContent = (category: any): any => {
-    let between6And23 = 0;
-    let between24And59 = 0;
+    const rows = (category?.rows ?? []).filter(
+        (row: { key: string }) => row && row?.key !== 'absentees',
+    );
+    const bands = AGE_BANDS.filter(
+        band => band.field !== 'under6' || rows.some((row: any) => row.under6),
+    );
+    // [boys, girls] of a row in a band.
+    const cells = (row: any, field: string) => [
+        row[field]?.[0] ?? 0,
+        row[field]?.[1] ?? 0,
+    ];
+    const bandTotal = (field: string) =>
+        rows.reduce(
+            (total: number, row: any) =>
+                total + cells(row, field)[0] + cells(row, field)[1],
+            0,
+        );
     return (
         <div style={root}>
             <br />
@@ -34,132 +93,50 @@ const ReportContent = (category: any): any => {
                 <thead style={table}>
                     <tr style={table}>
                         <th style={table}> Months </th>
-                        <th colSpan={2} style={td}>
-                            <table width={72}>
-                                <tr style={td}>
-                                    <td colSpan={2} style={td}>
-                                        6 - 23
-                                    </td>
-                                </tr>
-                                <tr style={td}>
-                                    <td className="align" style={td}>
-                                        M
-                                    </td>
-                                    <td className="align" style={td}>
-                                        F
-                                    </td>
-                                </tr>
-                            </table>
-                        </th>
-                        <th colSpan={2} style={td}>
-                            <table width={72}>
-                                <tr style={table}>
-                                    <td colSpan={2} style={td}>
-                                        24-59
-                                    </td>
-                                </tr>
-                                <tr style={table}>
-                                    <td className="align" style={td}>
-                                        M
-                                    </td>
-                                    <td className="align" style={td}>
-                                        F
-                                    </td>
-                                </tr>
-                            </table>
-                        </th>
-                        <th colSpan={2} style={td}>
-                            <table width={72}>
-                                <tr style={table}>
-                                    <td colSpan={2} style={td}>
-                                        Total
-                                    </td>
-                                </tr>
-                                <tr style={table}>
-                                    <td className="align" style={td}>
-                                        M
-                                    </td>
-                                    <td className="align" style={td}>
-                                        F
-                                    </td>
-                                </tr>
-                            </table>
-                        </th>
+                        {bands.map(band => (
+                            <BandHeader title={band.title} />
+                        ))}
+                        <BandHeader title="Total" />
                     </tr>
                 </thead>
 
                 <tbody style={table}>
-                    {category?.rows
-                        ?.filter(
-                            (row: { key: string }) =>
-                                row && row?.key !== 'absentees',
-                        )
-                        .map((subCategory: any) => {
-                            const boyBetween6And23 =
-                                subCategory.between6And23[0] ?? 0;
-                            const girlBetween6And23 =
-                                subCategory.between6And23[1] ?? 0;
-                            const boyBetween24And59 =
-                                subCategory.between24And59[0] ?? 0;
-                            const girlBetween24And59 =
-                                subCategory.between24And59[1] ?? 0;
-                            between6And23 +=
-                                boyBetween6And23 + girlBetween6And23;
-                            between24And59 +=
-                                boyBetween24And59 + girlBetween24And59;
-                            const boys = boyBetween6And23 + boyBetween24And59;
-                            const girls =
-                                girlBetween6And23 + girlBetween24And59;
-                            let key = '';
-                            if (subCategory && subCategory.admissionType) {
-                                const admissionType = categoryDictionary(
-                                    subCategory?.admissionType,
-                                );
-                                const admissionCriteria = categoryDictionary(
-                                    subCategory?.admissionCriteria,
-                                );
-                                key = `${admissionType} ${admissionCriteria}`;
-                            } else {
-                                key =
-                                    categoryDictionary(subCategory?.key) ??
-                                    subCategory?.key;
-                            }
-
-                            return (
-                                <tr style={table}>
-                                    <td style={th}>{key}</td>
+                    {rows.map((subCategory: any) => {
+                        const byBand = bands.map(band =>
+                            cells(subCategory, band.field),
+                        );
+                        const boys = byBand.reduce((sum, [b]) => sum + b, 0);
+                        const girls = byBand.reduce((sum, [, g]) => sum + g, 0);
+                        return (
+                            <tr style={table}>
+                                <td style={th}>{rowLabel(subCategory)}</td>
+                                {byBand.flat().map(value => (
                                     <td className="align" style={td}>
-                                        {boyBetween6And23}
+                                        {value}
                                     </td>
-                                    <td className="align" style={td}>
-                                        {girlBetween6And23}
-                                    </td>
-                                    <td className="align" style={td}>
-                                        {boyBetween24And59}
-                                    </td>
-                                    <td className="align" style={td}>
-                                        {girlBetween24And59}
-                                    </td>
-                                    <td className="align" style={td}>
-                                        {boys}
-                                    </td>
-                                    <td className="align" style={td}>
-                                        {girls}
-                                    </td>
-                                </tr>
-                            );
-                        })}
+                                ))}
+                                <td className="align" style={td}>
+                                    {boys}
+                                </td>
+                                <td className="align" style={td}>
+                                    {girls}
+                                </td>
+                            </tr>
+                        );
+                    })}
                     {category?.showTotal && (
                         <tr style={table}>
                             <td style={th}>{category?.total?.status}</td>
+                            {bands.map(band => (
+                                <td colSpan={2} className="align" style={td}>
+                                    {bandTotal(band.field)}
+                                </td>
+                            ))}
                             <td colSpan={2} className="align" style={td}>
-                                {between6And23}
-                            </td>
-                            <td colSpan={2} className="align" style={td}>
-                                {between24And59}
-                            </td>
-                            <td colSpan={2} className="align" style={td}>
-                                {between6And23 + between24And59}
+                                {bands.reduce(
+                                    (sum, band) => sum + bandTotal(band.field),
+                                    0,
+                                )}
                             </td>
                         </tr>
                     )}

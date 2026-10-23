@@ -1,271 +1,29 @@
-import { sumByAge, sumByAgeOnField, groupBy } from './Array';
+import { sumByAge, sumByAgeOnField, groupBy, getBeneficiaryAge } from './Array';
 import {
-    visitsDataByFieldList,
     visitsDataByValuesList,
     visitsDataByStatus,
+    isChecked,
 } from './Filter';
 import {
     filterDataOnProgram,
     followUpData,
     visitsLinkedToForms,
     defaulterCases,
+    isReferredToSc,
+    isTransferredToTsfp,
+    isTransferredToOtp,
+    hasFailedToGainWeight,
 } from './DataFilter';
 import { timeStampToDateString, removeTime } from './DateFormatter';
-
-const admissionTypesByCategory: any = {
-    'Follow Ups': ['Total Follow up'],
-    'New admissions': ['new_case', 'readmission_as_non_respondent', 'relapse'],
-    'Old cases': [
-        'returned_defaulter',
-        'referred_from_other_tsfp',
-        'transfer_from_other_otp',
-        'referred_from_other_otp',
-    ],
-    Discharges: ['cured', 'death', 'defaulter', 'non_respondent__int__'],
-    'Other Exits': [
-        'voluntarywithdrawal',
-        'dismissedduetocheating',
-        'transfer_to_sc_itp',
-        'transferred_out',
-    ],
-    Total: ['Total Admissions', 'Follow Ups'],
-};
-
-const pbwgAdmissionTypesByCategory: any = {
-    'Follow Ups': ['Total Follow up'],
-    'New admissions': ['new_case', 'readmission_as_non_respondent', 'relapse'],
-    'Old cases': [
-        'returned_defaulter',
-        'returned_referral',
-        'transfer_from_other_tsfp',
-        'returned_from_sc',
-    ],
-    Discharges: ['cured', 'death', 'defaulter', 'non_respondent__int__'],
-    'Other Exits': ['transferred_out', 'voluntary_withdrawal', 'dismissal'],
-    Total: ['Total Admissions', 'Follow Ups'],
-};
+import { countryConfig, MedicalRow } from '../config/country';
 
 const pbwgMedicalStatusByCategory: any = {
     Malaria: ['positive', 'negative'],
     HIV: ['positive', 'negative', 'exposed', 'unknown'],
+    Fever: ['yes', 'no'],
     'Breastfeeding problems': ['yes', 'no'],
     'Referred for treatment': ['yes', 'no'],
 };
-let childrenUnder5MedicalStatusByCategory: any = {
-    '': [
-        'have_diarrhoea',
-        'passing_urine__bool__',
-        'tb_therapy',
-        'state_appetite',
-        'appetite_test_result',
-        'child_vomiting',
-        'respiratory_rate',
-        'conjuctivae_palm',
-        'eyes',
-        'disability_status',
-        'ears_status',
-        'skin_infections',
-        'lymph_nodes',
-    ],
-    Immunization: [
-        'fully_immunization',
-        'not_fully_immunization',
-        'measles_vacc_proof',
-        'no_measles_vacc_proof',
-    ],
-
-    HIV: ['positive', 'negative', 'nottested'],
-    Complications: [
-        'apatheticpassive',
-        'highfever',
-        'hypothermia',
-        'severedehydration',
-        'lowerrespiratorytractinfection',
-        'severeanemia',
-        'eyesignsofvitadeficiency',
-        'skinlesions',
-        'other',
-    ],
-    'Medication Given': [
-        'ab_given',
-        'anti_helminth_given',
-        'art_given',
-        'vitamins_given',
-    ],
-};
-
-const pbwgFormsByCategory: any = {
-    admission: {
-        TSFP: ['ng_pbwg_anthropometric'],
-    },
-    oldCase: {
-        TSFP: [
-            'ng_pbwg_anthropometric',
-            'wfp_coda_pbwg_followup_anthro',
-            'wfp_coda_pbwg_luctating_followup_anthro',
-        ],
-    },
-    followUps: {
-        TSFP: [
-            'wfp_coda_pbwg_followup_anthro',
-            'wfp_coda_pbwg_luctating_followup_anthro',
-        ],
-    },
-    defaulters: {
-        TSFP: [
-            'ng_pbwg_anthropometric',
-            'wfp_coda_pbwg_followup_anthro',
-            'wfp_coda_pbwg_luctating_followup_anthro',
-            'ng_pbwg_assistance',
-            'wfp_coda_pbwg_assistance_followup',
-        ],
-    },
-    absentees: {
-        TSFP: [
-            'ng_pbwg_anthropometric',
-            'wfp_coda_pbwg_followup_anthro',
-            'wfp_coda_pbwg_luctating_followup_anthro',
-            'ng_pbwg_assistance',
-            'wfp_coda_pbwg_assistance_followup',
-        ],
-    },
-    cured: {
-        TSFP: [
-            'ng_pbwg_anthropometric',
-            'wfp_coda_pbwg_followup_anthro',
-            'wfp_coda_pbwg_luctating_followup_anthro',
-            'ng_pbwg_assistance',
-            'wfp_coda_pbwg_assistance_followup',
-        ],
-    },
-    nonRespondent: {
-        TSFP: ['ng_pbwg_anthropometric'],
-    },
-    rationGiven: {
-        TSFP: ['ng_pbwg_assistance', 'wfp_coda_pbwg_assistance_followup'],
-    },
-    medicals: {
-        TSFP: [
-            'ng_pbwg_anthropometric',
-            'wfp_coda_pbwg_luctating_followup_anthro',
-            'wfp_coda_pbwg_followup_anthro',
-            'ng_medical_visit_PBWG',
-            'wfp_coda_medical_follow_up_visit_PBWG',
-        ],
-    },
-};
-
-const formsByCategory: any = {
-    admission: {
-        TSFP: [
-            'anthropometric_admission',
-            'Anthropometric visit child',
-            'anthropometric_second_visit_tsfp',
-        ],
-        OTP: [
-            'anthropometric_admission',
-            'anthropometric_admission_otp',
-            'anthropometric_second_visit_otp',
-        ],
-    },
-    oldCase: {
-        TSFP: [
-            'anthropometric_admission',
-            'Anthropometric visit child',
-            'anthropometric_second_visit_tsfp',
-        ],
-        OTP: [
-            'anthropometric_admission',
-            'anthropometric_admission_otp',
-            'anthropometric_second_visit_otp',
-        ],
-    },
-    followUps: {
-        TSFP: ['anthropometric_second_visit_tsfp'],
-        OTP: ['anthropometric_second_visit_otp'],
-    },
-    defaulters: {
-        TSFP: [
-            'anthropometric_admission',
-            'Anthropometric visit child',
-            'child_assistance_admission',
-            'anthropometric_second_visit_tsfp',
-            'child_assistance_2nd_visit_tsfp',
-        ],
-        OTP: [
-            'anthropometric_admission',
-            'anthropometric_admission_otp',
-            'assistance_admission_otp',
-            'anthropometric_second_visit_otp',
-            'assistance_admission_2nd_visit_otp',
-        ],
-    },
-    absentees: {
-        TSFP: [
-            'anthropometric_admission',
-            'Anthropometric visit child',
-            'child_assistance_admission',
-            'anthropometric_second_visit_tsfp',
-            'child_assistance_2nd_visit_tsfp',
-        ],
-        OTP: [
-            'anthropometric_admission',
-            'anthropometric_admission_otp',
-            'assistance_admission_otp',
-            'anthropometric_second_visit_otp',
-            'assistance_admission_2nd_visit_otp',
-        ],
-    },
-    cured: {
-        TSFP: [
-            'anthropometric_admission',
-            'Anthropometric visit child',
-            'child_assistance_admission',
-            'anthropometric_second_visit_tsfp',
-            'child_assistance_2nd_visit_tsfp',
-        ],
-        OTP: [
-            'anthropometric_admission',
-            'anthropometric_admission_otp',
-            'assistance_admission_otp',
-            'anthropometric_second_visit_otp',
-            'assistance_admission_2nd_visit_otp',
-        ],
-    },
-    nonRespondent: {
-        TSFP: [
-            'Anthropometric visit child',
-            'anthropometric_second_visit_tsfp',
-        ],
-        OTP: [
-            'anthropometric_admission_otp',
-            'anthropometric_second_visit_otp',
-        ],
-    },
-    rationGiven: {
-        TSFP: ['child_assistance_admission', 'child_assistance_2nd_visit_tsfp'],
-        OTP: ['assistance_admission_otp', 'assistance_admission_2nd_visit_otp'],
-    },
-    medicals: {
-        TSFP: [
-            'anthropometric_admission',
-            'anthropometric_second_visit_tsfp',
-            'Child Medical Admission',
-            'Child Medical Follow Up TSFP',
-            'child_medical_admission',
-            'Child Medical Follow Up Visit TSFP',
-        ],
-        OTP: [
-            'anthropometric_admission',
-            'anthropometric_second_visit_otp',
-            'Child Medical Admission',
-            'Child Medical Follow Up OTP',
-            'child_medical_admission',
-            'Child Medical Follow Up Visit OTP',
-        ],
-    },
-};
-
 const admissionPBWGByStatus = (
     entities: Array<any>,
     status: string,
@@ -280,60 +38,41 @@ const admissionPBWGByStatus = (
             entity.profile?.values?.physiology_status === 'breastfeeding',
     );
 
-    let pregnantUnder19,
-        lactatingUnder19,
-        pregnantOver19,
-        lactatingOver19 = 0;
-    let fieldToSum = '';
+    const count = (group: Array<any>, ageCheck: (age: number) => boolean) =>
+        ['Total Follow up', 'Follow Ups'].includes(status)
+            ? sumByAgeOnField(group, ageCheck, 'visitsNumber')
+            : sumByAge(group, ageCheck);
 
-    if (
-        status === 'defaulter' ||
-        !['Total Follow up', 'Follow Ups'].includes(status)
-    ) {
-        pregnantUnder19 = sumByAge(pregnant, age => age <= 19);
-        lactatingUnder19 = sumByAge(lactating, age => age <= 19);
-        pregnantOver19 = sumByAge(pregnant, age => age > 19);
-        lactatingOver19 = sumByAge(lactating, age => age > 19);
-    } else {
-        if (['Total Follow up', 'Follow Ups'].includes(status)) {
-            fieldToSum = 'visitsNumber';
-        } else {
-            key = '';
-            fieldToSum = status;
-        }
-        pregnantUnder19 = sumByAgeOnField(
-            pregnant,
-            age => age <= 19,
-            fieldToSum,
-        );
-        lactatingUnder19 = sumByAgeOnField(
-            lactating,
-            age => age <= 19,
-            fieldToSum,
-        );
-        pregnantOver19 = sumByAgeOnField(pregnant, age => age > 19, fieldToSum);
-        lactatingOver19 = sumByAgeOnField(
-            lactating,
-            age => age > 19,
-            fieldToSum,
-        );
-    }
+    const byPhysiology = (ageCheck: (age: number) => boolean) => [
+        count(pregnant, ageCheck),
+        count(lactating, ageCheck),
+    ];
     return {
         key: key !== 'undefined' ? key : '',
         status: status,
-        under19: [pregnantUnder19, lactatingUnder19],
-        over19: [pregnantOver19, lactatingOver19],
+        under19: byPhysiology(age => age <= 19),
+        over19: byPhysiology(age => age > 19),
     };
 };
+
+// Whether the program's Child Under 5 tables have a 0-5 months column.
+const hasUnder6Column = (program?: string) =>
+    program != null && (countryConfig.under6Column?.(program) ?? false);
 
 const admissionByStatus = (
     entityType: string,
     entities: Array<any>,
     status: string,
     key: string,
+    program?: string,
 ) => {
     if (entityType === 'Child Under 5') {
-        return admissionChildUnder5ByStatus(entities, status, key);
+        return admissionChildUnder5ByStatus(
+            entities,
+            status,
+            key,
+            hasUnder6Column(program),
+        );
     } else {
         if (entityType === 'PBWG') {
             return admissionPBWGByStatus(entities, status, key);
@@ -345,56 +84,38 @@ const admissionChildUnder5ByStatus = (
     entities: Array<any>,
     status: string,
     key: string,
+    withUnder6: boolean = false,
 ) => {
     let boys = entities?.filter((entity: any) =>
-        ['Male', 'M'].includes(entity.profile?.values?.gender),
+        ['Male', 'M'].includes(
+            entity.profile?.values?.gender ?? entity.profile?.values?._gender,
+        ),
     );
 
     let girls = entities?.filter((entity: any) =>
-        ['Female', 'F'].includes(entity.profile?.values?.gender),
+        ['Female', 'F'].includes(
+            entity.profile?.values?.gender ?? entity.profile?.values?._gender,
+        ),
     );
 
-    let boyBetween6And23,
-        girlBetween6And23,
-        boyBetween24And59,
-        girlBetween24And59 = 0;
-
-    let fieldToSum = '';
-
-    if (
-        status === 'defaulter' ||
-        !['Total Follow up', 'Follow Ups'].includes(status)
-    ) {
-        boyBetween6And23 = sumByAge(boys, age => age <= 23);
-        girlBetween6And23 = sumByAge(girls, age => age <= 23);
-        boyBetween24And59 = sumByAge(boys, age => age > 23);
-        girlBetween24And59 = sumByAge(girls, age => age > 23);
-    } else {
-        if (['Total Follow up', 'Follow Ups'].includes(status)) {
-            fieldToSum = 'visitsNumber';
-        } else {
-            key = '';
-            fieldToSum = status;
-        }
-        boyBetween6And23 = sumByAgeOnField(boys, age => age <= 23, fieldToSum);
-        girlBetween6And23 = sumByAgeOnField(
-            girls,
-            age => age <= 23,
-            fieldToSum,
-        );
-        boyBetween24And59 = sumByAgeOnField(boys, age => age > 23, fieldToSum);
-        girlBetween24And59 = sumByAgeOnField(
-            girls,
-            age => age > 23,
-            fieldToSum,
-        );
-    }
+    // Follow ups count visits, every other status counts children.
+    const count = (group: Array<any>, ageCheck: (age: number) => boolean) =>
+        ['Total Follow up', 'Follow Ups'].includes(status)
+            ? sumByAgeOnField(group, ageCheck, 'visitsNumber')
+            : sumByAge(group, ageCheck);
+    const byGender = (ageCheck: (age: number) => boolean) => [
+        count(boys, ageCheck),
+        count(girls, ageCheck),
+    ];
 
     return {
         key: key !== 'undefined' ? key : '',
         status: status,
-        between6And23: [boyBetween6And23, girlBetween6And23],
-        between24And59: [boyBetween24And59, girlBetween24And59],
+        ...(withUnder6 && { under6: byGender(age => age < 6) }),
+        between6And23: byGender(
+            withUnder6 ? age => age >= 6 && age <= 23 : age => age <= 23,
+        ),
+        between24And59: byGender(age => age > 23),
     };
 };
 
@@ -425,23 +146,20 @@ const sumDataWithCommonKeys = (
             over19: over19,
         };
     } else {
-        let between6And23 = [0, 0];
-        let between24And59 = [0, 0];
-        data.forEach((row: any) => {
-            between6And23 = [
-                between6And23[0] + row['between6And23'][0],
-                between6And23[1] + row['between6And23'][1],
-            ];
-            between24And59 = [
-                between24And59[0] + row['between24And59'][0],
-                between24And59[1] + row['between24And59'][1],
-            ];
-        });
+        const sumOf = (field: string) =>
+            data.reduce(
+                ([boys, girls], row: any) => [
+                    boys + (row[field]?.[0] ?? 0),
+                    girls + (row[field]?.[1] ?? 0),
+                ],
+                [0, 0],
+            );
         return {
             key: '',
             status: mainStatus,
-            between6And23: between6And23,
-            between24And59: between24And59,
+            ...(data.some(row => row.under6) && { under6: sumOf('under6') }),
+            between6And23: sumOf('between6And23'),
+            between24And59: sumOf('between24And59'),
         };
     }
 };
@@ -459,7 +177,6 @@ const pbwgMedicalDataReport = (
         endDate,
     );
     let rows = followUpData(initialData, program, 'medicals', 'PBWG');
-
     let malariaStatus = visitsDataByValuesList(rows, 'malaria_result', [
         'positive',
         'negative',
@@ -472,10 +189,18 @@ const pbwgMedicalDataReport = (
     let hivStatus = visitsDataByValuesList(rows, 'hiv_status', [
         'positive',
         'negative',
-        'nottested',
+        'exposed',
+        'unknown',
     ]);
+
     let groupHIVDataByMedicalTypes = groupBy(
         hivStatus.flat(),
+        (visit: any) => visit?.value,
+    );
+
+    let fever = visitsDataByValuesList(rows, 'fever', ['yes', 'no']);
+    let groupFeverDataByMedicalTypes = groupBy(
+        fever.flat(),
         (visit: any) => visit?.value,
     );
 
@@ -501,9 +226,50 @@ const pbwgMedicalDataReport = (
     return {
         Malaria: groupMalariaDataByMedicalTypes,
         HIV: groupHIVDataByMedicalTypes,
+        Fever: groupFeverDataByMedicalTypes,
         'Breastfeeding problems': groupbreastfeedingProblems,
         'Referred for treatment': groupBreastFeedingTreatment,
     };
+};
+
+// The entities with the visits matching a medical row, dropping the ones
+// with none.
+const entitiesMatching = (entities: Array<any>, row: MedicalRow) =>
+    entities
+        .map(entity => {
+            const age = getBeneficiaryAge(entity);
+            const visits = entity.visits.filter((visit: any) =>
+                row.match(visit?.values, age),
+            );
+            return { ...entity, visits, visitsNumber: visits.length };
+        })
+        .filter(entity => entity.visitsNumber > 0);
+
+// A row with splitBy becomes one row per text typed in that field, sorted;
+// visits with no text stay under the row's own label.
+const splitByText = (row: MedicalRow, entities: Array<any>) => {
+    const splitBy = row.splitBy;
+    if (!splitBy) {
+        return [{ label: row.label, entities }];
+    }
+    const byText: Record<string, Array<any>> = {};
+    entities.forEach(entity => {
+        const visitsByText = groupBy(
+            entity.visits,
+            (visit: any) => visit?.values?.[splitBy]?.trim() || row.label,
+        );
+        Object.entries(visitsByText).forEach(([text, visits]) => {
+            (byText[text] ||= []).push({
+                ...entity,
+                visits,
+                visitsNumber: visits.length,
+            });
+        });
+    });
+    const texts = Object.keys(byText).sort();
+    return texts.length > 0
+        ? texts.map(text => ({ label: text, entities: byText[text] }))
+        : [{ label: row.label, entities: [] }];
 };
 
 const childrenUnder5MedicalReport = (
@@ -519,84 +285,22 @@ const childrenUnder5MedicalReport = (
         endDate,
     );
     let rows = followUpData(initialData, program, 'medicals', 'Child Under 5');
+    const withUnder6 = hasUnder6Column(program);
 
-    let defaultData = visitsDataByFieldList(rows, {
-        have_diarrhoea: '1',
-        passing_urine__bool__: '0',
-        tb_therapy: '1',
-        state_appetite: 'poor',
-        appetite_test_result: 'failure',
-        child_vomiting: '1',
-        conjuctivae_palm: 'pale',
-        eyes: 'sunken',
-        disability_status__bool__: '1',
-        respiratory_rate: '',
-        ears_status: 'discharge',
-        skin_infections: '',
-        lymph_nodes: '',
-    }).flat();
-    let groupDefaultDataByMedicalTypes = groupBy(
-        defaultData,
-        (visit: any) => visit?.criteria,
-    );
-    let immunizations = visitsDataByFieldList(rows, {
-        fully_immunization: '1',
-        not_fully_immunization: '1',
-        measles_vacc_proof: '1',
-        no_measles_vacc_proof: '1',
-    });
-    let groupImmunizationDataByMedicalTypes = groupBy(
-        immunizations.flat(),
-        (visit: any) => visit?.criteria,
-    );
-
-    let hivStatus = visitsDataByValuesList(rows, 'hiv_status', [
-        'positive',
-        'negative',
-        'nottested',
-    ]);
-    let groupHIVDataByMedicalTypes = groupBy(
-        hivStatus.flat(),
-        (visit: any) => visit?.value,
-    );
-
-    let complications = visitsDataByValuesList(rows, 'specify_signs', [
-        'highfever',
-        'hypothermia',
-        'severedehydration',
-        'lowerrespiratorytractinfection',
-        'severeanemia',
-        'eyesignsofvitadeficiency',
-        'skinlesions',
-        'other',
-    ]);
-    let state_consciousness = visitsDataByFieldList(rows, {
-        state_consciousness: 'apatheticpassive',
-    });
-    complications.push(state_consciousness[0]);
-    let groupComplicationsDataByMedicalTypes = groupBy(
-        complications.flat(),
-        (visit: any) => visit?.value,
-    );
-
-    let medicationGiven = visitsDataByFieldList(rows, {
-        ab_given: '1',
-        anti_helminth_given: 'mebendazole',
-        art_given: '1',
-        vitamins_given: '1',
-    });
-    let groupMedicationGivenByType = groupBy(
-        medicationGiven.flat(),
-        (visit: any) => visit?.criteria,
-    );
-
-    return {
-        '': groupDefaultDataByMedicalTypes,
-        Immunization: groupImmunizationDataByMedicalTypes,
-        HIV: groupHIVDataByMedicalTypes,
-        Complications: groupComplicationsDataByMedicalTypes,
-        'Medication Given': groupMedicationGivenByType,
-    };
+    return countryConfig.childUnder5MedicalSections.map(section => ({
+        category: section.title,
+        rows: section.rows
+            .flatMap(row => splitByText(row, entitiesMatching(rows, row)))
+            .map(({ label, entities }) => ({
+                ...admissionChildUnder5ByStatus(
+                    entities,
+                    section.title,
+                    label,
+                    withUnder6,
+                ),
+                label,
+            })),
+    }));
 };
 
 const medicalReports = (
@@ -606,49 +310,30 @@ const medicalReports = (
     endDate: Date,
     reportCategory: string,
 ) => {
-    let rows: any = childrenUnder5MedicalReport(
+    if (reportCategory !== 'PBWG') {
+        return childrenUnder5MedicalReport(
+            entities,
+            program,
+            startDate,
+            endDate,
+        );
+    }
+    let rows: any = pbwgMedicalDataReport(
         entities,
         program,
         startDate,
         endDate,
     );
-    let medicalCategories: any = [];
-    let medicalStatusByCategory: any = null;
-    if (reportCategory === 'PBWG') {
-        rows = pbwgMedicalDataReport(entities, program, startDate, endDate);
-        medicalCategories = Object.keys(pbwgMedicalStatusByCategory);
-        medicalStatusByCategory = pbwgMedicalStatusByCategory;
-    } else {
-        medicalStatusByCategory = childrenUnder5MedicalStatusByCategory;
-        medicalCategories = Object.keys(medicalStatusByCategory);
-    }
-
-    return medicalCategories.map((category: string) => {
-        let subCategories = medicalStatusByCategory[category];
-        let subCategoriesData = subCategories.map((subCategory: any) => {
-            let currentSubCategory =
-                rows[category] && rows[category][subCategory];
-            let dataWithStatus = null;
-            if (reportCategory === 'PBWG') {
-                dataWithStatus = admissionPBWGByStatus(
-                    currentSubCategory,
-                    category,
-                    subCategory,
-                );
-            } else {
-                dataWithStatus = admissionChildUnder5ByStatus(
-                    currentSubCategory,
-                    category,
-                    subCategory,
-                );
-            }
-            return dataWithStatus;
-        });
-        return {
-            category: category,
-            rows: subCategoriesData,
-        };
-    });
+    return Object.keys(pbwgMedicalStatusByCategory).map((category: string) => ({
+        category: category,
+        rows: pbwgMedicalStatusByCategory[category].map((subCategory: string) =>
+            admissionPBWGByStatus(
+                rows[category] && rows[category][subCategory],
+                category,
+                subCategory,
+            ),
+        ),
+    }));
 };
 
 const eRegister = (
@@ -688,6 +373,10 @@ const eRegister = (
         'anthropometric_second_visit_otp',
         'ng_pbwg_anthropometric',
         'wfp_coda_pbwg_followup_anthro',
+        'wfp_coda_pbwg_luctating_followup_anthro',
+        'wfp_coda_pbwg_anthropometric',
+        'Anthropometric visit child_U6',
+        'child_antropometric_followUp_tsfp_2',
     ];
 
     let beneficiaries = initialData.map(entity => {
@@ -708,18 +397,47 @@ const eRegister = (
                 (current_entity: any) => current_entity.id === entity.id,
             ),
         };
-
-        const exit_type = discharges.cured
+        // TSFP and OTP transfer to each other: the transfer visit is the exit.
+        const transferVisit = (key: string) => {
+            const visit = (entity?.visits ?? []).find((visit: any) =>
+                isChecked(visit?.values?.[`_${key}`]),
+            );
+            return (
+                visit && {
+                    exitDate: visit?.values?._visit_date ?? visit?.createdAt,
+                    exitWeight:
+                        visit?.values?.weight_kgs ??
+                        visit?.values?.previous_weight_kgs__decimal__,
+                }
+            );
+        };
+        if (program?.includes('TSFP')) {
+            discharges.transfer_to_otp = transferVisit('transfer_to_otp');
+        }
+        if (program?.includes('OTP')) {
+            discharges.transfer_to_tsfp = transferVisit('transfer_to_tsfp');
+        }
+        const exitType = discharges.death
+            ? 'death'
+            : discharges.cured
             ? 'cured'
+            : discharges.transfer_to_otp
+            ? 'transfer_to_otp'
+            : discharges.transfer_to_tsfp
+            ? 'transfer_to_tsfp'
             : discharges.non_respondent
             ? 'non_respondent'
             : discharges.defaulters
             ? 'defaulters'
             : discharges.absentees
             ? 'absentees'
-            : discharges.death
-            ? 'death'
             : '';
+        // Read before `visits` is narrowed to the anthropometric forms below:
+        // the SC referral is confirmed on the medical form.
+        const referralToSc = isReferredToSc(entity);
+        const transferToOtp = isTransferredToOtp(entity, program);
+        const transferToTsfp = isTransferredToTsfp(entity, program);
+        const failureToGainWeight = hasFailedToGainWeight(entity);
         const visits = visitsLinkedToForms(
             startDate,
             endDate,
@@ -727,16 +445,17 @@ const eRegister = (
             anthropometricForms,
             program,
         );
-        let exitDate = visits[visits.length - 1]?.values?._visit_date;
-        let exitWeight = discharges && discharges[exit_type]?.exitWeight;
-
-        exitDate =
-            discharges &&
-            discharges[exit_type] &&
-            timeStampToDateString(
-                discharges[exit_type]['exitDate'] ||
-                    discharges[exit_type]['createdAt'],
+        const exit = discharges[exitType];
+        let exitDate = '';
+        if (exit) {
+            exitDate = timeStampToDateString(
+                exit.exitDate ||
+                    exit.createdAt ||
+                    visits[visits.length - 1]?.values?._visit_date ||
+                    visits[visits.length - 1]?.values?.visit_date,
             );
+        }
+
         let lengthOfStay = 0;
 
         if (exitDate) {
@@ -751,15 +470,14 @@ const eRegister = (
             lastName: entity?.profile?.values?.last_name,
             middleName: entity?.profile?.values?.middle_name,
             gender: entity?.profile?.values?._gender,
-            age:
-                entity?.profile?.values?.age_months ??
-                entity?.profile?.values?.age__int__,
+            age: getBeneficiaryAge(entity),
             admission_date: timeStampToDateString(
                 entity?.profile?.values?.registration_date,
             ),
             birth_date: timeStampToDateString(
                 entity?.profile?.values?.actual_birthday__date__,
             ),
+            address: entity?.profile?.values?.path_address,
             visits: visits,
             weight:
                 visits[0]?.values?.previous_weight_kgs__decimal__ ||
@@ -791,20 +509,17 @@ const eRegister = (
                     : visits[0]?.values?.oedema_severity === '3'
                     ? '+++'
                     : '',
-            exit_type: exit_type,
-            exit: discharges && discharges[exit_type],
-            exitWeight: exitWeight,
-            exitVisit:
-                discharges &&
-                discharges[exit_type] &&
-                timeStampToDateString(
-                    discharges[exit_type]['exitDate'] ||
-                        discharges[exit_type]['createdAt'] ||
-                        visits[visits.length - 1]?.values?._visit_date,
-                ),
+            referralToSc: referralToSc,
+            transferToOtp: transferToOtp,
+            transferToTsfp: transferToTsfp,
+            failureToGainWeight: failureToGainWeight,
+            exit_type: exitType,
+            exit: exit,
+            exitWeight: exit?.exitWeight,
+            exitDate: exitDate,
             lengthOfStay: lengthOfStay,
             exitMuac:
-                exit_type !== '' &&
+                exitType !== '' &&
                 (visits[visits.length - 1]?.values?.muac ??
                     visits[visits.length - 1]?.values?.previous_muac ??
                     visits[visits.length - 1]?.values
@@ -815,17 +530,12 @@ const eRegister = (
 };
 
 export {
-    admissionTypesByCategory,
-    pbwgAdmissionTypesByCategory,
-    formsByCategory,
-    pbwgFormsByCategory,
     admissionChildUnder5ByStatus,
     admissionPBWGByStatus,
     admissionByStatus,
     sumDataWithCommonKeys,
     childrenUnder5MedicalReport,
     pbwgMedicalDataReport,
-    childrenUnder5MedicalStatusByCategory,
     pbwgMedicalStatusByCategory,
     medicalReports,
     eRegister,
