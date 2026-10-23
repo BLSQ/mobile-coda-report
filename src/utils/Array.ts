@@ -8,16 +8,19 @@ const groupBy = <T, K extends keyof any>(arr: T[], key: (i: T) => K) =>
         return groups;
     }, {} as Record<K, T[]>);
 
+const getBeneficiaryAge = (beneficiary: any) =>{
+    return beneficiary.profile?.values?.age__int__ ??
+            beneficiary.profile?.values?.age_months ??
+            beneficiary.profile?.values?.age ??
+            beneficiary.profile?.values?.age_years;
+}
+
 const sumByAge = (
     entities: Array<Entity>,
     ageCheck: (age: number) => boolean,
 ): number => {
     return sumBy(entities, child => {
-        let age =
-            child.profile?.values?.age__int__ ??
-            child.profile?.values?.age_months ??
-            child.profile?.values?.age ??
-            child.profile?.values?.age_years;
+        let age = getBeneficiaryAge(child);
         if (age != null && ageCheck(age)) {
             return 1;
         }
@@ -41,11 +44,7 @@ const sumByAgeOnField = (
     status: string,
 ) => {
     return sumBy(entities, child => {
-        let age =
-            child.profile?.values?.age__int__ ??
-            child.profile?.values?.age_months ??
-            child.profile?.values?.age ??
-            child.profile?.values?.age_years;
+        let age = getBeneficiaryAge(child);
         let visitSatus = child[status];
         if (age != null && ageCheck(age)) {
             return visitSatus ?? 0;
@@ -322,6 +321,7 @@ const NON_FOOD_STOCK_ITEMS: Record<string, string> = {
 export {
     groupBy,
     sumByAge,
+    getBeneficiaryAge,
     categoryDictionary,
     sumByAgeOnField,
     defaultEmptyDataByCategory,

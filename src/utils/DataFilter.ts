@@ -903,6 +903,7 @@ const agregatedBeneficiaryFolloWup = (
         'referral_to_sc_itp',
         'medical_investigation',
         'home_visits',
+        'non_respondent'
     ];
 
     let allData: any[] = [];
@@ -924,7 +925,7 @@ const agregatedBeneficiaryFolloWup = (
         .forEach((entity: any) => {
             let admissionType =
                 entity?.new_admission_type ?? entity?.admissionType ?? '';
-            let status = entity?.exit?.status ?? '';
+            let status = entity?.exit?.status ?? entity?.exit_type ?? '';
             const {
                 caretaker_name,
                 caregiver_name,
@@ -953,10 +954,7 @@ const agregatedBeneficiaryFolloWup = (
                     health_card ?? card_number ?? registration_number,
             };
 
-            if (
-                allCategories?.includes(status) ||
-                allCategories?.includes(admissionType)
-            ) {
+            if (allCategories?.includes(status)) {
                 allData.push({
                     ...profile,
                     status: status,

@@ -1,4 +1,4 @@
-import { sumByAge, sumByAgeOnField, groupBy } from './Array';
+import { sumByAge, sumByAgeOnField, groupBy, getBeneficiaryAge } from './Array';
 import {
     visitsDataByValuesList,
     visitsDataByStatus,
@@ -38,10 +38,10 @@ const admissionPBWGByStatus = (
             entity.profile?.values?.physiology_status === 'breastfeeding',
     );
 
-    let pregnantUnder19,
-        lactatingUnder19,
-        pregnantOver19,
-        lactatingOver19 = 0;
+    let pregnantUnder19 = 0;
+    let lactatingUnder19 = 0;
+    let pregnantOver19 = 0;
+    let lactatingOver19 = 0;
     let fieldToSum = '';
 
     if (
@@ -266,10 +266,7 @@ const pbwgMedicalDataReport = (
 const entitiesMatching = (entities: Array<any>, row: MedicalRow) =>
     entities
         .map(entity => {
-            const age =
-                entity.profile?.values?.age_months ??
-                entity.profile?.values?.age ??
-                entity.profile?.values?.age__int__;
+            const age = getBeneficiaryAge(entity);
             const visits = entity.visits.filter((visit: any) =>
                 row.match(visit?.values, age),
             );
@@ -405,6 +402,8 @@ const eRegister = (
         'anthropometric_second_visit_otp',
         'ng_pbwg_anthropometric',
         'wfp_coda_pbwg_followup_anthro',
+        'wfp_coda_pbwg_luctating_followup_anthro',
+        'wfp_coda_pbwg_anthropometric',
         'Anthropometric visit child_U6',
         'child_antropometric_followUp_tsfp_2',
     ];
@@ -450,16 +449,16 @@ const eRegister = (
 
         // Death wins over every exit but cured: a child who died after
         // missing visits is a death, not an absentee or a defaulter.
-        const exit_type = discharges.cured
+        const exitType = discharges.cured
             ? 'cured'
             : discharges.death
             ? 'death'
-            : discharges.non_respondent
-            ? 'non_respondent'
             : discharges.transfer_to_otp
             ? 'transfer_to_otp'
             : discharges.transfer_to_tsfp
             ? 'transfer_to_tsfp'
+            : discharges.non_respondent
+            ? 'non_respondent'
             : discharges.defaulters
             ? 'defaulters'
             : discharges.absentees
@@ -478,16 +477,19 @@ const eRegister = (
             anthropometricForms,
             program,
         );
-        let exitDate = visits[visits.length - 1]?.values?._visit_date;
-        let exitWeight = discharges && discharges[exit_type]?.exitWeight;
+        const exit = discharges[exitType];
 
-        exitDate =
-            discharges &&
-            discharges[exit_type] &&
-            timeStampToDateString(
-                discharges[exit_type]['exitDate'] ||
-                    discharges[exit_type]['createdAt'],
-            );
+        let exitWeight = exit?.exitWeight;
+        let exitDate = ""
+        if(exit){
+            exitDate = timeStampToDateString(
+                  exit.exitDate ||
+                      exit.createdAt ||
+                      visits[visits.length - 1]?.values?._visit_date ||
+                      visits[visits.length - 1]?.values?.visit_date,
+              )
+        }
+
         let lengthOfStay = 0;
 
         if (exitDate) {
@@ -502,9 +504,7 @@ const eRegister = (
             lastName: entity?.profile?.values?.last_name,
             middleName: entity?.profile?.values?.middle_name,
             gender: entity?.profile?.values?._gender,
-            age:
-                entity?.profile?.values?.age_months ??
-                entity?.profile?.values?.age__int__,
+            age: getBeneficiaryAge(entity),
             admission_date: timeStampToDateString(
                 entity?.profile?.values?.registration_date,
             ),
@@ -547,20 +547,13 @@ const eRegister = (
             transferToOtp: transferToOtp,
             transferToTsfp: transferToTsfp,
             failureToGainWeight: failureToGainWeight,
-            exit_type: exit_type,
-            exit: discharges && discharges[exit_type],
+            exit_type: exitType,
+            exit: discharges && discharges[exitType],
             exitWeight: exitWeight,
-            exitVisit:
-                discharges &&
-                discharges[exit_type] &&
-                timeStampToDateString(
-                    discharges[exit_type]['exitDate'] ||
-                        discharges[exit_type]['createdAt'] ||
-                        visits[visits.length - 1]?.values?._visit_date,
-                ),
+            exitDate: exitDate,
             lengthOfStay: lengthOfStay,
             exitMuac:
-                exit_type !== '' &&
+                exitType !== '' &&
                 (visits[visits.length - 1]?.values?.muac ??
                     visits[visits.length - 1]?.values?.previous_muac ??
                     visits[visits.length - 1]?.values
