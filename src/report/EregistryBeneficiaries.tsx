@@ -158,7 +158,7 @@ const EregistryBeneficiaries = ({
                                         {beneficiary.visit_number}
                                     </td>
                                     <td style={table}>
-                                        {beneficiary?.exitVisit}
+                                        {beneficiary?.exitDate}
                                     </td>
                                     <td style={table}>
                                         {beneficiary?.exit?.exitWeight}
