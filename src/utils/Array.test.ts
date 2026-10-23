@@ -11,7 +11,7 @@ describe('beneficiaryFollowupCategories', () => {
             'defaulters',
             'non_respondent',
             'medical_investigation',
-            'weight_loss_2_visits_or_no_weight_gain_in_3_visits',
+            'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__',
             'referral_to_sc_itp',
             'transfer_to_otp',
         ]);
@@ -24,24 +24,33 @@ describe('beneficiaryFollowupCategories', () => {
             'defaulters',
             'non_respondent',
             'medical_investigation',
-            'weight_loss_2_visits_or_no_weight_gain_in_3_visits',
+            'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__',
             'referral_to_sc_itp',
             'transfer_to_tsfp',
         ]);
     });
 
-    it.each(['BSFP', 'NSEP'])(
-        'excludes Transfer to PHC and the referrals for %s, keeping the other categories',
-        program => {
-            expect(keysOf(program)).toEqual([
-                '',
-                'absentees',
-                'defaulters',
-                'non_respondent',
-                'weight_loss_2_visits_or_no_weight_gain_in_3_visits'
-            ]);
-        },
-    );
+    it('offers the transfers to TSFP and OTP but not Transfer to PHC for BSFP', () => {
+        expect(keysOf('BSFP')).toEqual([
+            '',
+            'absentees',
+            'defaulters',
+            'non_respondent',
+            'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__',
+            'transfer_to_tsfp',
+            'transfer_to_otp',
+        ]);
+    });
+
+    it('excludes Transfer to PHC and the referrals for NSEP, keeping the other categories', () => {
+        expect(keysOf('NSEP')).toEqual([
+            '',
+            'absentees',
+            'defaulters',
+            'non_respondent',
+            'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__',
+        ]);
+    });
 
     it('defaults to including Transfer to PHC when no program is given', () => {
         expect(keysOf(null)).toContain('medical_investigation');

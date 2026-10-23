@@ -194,7 +194,10 @@ describe('bangladesh NSEP support', () => {
 
     it('formsByCategory routes NSEP through both nsep_child_visit and nsep_child_followup_visit, except followUps which is the followup form alone', () => {
         const bothNsepForms = ['nsep_child_visit', 'nsep_child_followup_visit'];
-        const nsepAssistanceForms = ['nsep_child_visit_assistance', 'nsep_child_followup_visit_assistance'];
+        const nsepAssistanceForms = [
+            'nsep_child_visit_assistance',
+            'nsep_child_followup_visit_assistance',
+        ];
         expect(bangladesh.formsByCategory.admission.NSEP).toEqual(
             bothNsepForms,
         );
@@ -221,7 +224,10 @@ describe('southSudan NSEP absence', () => {
 describe('bangladesh BSFP reuses the NSEP report format', () => {
     it('formsByCategory routes BSFP through both bsfp_child_visit and bsfp_child_followup_visit, except followUps which is the followup form alone', () => {
         const bothBsfpForms = ['bsfp_child_visit', 'bsfp_child_followup_visit'];
-        const bsfpAssistanceForms = ['bsfp_child_visit_assistance', 'bsfp_child_followup_visit_assistance']
+        const bsfpAssistanceForms = [
+            'bsfp_child_visit_assistance',
+            'bsfp_child_followup_visit_assistance',
+        ];
         expect(bangladesh.formsByCategory.admission.BSFP).toEqual(
             bothBsfpForms,
         );
@@ -365,7 +371,10 @@ describe('bangladesh PBWG BSFP support', () => {
 
     it('pbwgFormsByCategory routes BSFP through bsfp_pbwg_visit and bsfp_pbwg_followup_visit, except followUps which is the followup form alone', () => {
         const bothForms = ['bsfp_pbwg_visit', 'bsfp_pbwg_followup_visit'];
-        const bsfpPbwgAssistanceForms = ['bsfp_pbwg_visit_assistance','bsfp_pbwg_followup_visit_assistance'];
+        const bsfpPbwgAssistanceForms = [
+            'bsfp_pbwg_visit_assistance',
+            'bsfp_pbwg_followup_visit_assistance',
+        ];
         expect(bangladesh.pbwgFormsByCategory.admission.BSFP).toEqual(
             bothForms,
         );
