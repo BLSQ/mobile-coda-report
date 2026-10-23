@@ -8,6 +8,7 @@ import {
     entitiesByStatus,
     visitsDataByStatus,
     isChecked,
+    toDays,
 } from './Filter';
 import { timeStampToDate, removeTime } from './DateFormatter';
 import { keyBy, orderBy, uniqBy } from 'lodash';
@@ -87,6 +88,7 @@ const categoryWithData = (
                 data,
                 category,
                 'Total Follow up',
+                program,
             );
             mainData[category] = [followUps];
             break;
@@ -155,20 +157,29 @@ const categoryWithData = (
                         transferredOut,
                         category,
                         'transferred_out',
+                        program,
                     ),
                     admissionByStatus(
                         entityType,
                         dismissedDueToCheating,
                         category,
                         'dismissed_due_to_cheating',
+                        program,
                     ),
                     admissionByStatus(
                         entityType,
                         voluntary,
                         category,
                         'voluntary',
+                        program,
                     ),
-                    admissionByStatus(entityType, other, category, 'other'),
+                    admissionByStatus(
+                        entityType,
+                        other,
+                        category,
+                        'other',
+                        program,
+                    ),
                 ];
                 break;
             }
@@ -201,20 +212,40 @@ const categoryWithData = (
             );
             const cured = visitsDataByStatus(entities, 'cured__bool__', true);
             mainData[category] = [
-                admissionByStatus(entityType, cured, category, 'cured'),
+                admissionByStatus(
+                    entityType,
+                    cured,
+                    category,
+                    'cured',
+                    program,
+                ),
                 admissionByStatus(
                     entityType,
                     allAbsentes,
                     category,
                     'absentees',
+                    program,
                 ),
-                admissionByStatus(entityType, defaulted, category, 'defaulter'),
-                admissionByStatus(entityType, deathCases, category, 'death'),
+                admissionByStatus(
+                    entityType,
+                    defaulted,
+                    category,
+                    'defaulter',
+                    program,
+                ),
+                admissionByStatus(
+                    entityType,
+                    deathCases,
+                    category,
+                    'death',
+                    program,
+                ),
                 admissionByStatus(
                     entityType,
                     non_respondent,
                     category,
                     'non_respondent__int__',
+                    program,
                 ),
             ];
             break;
@@ -242,18 +273,21 @@ const categoryWithData = (
                     withdrawal,
                     category,
                     'voluntarywithdrawal',
+                    program,
                 ),
                 admissionByStatus(
                     entityType,
                     dismissal,
                     category,
                     'dismissedduetocheating',
+                    program,
                 ),
                 admissionByStatus(
                     entityType,
                     transferredout,
                     category,
                     'transferredout',
+                    program,
                 ),
             ];
 
@@ -278,12 +312,14 @@ const categoryWithData = (
                 allFolloWup,
                 category,
                 'Follow Ups',
+                program,
             );
             let totalAdmissions = admissionByStatus(
                 entityType,
                 allAdmissions,
                 category,
                 'Total Admissions',
+                program,
             );
             mainData[category] = [totalFolloWups, totalAdmissions];
 
@@ -326,6 +362,7 @@ const subMainCategoryData = (
                 filteredEntities,
                 category,
                 criteria,
+                program,
             );
             return {
                 ...admissionsByStatus,
@@ -741,7 +778,6 @@ const defaulterCases = (
         'wfp_coda_pbwg_assistance',
         'child_assistance_admission_2_u6',
         'child_assistance_follow_up_2',
-        'child_antropometric_followUp_tsfp_2',
     ];
     let rows = entities.map(entity => {
         let lastVisitDate = null;
@@ -750,11 +786,11 @@ const defaulterCases = (
             ['createdAt'],
             ['asc'],
         ).filter((visit: any) => assistanceForms.includes(visit?.formFormId));
-        //Keep only 1 assistance by date
-        const assistanceVisitsByDate = uniqBy(assistanceVisits, [
-            'formFormId',
-            'createdAt',
-        ]);
+        //Keep only 1 assistance by form and date
+        const assistanceVisitsByDate = uniqBy(
+            assistanceVisits,
+            (visit: any) => `${visit?.formFormId}|${visit?.createdAt}`,
+        );
         const anthropometricVisits = orderBy(
             entity.visits,
             ['createdAt'],
@@ -764,15 +800,16 @@ const defaulterCases = (
         });
         let counter = 0;
         assistanceVisitsByDate.forEach((visit: any) => {
-            let nextVisitDays =
+            let nextVisitDays = toDays(
                 visit?.values?.next_visit ??
-                visit?.values?.number_of_days__int__ ??
-                visit?.values?.next_visit_days;
+                    visit?.values?.number_of_days__int__ ??
+                    visit?.values?.next_visit_days,
+            );
             const nextVisit =
                 visit?.values?.new_next_visit__date__ ??
                 visit?.values?._display_next_visit ??
                 visit?.values?.next_visit__date__ ??
-                visit?.values?.next_visit_date__date__;;
+                visit?.values?.next_visit_date__date__;
             const nextVisitDate = timeStampToDate(nextVisit);
             const secondNextVisit = new Date(nextVisitDate).setDate(
                 new Date(nextVisitDate).getDate() + nextVisitDays,
@@ -781,12 +818,6 @@ const defaulterCases = (
             const currentDate = timeStampToDate(new Date());
             const currentTime = new Date().getHours();
 
-            console.info(
-                'NEXT VISIT DATE ...:',
-                nextVisitDate,
-                'SECOND VISIT DATE ...:',
-                secondNextVisitDate,
-            );
             //check if the beneficiary missed 1 next visit!
             if (
                 nextVisitDate !== '' &&
@@ -798,12 +829,6 @@ const defaulterCases = (
                         let createdAt = timeStampToDate(
                             visit?.values?.visit_date ??
                                 visit?.values?._visit_date,
-                        );
-                        console.info(
-                            'CURRENT VISIT DATE ...:',
-                            createdAt,
-                            'CURRENT NEXT VISIT ...:',
-                            nextVisitDate,
                         );
                         return createdAt === nextVisitDate;
                     });
@@ -906,6 +931,7 @@ const agregatedBeneficiaryFolloWup = (
                 caretaker_Last_name,
                 caregiver_Last_name,
                 caregiver_phone_number,
+                caretaker_phone_number,
                 card_number,
                 health_card,
                 registration_number,
@@ -921,9 +947,10 @@ const agregatedBeneficiaryFolloWup = (
                 careGiver: `${caretaker_name ?? caregiver_name ?? ''} ${
                     caretaker_Last_name ?? caregiver_Last_name ?? ''
                 }`,
-                phoneNumber: caregiver_phone_number,
+                phoneNumber: caregiver_phone_number ?? caretaker_phone_number,
                 address: path_address,
-                registrationNumber: health_card ?? card_number ?? registration_number,
+                registrationNumber:
+                    health_card ?? card_number ?? registration_number,
             };
 
             if (

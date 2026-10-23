@@ -21,10 +21,12 @@ const configs: Record<string, CountryConfig> = {
 const readAppId = (): string | null => {
     try {
         // @ts-ignore Android is injected globally by the native WebView bridge
-        const info = JSON.parse(Android.info());
+        //const info = JSON.parse(Android.info());
         // const info = JSON.parse(
         //     '{"app_id":"org.wfp.coda2.bangladesh","is_debug":true,"version":2880,"version_name":"2.8.8-39242ad51-BGD-QA"}',
         // );
+        const info = JSON.parse('{"app_id":"org.bluesquare.coda2","is_debug":true,"version":2710,"version_name":"2.7.1-bc467e824-SSD-QA"}')
+
         return info?.app_id ?? null;
     } catch {
         // No native bridge (local dev/tests outside the WebView) — fall
@@ -56,5 +58,10 @@ if (appId != null && country == null) {
 country = country ?? 'southSudan';
 
 export const countryConfig: CountryConfig = configs[country];
-export type { CountryConfig, AdmissionTypeMatch } from './types';
+export type {
+    CountryConfig,
+    AdmissionTypeMatch,
+    MedicalSection,
+    MedicalRow,
+} from './types';
 export { foodInitialStock };

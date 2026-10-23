@@ -1,4 +1,12 @@
-import { CountryConfig, AdmissionTypeMatch } from './types';
+import { CountryConfig, AdmissionTypeMatch, MedicalSection } from './types';
+import {
+    is,
+    has,
+    hasAnyExcept,
+    isPoorRespiratoryRate,
+    complicationRows,
+    SOUTH_SUDAN_COMPLICATIONS,
+} from './medical';
 
 const entityTypeByProgram = (program: string, type: string): string => {
     let entityType = '';
@@ -331,6 +339,111 @@ const matchAdmissionType = (
     };
 };
 
+const yes = (field: string) => is(field, '1');
+
+const childUnder5MedicalSections: MedicalSection[] = [
+    {
+        title: '',
+        rows: [
+            {
+                label: 'Number of Diarrhoea',
+                match: yes('have_diarrhoea__bool__'),
+            },
+            {
+                label: 'Problems urinating',
+                match: is('passing_urine__bool__', '0'),
+            },
+            {
+                label: 'Contact with TB person',
+                match: yes('contact_tb__bool__'),
+            },
+            { label: 'Poor appetite', match: is('medical_appetite', 'poor') },
+            {
+                label: 'Failed appetite test',
+                match: is('result_appetite_test', 'failed'),
+            },
+        ],
+    },
+    {
+        title: 'Immunization',
+        rows: [
+            { label: 'None', match: is('immunization_status', 'none') },
+            {
+                label: 'Incomplete',
+                match: is('immunization_status', 'incomplete'),
+            },
+            { label: 'Complete', match: is('immunization_status', 'complete') },
+            {
+                label: 'No idea',
+                // Older forms saved this code with a space in it.
+                match: is(
+                    'immunization_status',
+                    'motherdoesnotrecall',
+                    'motherdoesnot recall',
+                ),
+            },
+            { label: 'Poor respiratory rate', match: isPoorRespiratoryRate },
+            { label: 'Palmar Pallor', match: is('palmar_pallor', 'pale') },
+            { label: 'Eyes infection', match: yes('eyes_infection__bool__') },
+            { label: 'VAD Yes', match: yes('signs_vad__bool__') },
+            { label: 'Skin Infections', match: yes('skin_issues__bool__') },
+            {
+                label: 'Dermatosis',
+                match: hasAnyExcept('dermatosis_dermatosis', 'none'),
+            },
+            {
+                label: 'Disability present',
+                match: yes('disability_status__bool__'),
+            },
+        ],
+    },
+    {
+        title: 'HIV',
+        rows: [
+            { label: 'Positive', match: is('hiv_status', 'positive') },
+            { label: 'Negative', match: is('hiv_status', 'negative') },
+            { label: 'Exposed', match: is('hiv_status', 'exposed') },
+            { label: 'Unknown', match: is('hiv_status', 'unknown') },
+        ],
+    },
+    {
+        title: 'Malaria',
+        rows: [
+            { label: 'Tested', match: yes('tested_malaria__bool__') },
+            { label: 'Positive', match: is('malaria_test_result', 'positive') },
+            { label: 'Negative', match: is('malaria_test_result', 'negative') },
+            { label: 'Exposed', match: is('malaria_test_result', 'exposed') },
+            { label: 'Unknown', match: is('malaria_test_result', 'unknown') },
+        ],
+    },
+    {
+        title: 'Medication',
+        rows: [
+            {
+                label: 'Amoxicillin given',
+                match: has('medication_2', 'amoxillin'),
+            },
+            {
+                label: 'Erythromycin given',
+                match: has('medication_2', 'erythromycin'),
+            },
+            {
+                label: 'Albendazole given',
+                match: visit =>
+                    has('medication', 'albendazole')(visit) ||
+                    has('medication_2', 'albendazole')(visit),
+            },
+        ],
+    },
+    {
+        title: 'Complications',
+        rows: complicationRows(SOUTH_SUDAN_COMPLICATIONS),
+    },
+];
+
+// South Sudan's OTP takes children under 6 months.
+const under6Column = (program: string) => program.includes('OTP');
+
 const southSudan: CountryConfig = {
     screeningForms,
     formsByCategory,
@@ -340,6 +453,8 @@ const southSudan: CountryConfig = {
     entityTypeByProgram,
     admissionTypeWithCriteria,
     matchAdmissionType,
+    childUnder5MedicalSections,
+    under6Column,
     stockForms,
     assistanceFoodItemForms,
 };

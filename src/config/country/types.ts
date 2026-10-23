@@ -14,6 +14,21 @@ export interface AdmissionTypeMatch {
     criteria: string;
 }
 
+// A row of the Child Under 5 medical report: a child is counted when one of
+// its visits matches. With splitBy (a free-text field), the row becomes one
+// row per text typed in it, labelled with that text.
+export interface MedicalRow {
+    label: string;
+    match: (visit: any, ageMonths?: number) => boolean;
+    splitBy?: string;
+}
+
+// A section of the Child Under 5 medical report, shown in config order.
+export interface MedicalSection {
+    title: string;
+    rows: MedicalRow[];
+}
+
 export interface CountryConfig {
     screeningForms: string[];
     formsByCategory: Record<string, Record<string, string[]>>;
@@ -33,6 +48,11 @@ export interface CountryConfig {
         beneficiaryType?: string | null,
         program?: string,
     ) => AdmissionTypeMatch | null;
+
+    childUnder5MedicalSections: MedicalSection[];
+    // Whether the program's Child Under 5 reports split a 0-5 months column
+    // off 6-23.
+    under6Column?: (program: string) => boolean;
 
     stockForms: string[];
     assistanceFoodItemForms: string[];

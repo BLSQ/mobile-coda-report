@@ -1,4 +1,12 @@
-import { CountryConfig, AdmissionTypeMatch } from './types';
+import { CountryConfig, AdmissionTypeMatch, MedicalSection } from './types';
+import {
+    is,
+    has,
+    hasAnyExcept,
+    isPoorRespiratoryRate,
+    complicationRows,
+    SOUTH_SUDAN_COMPLICATIONS,
+} from './medical';
 import southSudan from './southSudan';
 import { bsfpnsepAdmissionTypesByCategory } from './bsfpnsep';
 
@@ -368,6 +376,83 @@ const bsfpPbwgAdmissionTypesByCategory: Record<string, string[]> = {
 const resolveRationType = (values: any): string | undefined =>
     values?.ration_given ?? values?.assistance_given;
 
+const yes = (field: string) => is(field, '1');
+
+const childUnder5MedicalSections: MedicalSection[] = [
+    {
+        title: '',
+        rows: [
+            { label: 'Diarrhoea', match: yes('have_diarrhoea__bool__') },
+            {
+                label: 'Problems urinating',
+                match: is('passing_urine__bool__', '0'),
+            },
+            { label: 'Poor appetite', match: is('medical_appetite', 'poor') },
+            {
+                label: 'Failed appetite test',
+                match: is('result_appetite_test', 'failed'),
+            },
+            { label: 'Vomit', match: yes('child_vomiting__bool__') },
+            { label: 'Poor respiratory rate', match: isPoorRespiratoryRate },
+            { label: 'Eyes Sunken', match: is('eyes', 'sunken') },
+            {
+                label: 'Disability present',
+                match: yes('disability_status__bool__'),
+            },
+            { label: 'Ear Discharge', match: is('ears_status', 'discharge') },
+            {
+                label: 'Skin problems',
+                match: hasAnyExcept('skin_infections', 'none'),
+            },
+            {
+                label: 'Lymph Nodes',
+                match: hasAnyExcept('lymph_nodes', 'none'),
+            },
+            {
+                label: 'Measles vaccination Status',
+                match: yes('measles_status'),
+            },
+            { label: 'Deworming', match: yes('deworming') },
+        ],
+    },
+    {
+        title: 'Immunization for Age',
+        rows: [
+            { label: 'None', match: is('immunization_status', 'none') },
+            {
+                label: 'Incomplete',
+                match: is('immunization_status', 'incomplete'),
+            },
+            { label: 'Complete', match: is('immunization_status', 'complete') },
+            {
+                label: 'Mother does not recall',
+                match: is('immunization_status', 'motherdoesnotrecall'),
+            },
+        ],
+    },
+    {
+        title: 'Physical examination/Complications',
+        rows: [
+            ...complicationRows([
+                ...SOUTH_SUDAN_COMPLICATIONS,
+                'difficultydrinkingbreastfeeding',
+                'hyperbilirubinaemiajaundice',
+            ]),
+            {
+                label: 'Other',
+                match: visit =>
+                    has('medical_complications', 'other')(visit) ||
+                    !!visit?.medical_complications_other?.trim(),
+                splitBy: 'medical_complications_other',
+            },
+        ],
+    },
+    {
+        title: 'Medication Given',
+        rows: [{ label: 'Vitamin A', match: yes('vitamins_given') }],
+    },
+];
+
 const bangladesh: CountryConfig = {
     screeningForms,
     formsByCategory,
@@ -379,6 +464,7 @@ const bangladesh: CountryConfig = {
     entityTypeByProgram,
     admissionTypeWithCriteria,
     matchAdmissionType,
+    childUnder5MedicalSections,
     stockForms,
     assistanceFoodItemForms,
     resolveRationType,
