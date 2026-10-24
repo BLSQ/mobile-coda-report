@@ -245,9 +245,10 @@ const formsByCategory: Record<string, Record<string, string[]>> = {
         BSFP: bsfpAdmissionForms.concat(bsfpFollowupForms),
         NSEP: nsepAdmissionForms.concat(nsepFollowupForms),
     },
+    // The medical forms also give rations, besides the assistance forms.
     rationGiven: {
-        TSFP: childUnder5AssistanceForms,
-        OTP: childUnder5AssistanceForms,
+        TSFP: childUnder5AssistanceForms.concat(childUnder5MedicalForms),
+        OTP: childUnder5AssistanceForms.concat(childUnder5MedicalForms),
         BSFP: bsfpAdmissionForms.concat(
             bsfpFollowupForms.concat(bsfpAssistanceForms),
         ),
@@ -320,8 +321,9 @@ const pbwgFormsByCategory: Record<string, Record<string, string[]>> = {
         TSFP: pbwgAdmissionForms.concat(pbwgFollowUpForms),
         BSFP: bsfpPbwgAdmissionForms.concat(bsfpPbwgFollowupForms),
     },
+    // The medical forms also give rations, besides the assistance forms.
     rationGiven: {
-        TSFP: pbwgAssistanceForms,
+        TSFP: pbwgAssistanceForms.concat(pbwgMedicalForms),
         BSFP: bsfpPbwgAdmissionForms.concat(
             bsfpPbwgFollowupForms.concat(bsfpPbwgAssistanceForms),
         ),
