@@ -1,5 +1,6 @@
-import Form from '../../entity/Form';
-import { processFoodStockData } from '../../stock/FoodStockLedger';
+import { Fragment } from 'react';
+import { FoodStockMovements } from '../../stock/FoodStockItem';
+import { processFoodStockData } from '../../stock/FoodStock';
 
 const root = {
     width: '100%',
@@ -43,16 +44,32 @@ const td = {
 
 const tdTotal = { ...td, fontWeight: 'bold' } as const;
 
+const trSubtotal = { backgroundColor: '#f2f2f2' } as const;
+
+const COLUMNS = 17;
+
+const MovementCells = ({ row }: { row: FoodStockMovements }) => (
+    <>
+        <td style={td}>{row.received}</td>
+        <td style={td}>{row.transferred.loanAndBorrowing}</td>
+        <td style={td}>{row.transferred.other}</td>
+        <td style={tdTotal}>{row.transferred.total}</td>
+        <td style={td}>{row.lost.infestation}</td>
+        <td style={td}>{row.lost.expired}</td>
+        <td style={td}>{row.lost.stolen}</td>
+        <td style={td}>{row.lost.other}</td>
+        <td style={tdTotal}>{row.lost.total}</td>
+    </>
+);
+
 const FoodItems = ({
-    submissions,
     startDate,
     endDate,
 }: {
-    submissions: Form[];
     startDate: Date;
     endDate: Date;
 }) => {
-    const items = processFoodStockData(submissions, startDate, endDate);
+    const items = processFoodStockData(startDate, endDate);
 
     return (
         <div style={root}>
@@ -68,6 +85,21 @@ const FoodItems = ({
                     <tr>
                         <th style={th} rowSpan={2}>
                             Item
+                        </th>
+                        <th style={th} rowSpan={2}>
+                            Batch number
+                        </th>
+                        <th style={th} rowSpan={2}>
+                            Expiry date
+                        </th>
+                        <th style={th} rowSpan={2}>
+                            Unit
+                        </th>
+                        <th style={th} rowSpan={2}>
+                            Packaging size
+                        </th>
+                        <th style={th} rowSpan={2}>
+                            Box size
                         </th>
                         <th style={th} rowSpan={2}>
                             Opening stock
@@ -99,29 +131,82 @@ const FoodItems = ({
                 <tbody>
                     {items.length === 0 && (
                         <tr>
-                            <td style={td} colSpan={12}>
+                            <td style={td} colSpan={COLUMNS}>
                                 No stock data available
                             </td>
                         </tr>
                     )}
-                    {items.map(row => (
-                        <tr key={row.item}>
-                            <td style={tdCategory}>{row.item}</td>
-                            <td style={td}>{row.opening}</td>
-                            <td style={td}>{row.received}</td>
-                            <td style={td}>
-                                {row.transferred.loanAndBorrowing}
+                    {items.map(item => {
+                        // The item, its opening and end stock span all its
+                        // batch rows and their total row.
+                        const rowSpan = item.batches.length
+                            ? item.batches.length + 1
+                            : 1;
+                        const itemCell = (
+                            <td style={tdCategory} rowSpan={rowSpan}>
+                                {item.item}
                             </td>
-                            <td style={td}>{row.transferred.other}</td>
-                            <td style={tdTotal}>{row.transferred.total}</td>
-                            <td style={td}>{row.lost.infestation}</td>
-                            <td style={td}>{row.lost.expired}</td>
-                            <td style={td}>{row.lost.stolen}</td>
-                            <td style={td}>{row.lost.other}</td>
-                            <td style={tdTotal}>{row.lost.total}</td>
-                            <td style={tdTotal}>{row.end}</td>
-                        </tr>
-                    ))}
+                        );
+                        const openingCell = (
+                            <td style={tdTotal} rowSpan={rowSpan}>
+                                {item.opening}
+                            </td>
+                        );
+                        const endCell = (
+                            <td style={tdTotal} rowSpan={rowSpan}>
+                                {item.end}
+                            </td>
+                        );
+                        return (
+                            <Fragment key={item.item}>
+                                {item.batches.length === 0 && (
+                                    <tr>
+                                        {itemCell}
+                                        <td style={td} colSpan={5}>
+                                            No activity in the period
+                                        </td>
+                                        {openingCell}
+                                        <MovementCells row={item} />
+                                        {endCell}
+                                    </tr>
+                                )}
+                                {item.batches.map((batch, index) => (
+                                    <tr
+                                        key={[
+                                            batch.batch,
+                                            batch.unit,
+                                            batch.packagingSize,
+                                            batch.boxSize,
+                                        ].join('|')}
+                                    >
+                                        {index === 0 && itemCell}
+                                        <td style={td}>{batch.batch || '-'}</td>
+                                        <td style={td}>
+                                            {batch.expiryDate || '-'}
+                                        </td>
+                                        <td style={td}>{batch.unit || '-'}</td>
+                                        <td style={td}>
+                                            {batch.packagingSize || '-'}
+                                        </td>
+                                        <td style={td}>
+                                            {batch.boxSize || '-'}
+                                        </td>
+                                        {index === 0 && openingCell}
+                                        <MovementCells row={batch} />
+                                        {index === 0 && endCell}
+                                    </tr>
+                                ))}
+                                {item.batches.length > 0 && (
+                                    <tr style={trSubtotal}>
+                                        <td style={tdTotal} colSpan={5}>
+                                            Total
+                                        </td>
+                                        <MovementCells row={item} />
+                                    </tr>
+                                )}
+                            </Fragment>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>
