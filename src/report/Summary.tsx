@@ -14,24 +14,22 @@ const td = {
 
 function Summary(data: any[]) {
     let defaulters = data.find((row: any) => row.key === 'defaulter');
-    let totalDefaulter = [
-        sum(defaulters?.between6And23 ?? defaulters?.under19),
-        sum(defaulters?.between24And59 ?? defaulters?.over19),
+    // Every age column of a row: 0-5 (South Sudan OTP), 6-23 and 24-59 for
+    // children, under/over 19 for PBWG.
+    const ages = (row: any) => [
+        sum(row?.under6),
+        sum(row?.between6And23 ?? row?.under19),
+        sum(row?.between24And59 ?? row?.over19),
     ];
+    let totalDefaulter = ages(defaulters);
 
     let absentees = data.find((row: any) => row.key === 'absentees');
-    let totalAbsentees = [
-        sum(absentees?.between6And23 ?? absentees?.under19),
-        sum(absentees?.between24And59 ?? absentees?.over19),
-    ];
+    let totalAbsentees = ages(absentees);
 
     let nonRespondents = data.find(
         (row: any) => row.key === 'non_respondent__int__',
     );
-    let totalNonRespondents = [
-        sum(nonRespondents.between6And23 ?? nonRespondents?.under19),
-        sum(nonRespondents.between24And59 ?? nonRespondents?.over19),
-    ];
+    let totalNonRespondents = ages(nonRespondents);
 
     return (
         <table style={table}>

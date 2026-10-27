@@ -19,6 +19,8 @@ function PBWGMainReport(
     endDate: Date,
     program: string,
     entityType: string,
+    admissionTypesByCategoryOverride?: Record<string, string[]>,
+    rationQuantityField?: string,
 ) {
     const dateValue = `${startDate.toDateString()} to ${endDate.toDateString()}`;
     const categories = dataCategory(
@@ -27,6 +29,7 @@ function PBWGMainReport(
         startDate,
         endDate,
         entityType,
+        admissionTypesByCategoryOverride,
     );
     const rationsGivens = assistanceGiven(
         entities,
@@ -36,15 +39,16 @@ function PBWGMainReport(
         'rationGiven',
         entityType,
     );
-
-    const discharged = categoryWithData(
-        entities,
-        program,
-        'Discharges',
-        startDate,
-        endDate,
-        entityType,
-    );
+    const discharged =
+        program !== 'BSFP' &&
+        categoryWithData(
+            entities,
+            program,
+            'Discharges',
+            startDate,
+            endDate,
+            entityType,
+        );
 
     return (
         <div style={root}>
@@ -63,11 +67,14 @@ function PBWGMainReport(
                     <br />
                     <div>Ration</div>
                     <div>
-                        <RationData {...rationsGivens} />
+                        <RationData
+                            {...rationsGivens}
+                            quantityField={rationQuantityField}
+                        />
                     </div>
 
                     <br />
-                    <div>{Summary(discharged)}</div>
+                    {discharged && <div>{Summary(discharged)}</div>}
                 </div>
             </div>
         </div>

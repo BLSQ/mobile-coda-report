@@ -1,5 +1,6 @@
 import Entity from '../entity/Entity';
 import { sumBy } from 'lodash';
+import { countryConfig } from '../config/country';
 
 const groupBy = <T, K extends keyof any>(arr: T[], key: (i: T) => K) =>
     arr.reduce((groups, item) => {
@@ -7,23 +8,13 @@ const groupBy = <T, K extends keyof any>(arr: T[], key: (i: T) => K) =>
         return groups;
     }, {} as Record<K, T[]>);
 
-const entityTypeByProgram = (program: string, type: string): string => {
-    let entityType = '';
-    if (type === 'Child Under 5') {
-        if (program === 'TSFP_MAM' || program === 'TSFP') {
-            entityType = 'TSFP';
-        } else {
-            if (program === 'OTP_SAM' || program === 'OTP') {
-                entityType = 'OTP';
-            }
-        }
-    } else {
-        if (type === undefined || type === 'PBWG') {
-            entityType = 'TSFP';
-        }
-    }
-
-    return entityType;
+const getBeneficiaryAge = (beneficiary: any) => {
+    return (
+        beneficiary.profile?.values?.age__int__ ??
+        beneficiary.profile?.values?.age_months ??
+        beneficiary.profile?.values?.age ??
+        beneficiary.profile?.values?.age_years
+    );
 };
 
 const sumByAge = (
@@ -31,11 +22,7 @@ const sumByAge = (
     ageCheck: (age: number) => boolean,
 ): number => {
     return sumBy(entities, child => {
-        let age =
-            child.profile.values?.age__int__ ??
-            child.profile.values?.age_months ??
-            child.profile.values?.age ??
-            child.profile.values?.age_years;
+        let age = getBeneficiaryAge(child);
         if (age != null && ageCheck(age)) {
             return 1;
         }
@@ -59,11 +46,7 @@ const sumByAgeOnField = (
     status: string,
 ) => {
     return sumBy(entities, child => {
-        let age =
-            child.profile.values?.age__int__ ??
-            child.profile.values?.age_months ??
-            child.profile.values?.age ??
-            child.profile.values?.age_years;
+        let age = getBeneficiaryAge(child);
         let visitSatus = child[status];
         if (age != null && ageCheck(age)) {
             return visitSatus ?? 0;
@@ -90,9 +73,10 @@ const defaultEmptyDataByCategory = (
                 over19: [0, 0],
             };
         }
-        let admittedByCriteria = admissionTypeWithCriteria(program, null)[
-            category
-        ];
+        let admittedByCriteria = countryConfig.admissionTypeWithCriteria(
+            program,
+            null,
+        )[category];
 
         if (admittedByCriteria && admittedByCriteria !== undefined) {
             let rows = admittedByCriteria?.map((criteria: string) => {
@@ -116,6 +100,10 @@ const defaultEmptyDataByCategory = (
 const categoryDictionary = (key: string) => {
     let keyValues: any = {
         new_case: 'New case',
+        new_case_MUAC: 'New admission (MUAC <11.5 cm)',
+        new_case_WHZ: 'New admission (WHZ scores <-3SD)',
+        new_case_MUAC_WHZ: 'New admission (Both WHZ and MUAC)',
+        new_case_OEDEMA: 'New admission (Oedema + or ++)',
         referred_from_other_otp: 'Referred from other OTP by',
         referred_from_other_tsfp: 'Referred from other TSFP by',
         returned_defaulter: 'Returned Defaulters',
@@ -135,6 +123,8 @@ const categoryDictionary = (key: string) => {
         cured: 'Cured',
         transferred_out: 'Transferred Out',
         transferredout: 'Transferred Out',
+        dismissed_due_to_cheating: 'Dismissed due to cheating',
+        voluntary: 'Voluntary',
         yes: 'Yes',
         no: 'No',
         have_diarrhoea: 'Diarrhoea',
@@ -147,13 +137,13 @@ const categoryDictionary = (key: string) => {
         none: 'None',
         incomplete: 'Incomplete',
         complete: 'Complete',
-        'motherdoesnot recall': 'No idea',
+        motherdoesnotrecall: 'Mother does not recall',
         palmar_pallor: 'Palmar Pallor',
         conjuctivae_palm: 'Conjuctivae Palm',
         eyes_infection: 'Eyes Infection',
         eyes: 'Eyes Sunken',
         signs_vad: 'VAD Yes',
-        skin_infections: 'Skin changes',
+        skin_infections: 'Skin problems',
         lymph_nodes: 'Lymph Nodes',
         dermatosis_dermatosis: 'Dermatosis',
         disability_status: 'Disability present',
@@ -198,12 +188,15 @@ const categoryDictionary = (key: string) => {
         child_wasted: 'Wasted child',
         returned_from_sc: 'Transfer in from SC',
         transfer_from_other_tsfp: 'Transfer in from other TSFP',
+        transfer_from_other_bsfp: 'Transferred from another BSFP/NSEP',
         transfer_to_sc_itp: 'Referrals to SC/ITP',
         transfer_to_healthcenter: 'Transfers to Health Center',
         whz: 'Z-Score',
         defaulter: 'Defaulters',
         non_respondent: 'Non-respondent',
         non_respondent__int__: 'Non-respondent',
+        weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__:
+            'Failure to gain weight',
         dismissedduetocheating: 'Dismissals due to cheating',
         transferred_to_otp: 'Referrals to OTP',
         transferred_to_tsfp: 'Transfers to TSFP/Cured',
@@ -213,10 +206,14 @@ const categoryDictionary = (key: string) => {
         medical_investigation: 'Medical investigation',
         home_visits: 'Home visits',
         referral_to_sc_itp: 'Referral to SC',
+        transfer_to_otp: 'Referral to OTP',
+        transfer_to_tsfp: 'Referral to TSFP',
         breastfeeding: 'Lactating',
         pregnant: 'Pregnant',
         returnee: 'Returnee',
         muac: 'MUAC',
+        mother_muac: 'MUAC',
+        muac_whz: 'MUAC & WHZ',
         oedema: 'Oedema',
         other: 'Other',
         birthregistration: 'Birth Registration',
@@ -233,49 +230,23 @@ const categoryDictionary = (key: string) => {
         mebendazole: 'Mebendazole',
         art_given: 'ART',
         vitamins_given: 'Vitamin A',
-        ears_status: 'Ear Discharge'
+        ears_status: 'Ear Discharge',
+        wsb: 'Super Cerial Plus/ WSB+',
+        wsbp: 'Super Cerial Plus Plus/ WSB++',
+        lns_mq: 'LNS-MQ',
+        measles_status: 'Measles vaccination Status',
+        deworming: 'Deworming',
+        cash_voucher: 'Cash Voucher',
+        in_kind: 'In-kind',
+        new_admission: 'New Admission',
+        readmission_after_default: 'Readmission After Default',
+        returned_defaulter_old_case: 'Returned Defaulter (Old Case)',
+        transferred_from_bsfp_nsep: 'Transferred from BSFP/NSEP',
+        transferred_from_tsfp: 'Transferred from TSFP',
+        difficultydrinkingbreastfeeding: 'Difficulty Drinking or Breastfeeding',
+        hyperbilirubinaemiajaundice: 'hyperbilirubinaemia/\nJaundice',
     };
     return keyValues[key];
-};
-
-const childrenUnder5Criteria = ['muac', 'oedema', 'whz'];
-
-const admissionTypeWithCriteria = (
-    program: string,
-    beneficiaryType: string | null,
-) => {
-    let criteriaType: any = ['child_wasted', 'muac'];
-    if (beneficiaryType === 'Child Under 5') {
-        let entityType = entityTypeByProgram(program, beneficiaryType);
-
-        if (entityType === 'TSFP') {
-            criteriaType = ['muac', 'whz'];
-        } else {
-            if (entityType === 'OTP') {
-                criteriaType = childrenUnder5Criteria;
-            }
-        }
-    }
-    let types: any = {
-        new_case: criteriaType,
-        referred_from_sc_itp: program.includes('OTP')
-            ? criteriaType
-            : undefined,
-        returned_referral: program.includes('TSFP') ? criteriaType : [],
-        returned_defaulter: criteriaType,
-        referred_from_other_otp: criteriaType,
-        referred_from_tsfp: program.includes('TSFP') ? criteriaType : undefined,
-        relapse: criteriaType,
-        readmission_as_non_respondent: criteriaType,
-        readmison_non_respondent: criteriaType,
-        readmission_non_respondent: criteriaType,
-        returned_from_sc: criteriaType,
-        transfer_from_other_tsfp: criteriaType,
-        referred_from_otp: criteriaType,
-        transfer_from_other_otp: criteriaType,
-        referred_from_other_tsfp: criteriaType,
-    };
-    return types;
 };
 
 let beneficiaryFollowupCategories = (program: string | null) => {
@@ -284,42 +255,82 @@ let beneficiaryFollowupCategories = (program: string | null) => {
         { key: 'absentees', label: 'Absentees' },
         { key: 'defaulters', label: 'Defaulters' },
         { key: 'non_respondent', label: 'Non-respondent' },
-        { key: 'referral_to_sc_itp', label: 'Referral to SC' },
-        { key: 'medical_investigation', label: 'Medical investigation' },
-        { key: 'death', label: 'Death' },
+        { key: 'medical_investigation', label: 'Transfer to PHC' },
+        {
+            key: 'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__',
+            label: 'Failure to gain weight',
+        },
     ];
-    if (program?.includes('TSFP')) {
-        beneficiaryCategory.push({
-            key: 'transfer_from_other_otp',
-            label: 'Transfer in from OTP',
-        });
-        beneficiaryCategory.push({
-            key: 'referred_from_other_tsfp',
-            label: 'Transfer in from other TSFP',
-        });
-    } else {
-        if (program?.includes('OTP')) {
-            beneficiaryCategory.push({
-                key: 'transferred_to_tsfp',
-                label: 'Transfer To TSFP',
-            });
-            beneficiaryCategory.push({
-                key: 'referred_from_other_otp',
-                label: 'Transfer in from other OTP',
-            });
-        }
+    // TSFP and OTP refer to SC, and transfer to each other.
+    if (program === 'TSFP') {
+        beneficiaryCategory.push(
+            { key: 'referral_to_sc_itp', label: 'Referral to SC' },
+            { key: 'transfer_to_otp', label: 'Referral to OTP' },
+        );
+    }
+    if (program === 'OTP') {
+        beneficiaryCategory.push(
+            { key: 'referral_to_sc_itp', label: 'Referral to SC' },
+            { key: 'transfer_to_tsfp', label: 'Referral to TSFP' },
+        );
+    }
+    // BSFP transfers to TSFP and OTP (confirmed with `confirm_tsfp_referral`
+    // and `confirm_otp_referral`).
+    if (program === 'BSFP') {
+        beneficiaryCategory.push(
+            { key: 'transfer_to_tsfp', label: 'Referral to TSFP' },
+            { key: 'transfer_to_otp', label: 'Referral to OTP' },
+        );
+    }
+    // BSFP/NSEP have no PHC referral pathway (unlike TSFP/OTP), so that
+    // category never applies to their followup report.
+    if (program === 'BSFP' || program === 'NSEP') {
+        beneficiaryCategory = beneficiaryCategory.filter(
+            row => row.key !== 'medical_investigation',
+        );
     }
     return beneficiaryCategory;
+};
+
+const NON_FOOD_STOCK_ITEMS: Record<string, string> = {
+    S1505046: 'Amoxillin pdr oral sus 125 mg bot 100 ml',
+    S1505045: 'Amox 250mg tab Pac 10',
+    S1505044: 'Amox 250mg tb Pac20',
+    S0189000: 'Weighing trousers  pac',
+    S1580100: 'Micronutrients film tab Pac 1000',
+    S1555370: 'Albendazole 400 mg chew pac 1000',
+    S0557000: 'Infant Scale,  Spring',
+    S1561125: 'ReSoMal 42 g sachet Car 100',
+    S0000209: 'F-100    ther diet sachet 1114 g Car 90',
+    S0000208: 'F-75 ther diet sachet 102 g Car 120',
+    S0114540: 'Portable bay/child length/height measure ',
+    adult_height_measure: 'Portable adult height measure',
+    S0141021: 'Weighing scale mother child 150 kg x 25 g',
+    S1555360: 'Mebendazole 500 mg chew tab pack 100',
+    S0145620: 'MUAC child PAC-50',
+    S0145630: 'MUAC Adult PAC-50',
+    S7800001: 'Retinol 100 K IU soft gel PAC caps. PAC-500',
+    S7800002: 'Retinol 200 K IU soft gel PAC caps. PAC-500',
+    S0114530: 'Portable bay chd L-H meas./SET-2',
+    S0145555: 'Scale infant spring type 25 kg x100g',
+    S1550025: 'Fe +folic acid 60+0.4 mg tab/PAC 1000',
+    S1580201: 'Multiple Micro. Nut pdr (PAC)',
+    S01145200: 'Port. Baby chd L-H',
+    soap_hand_wash: 'Soap for hand washing',
+    LLITN: 'Bed net (LLITN)',
+    antimalarials: 'Antimalarials',
+    NFC_cards: 'CODA NFC Cards',
+    other: 'Other Stock items',
 };
 
 export {
     groupBy,
     sumByAge,
+    getBeneficiaryAge,
     categoryDictionary,
     sumByAgeOnField,
     defaultEmptyDataByCategory,
-    admissionTypeWithCriteria,
-    entityTypeByProgram,
     sumByFieldValues,
     beneficiaryFollowupCategories,
+    NON_FOOD_STOCK_ITEMS,
 };

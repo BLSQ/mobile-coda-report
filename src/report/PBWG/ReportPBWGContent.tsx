@@ -49,7 +49,7 @@ const ReportPBWGContent = (category: any): any => {
                                         P
                                     </td>
                                     <td className="align" style={td}>
-                                        L
+                                        B
                                     </td>
                                 </tr>
                             </table>
@@ -67,7 +67,7 @@ const ReportPBWGContent = (category: any): any => {
                                         P
                                     </td>
                                     <td className="align" style={td}>
-                                        L
+                                        B
                                     </td>
                                 </tr>
                             </table>
@@ -84,7 +84,7 @@ const ReportPBWGContent = (category: any): any => {
                                         P
                                     </td>
                                     <td className="align" style={td}>
-                                        L
+                                        B
                                     </td>
                                 </tr>
                             </table>
@@ -115,7 +115,9 @@ const ReportPBWGContent = (category: any): any => {
                                 const admissionCriteria = categoryDictionary(
                                     subCategory?.admissionCriteria,
                                 );
-                                key = `${admissionType} ${admissionCriteria}`;
+                                key = admissionCriteria
+                                    ? `${admissionType} ${admissionCriteria}`
+                                    : admissionType;
                             } else {
                                 key =
                                     categoryDictionary(subCategory?.key) ??

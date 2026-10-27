@@ -27,7 +27,15 @@ const ERegistry = (
                 <h3>{categoryDictionary(physiology)} </h3>
                 <h3> {dateValue} </h3>
                 <div>
-                    <div>{EregistryBeneficiaries(rows, '', program)}</div>
+                    <div>
+                        <EregistryBeneficiaries
+                            // Remount (back to page 1) when the report inputs change.
+                            key={`${program}-${physiology}-${dateValue}`}
+                            beneficiaries={rows}
+                            program={program}
+                            physiology={physiology}
+                        />
+                    </div>
                 </div>
             </div>
         </div>
