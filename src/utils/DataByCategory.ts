@@ -18,7 +18,7 @@ import {
 import { suppliesGiven, suppliesByVisit } from './Ration';
 import { keyBy } from 'lodash';
 import { timeStampToDateString, removeTime } from './DateFormatter';
-import { countryConfig, MedicalRow } from '../config/country';
+import { countryConfig, MedicalRow, MedicalSection } from '../config/country';
 
 const pbwgMedicalStatusByCategory: any = {
     Malaria: ['positive', 'negative'],
@@ -27,24 +27,29 @@ const pbwgMedicalStatusByCategory: any = {
     'Breastfeeding problems': ['yes', 'no'],
     'Referred for treatment': ['yes', 'no'],
 };
+const profilePhysiologyStatus = (entity: any): string | undefined =>
+    entity.profile?.values?.physiology_status;
+
+// By default a woman's physiology status and age are the ones of her
+// profile; a report can read them elsewhere (e.g. IYCF, from the form).
 const admissionPBWGByStatus = (
     entities: Array<any>,
     status: string,
     key: string,
+    physiologyOf: (entity: any) => string | undefined = profilePhysiologyStatus,
+    ageOf: (entity: any) => number | undefined = getBeneficiaryAge,
 ) => {
     let pregnant = entities?.filter(
-        (entity: any) =>
-            entity.profile?.values?.physiology_status === 'pregnant',
+        (entity: any) => physiologyOf(entity) === 'pregnant',
     );
     let lactating = entities?.filter(
-        (entity: any) =>
-            entity.profile?.values?.physiology_status === 'breastfeeding',
+        (entity: any) => physiologyOf(entity) === 'breastfeeding',
     );
 
     const count = (group: Array<any>, ageCheck: (age: number) => boolean) =>
         ['Total Follow up', 'Follow Ups'].includes(status)
-            ? sumByAgeOnField(group, ageCheck, 'visitsNumber')
-            : sumByAge(group, ageCheck);
+            ? sumByAgeOnField(group, ageCheck, 'visitsNumber', ageOf)
+            : sumByAge(group, ageCheck, ageOf);
 
     const byPhysiology = (ageCheck: (age: number) => boolean) => [
         count(pregnant, ageCheck),
@@ -275,6 +280,34 @@ const splitByText = (row: MedicalRow, entities: Array<any>) => {
         : [{ label: row.label, entities: [] }];
 };
 
+// Splits the beneficiaries of a report row into its columns, e.g.
+// admissionChildUnder5ByStatus (age and gender) or admissionPBWGByStatus
+// (age and physiology status).
+type RowCounter = (entities: Array<any>, status: string, label: string) => any;
+
+const childUnder5Counter =
+    (withUnder6: boolean): RowCounter =>
+    (entities, status, label) =>
+        admissionChildUnder5ByStatus(entities, status, label, withUnder6);
+
+// The tables of a sectioned report (medical, IYCF): each row counts the
+// beneficiaries with a visit matching it. In a "Follow Ups" section, the
+// matching visits are counted instead.
+const sectionsReport = (
+    entities: Array<any>,
+    sections: MedicalSection[],
+    countRow: RowCounter,
+) =>
+    sections.map(section => ({
+        category: section.title,
+        rows: section.rows
+            .flatMap(row => splitByText(row, entitiesMatching(entities, row)))
+            .map(({ label, entities }) => ({
+                ...countRow(entities, section.title, label),
+                label,
+            })),
+    }));
+
 const childrenUnder5MedicalReport = (
     entities: Array<any>,
     program: string,
@@ -288,22 +321,11 @@ const childrenUnder5MedicalReport = (
         endDate,
     );
     let rows = followUpData(initialData, program, 'medicals', 'Child Under 5');
-    const withUnder6 = hasUnder6Column(program);
-
-    return countryConfig.childUnder5MedicalSections.map(section => ({
-        category: section.title,
-        rows: section.rows
-            .flatMap(row => splitByText(row, entitiesMatching(rows, row)))
-            .map(({ label, entities }) => ({
-                ...admissionChildUnder5ByStatus(
-                    entities,
-                    section.title,
-                    label,
-                    withUnder6,
-                ),
-                label,
-            })),
-    }));
+    return sectionsReport(
+        rows,
+        countryConfig.childUnder5MedicalSections,
+        childUnder5Counter(hasUnder6Column(program)),
+    );
 };
 
 const medicalReports = (
@@ -558,6 +580,8 @@ export {
     admissionByStatus,
     sumDataWithCommonKeys,
     childrenUnder5MedicalReport,
+    sectionsReport,
+    childUnder5Counter,
     pbwgMedicalDataReport,
     pbwgMedicalStatusByCategory,
     medicalReports,
