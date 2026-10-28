@@ -3,6 +3,7 @@ import {
     visitsDataByValuesList,
     visitsDataByStatus,
     isChecked,
+    stepsLinkedToProgram,
 } from './Filter';
 import {
     filterDataOnProgram,
@@ -17,8 +18,16 @@ import {
 } from './DataFilter';
 import { suppliesGiven, suppliesByVisit } from './Ration';
 import { keyBy } from 'lodash';
-import { timeStampToDateString, removeTime } from './DateFormatter';
+import {
+    timeStampToDate,
+    timeStampToDateString,
+    removeTime,
+} from './DateFormatter';
 import { countryConfig, MedicalRow, MedicalSection } from '../config/country';
+import {
+    admissionTypeOf,
+    admissionCriteriaOf,
+} from '../config/country/admission';
 
 const pbwgMedicalStatusByCategory: any = {
     Malaria: ['positive', 'negative'],
@@ -361,6 +370,39 @@ const medicalReports = (
     }));
 };
 
+// The beneficiary's admission visit to the program, wherever it is from the
+// period: the latest one up to the end of the period, so a readmission in
+// the period wins over the first admission and a period with only
+// follow-ups still gets it (e.g. BSFP PBWG, whose registration has no
+// admission type); else the first one after the period.
+const admissionVisitOf = (entity: any, program: string, endDate: Date) => {
+    const endPeriod = timeStampToDate(endDate.toISOString());
+    const admissions = stepsLinkedToProgram(
+        entity?.visits ?? [],
+        program,
+    ).filter((visit: any) => admissionTypeOf(visit?.values));
+    const untilEnd = admissions.filter(
+        (visit: any) => timeStampToDate(visit?.createdAt) <= endPeriod,
+    );
+    return untilEnd[untilEnd.length - 1] ?? admissions[0];
+};
+
+// The criteria of the admission, as the main report reads it: some forms
+// bake it into the admission type (e.g. Bangladesh's new_case_MUAC).
+const admissionCriteriaOfVisit = (
+    visit: any,
+    beneficiaryType: string,
+    program: string,
+) =>
+    (visit &&
+        countryConfig.matchAdmissionType(
+            visit.values,
+            admissionTypeOf(visit.values),
+            beneficiaryType,
+            program,
+        )?.criteria) ||
+    admissionCriteriaOf(visit?.values);
+
 const eRegister = (
     entities: Array<any>,
     program: string,
@@ -402,6 +444,7 @@ const eRegister = (
         'wfp_coda_pbwg_anthropometric',
         'Anthropometric visit child_U6',
         'child_antropometric_followUp_tsfp_2',
+        ...(countryConfig.eRegisterVisitForms ?? []),
     ];
 
     // The assistance visits of the period, as counted in the main report's
@@ -417,6 +460,8 @@ const eRegister = (
         ),
         'id',
     );
+
+    const entitiesById = keyBy(entities, 'id');
 
     let beneficiaries = initialData.map(entity => {
         let discharges: any = {
@@ -477,6 +522,11 @@ const eRegister = (
         const transferToOtp = isTransferredToOtp(entity, program);
         const transferToTsfp = isTransferredToTsfp(entity, program);
         const failureToGainWeight = hasFailedToGainWeight(entity);
+        const admissionVisit = admissionVisitOf(
+            entitiesById[entity.id],
+            program,
+            endDate,
+        );
         const visits = visitsLinkedToForms(
             startDate,
             endDate,
@@ -505,6 +555,8 @@ const eRegister = (
                 removeTime(entity?.profile?.createdAt).getTime();
             lengthOfStay = Math.round(duration / (1000 * 3600 * 24));
         }
+        const { path_address, current_ou_name, org_unit_name } =
+            entity?.profile?.values ?? {};
         return {
             ...entity,
             firstName: entity?.profile?.values?.first_name,
@@ -518,32 +570,41 @@ const eRegister = (
             birth_date: timeStampToDateString(
                 entity?.profile?.values?.actual_birthday__date__,
             ),
-            address: entity?.profile?.values?.path_address,
+            address:
+                path_address ??
+                current_ou_name ??
+                org_unit_name ??
+                entity?.profile?.orgUnitName,
             visits: visits.map((visit: any, index: number) => ({
                 ...visit,
                 supplies: visitSupplies[index],
             })),
+            // The admission columns are read off the admission visit, even
+            // outside the period, then off the first visit of the period.
+            admissionVisit: admissionVisit,
             weight:
+                admissionVisit?.values?.previous_weight_kgs__decimal__ ||
+                admissionVisit?.values?.weight_kgs ||
                 visits[0]?.values?.previous_weight_kgs__decimal__ ||
                 visits[0]?.values?.weight_kgs,
             muac: visits[0]?.values?.muac,
-            whzScore: visits[0]?.values?._whz_score,
+            whzScore:
+                admissionVisit?.values?._whz_score ??
+                visits[0]?.values?._whz_score,
             admissionType:
-                entity?.visitLinkedToProgram?.values?.new_admission_type ??
-                entity?.visitLinkedToProgram?.values?.admission_type ??
-                visits[0]?.values?.new_admission_type ??
-                visits[0]?.values?.admission_type ??
-                visits[0]?.values?.admission_type_yellow ??
-                visits[0]?.values?.admission_type_red ??
-                entity?.profile?.values?.admission_type,
+                admissionTypeOf(admissionVisit?.values) ??
+                admissionTypeOf(entity?.visitLinkedToProgram?.values) ??
+                admissionTypeOf(visits[0]?.values) ??
+                admissionTypeOf(entity?.profile?.values),
             admissionChoice:
-                entity?.visitLinkedToProgram?.values?.admission_criteria ??
-                entity?.visitLinkedToProgram?.values?.admission_choice ??
-                visits[0]?.values?.admission_choice ??
-                visits[0]?.values?.admission_criteria_yellow ??
-                visits[0]?.values?.admission_criteria_red ??
-                visits[0]?.values?.admission_criteria ??
-                entity?.profile?.values?.admission_choice,
+                admissionCriteriaOfVisit(
+                    admissionVisit,
+                    entity?.entityTypeName,
+                    program,
+                ) ??
+                admissionCriteriaOf(entity?.visitLinkedToProgram?.values) ??
+                admissionCriteriaOf(visits[0]?.values) ??
+                admissionCriteriaOf(entity?.profile?.values),
             visit_number: visits.length,
             oedemaStatus:
                 visits[0]?.values?.oedema_severity === '1'

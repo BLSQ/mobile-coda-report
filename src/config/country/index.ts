@@ -2,7 +2,7 @@ import { CountryConfig } from './types';
 import southSudan from './southSudan';
 import bangladesh from './bangladesh';
 import { callStockBridge } from '../../stock/StockBridge';
-//import DEFAULT_STOCK from '../../fake/FakeDefaultStockData';
+import DEFAULT_STOCK from '../../fake/FakeDefaultStockData';
 
 // One native app build == one country, and the native WebView host already
 // tells us which one it is via Android.info().app_id (the Gradle flavor's
@@ -21,10 +21,10 @@ const configs: Record<string, CountryConfig> = {
 const readAppId = (): string | null => {
     try {
         // @ts-ignore Android is injected globally by the native WebView bridge
-        const info = JSON.parse(Android.info());
-        // const info = JSON.parse(
-        //     '{"app_id":"org.wfp.coda2.bangladesh","is_debug":true,"version":2880,"version_name":"2.8.8-39242ad51-BGD-QA"}',
-        // );
+        //const info = JSON.parse(Android.info());
+        const info = JSON.parse(
+            '{"app_id":"org.wfp.coda2.bangladesh","is_debug":true,"version":2880,"version_name":"2.8.8-39242ad51-BGD-QA"}',
+        );
         return info?.app_id ?? null;
     } catch {
         // No native bridge (local dev/tests outside the WebView) — fall
@@ -34,11 +34,11 @@ const readAppId = (): string | null => {
 
 const foodInitialStock = (date: string, orgUnitId: string) => {
     try {
-        const stocks = callStockBridge<Record<string, number>>(orgUnitId, () =>
-            // @ts-ignore Android is injected globally by the native WebView bridge
-            Android.getStockValueAt(date, orgUnitId),
-        );
-        //const stocks = JSON.parse(DEFAULT_STOCK)
+        // const stocks = callStockBridge<Record<string, number>>(orgUnitId, () =>
+        //     // @ts-ignore Android is injected globally by the native WebView bridge
+        //     Android.getStockValueAt(date, orgUnitId),
+        // );
+        const stocks = JSON.parse(DEFAULT_STOCK);
         return stocks;
     } catch {
         return null;
