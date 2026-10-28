@@ -8,16 +8,21 @@ const groupBy = <T, K extends keyof any>(arr: T[], key: (i: T) => K) =>
         return groups;
     }, {} as Record<K, T[]>);
 
+const getBeneficiaryAge = (beneficiary: any) => {
+    return (
+        beneficiary.profile?.values?.age__int__ ??
+        beneficiary.profile?.values?.age_months ??
+        beneficiary.profile?.values?.age ??
+        beneficiary.profile?.values?.age_years
+    );
+};
+
 const sumByAge = (
     entities: Array<Entity>,
     ageCheck: (age: number) => boolean,
 ): number => {
     return sumBy(entities, child => {
-        let age =
-            child.profile?.values?.age__int__ ??
-            child.profile?.values?.age_months ??
-            child.profile?.values?.age ??
-            child.profile?.values?.age_years;
+        let age = getBeneficiaryAge(child);
         if (age != null && ageCheck(age)) {
             return 1;
         }
@@ -41,11 +46,7 @@ const sumByAgeOnField = (
     status: string,
 ) => {
     return sumBy(entities, child => {
-        let age =
-            child.profile?.values?.age__int__ ??
-            child.profile?.values?.age_months ??
-            child.profile?.values?.age ??
-            child.profile?.values?.age_years;
+        let age = getBeneficiaryAge(child);
         let visitSatus = child[status];
         if (age != null && ageCheck(age)) {
             return visitSatus ?? 0;
@@ -136,7 +137,6 @@ const categoryDictionary = (key: string) => {
         none: 'None',
         incomplete: 'Incomplete',
         complete: 'Complete',
-        'motherdoesnot recall': 'No idea',
         motherdoesnotrecall: 'Mother does not recall',
         palmar_pallor: 'Palmar Pallor',
         conjuctivae_palm: 'Conjuctivae Palm',
@@ -195,6 +195,8 @@ const categoryDictionary = (key: string) => {
         defaulter: 'Defaulters',
         non_respondent: 'Non-respondent',
         non_respondent__int__: 'Non-respondent',
+        weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__:
+            'Failure to gain weight',
         dismissedduetocheating: 'Dismissals due to cheating',
         transferred_to_otp: 'Referrals to OTP',
         transferred_to_tsfp: 'Transfers to TSFP/Cured',
@@ -204,6 +206,8 @@ const categoryDictionary = (key: string) => {
         medical_investigation: 'Medical investigation',
         home_visits: 'Home visits',
         referral_to_sc_itp: 'Referral to SC',
+        transfer_to_otp: 'Referral to OTP',
+        transfer_to_tsfp: 'Referral to TSFP',
         breastfeeding: 'Lactating',
         pregnant: 'Pregnant',
         returnee: 'Returnee',
@@ -239,6 +243,8 @@ const categoryDictionary = (key: string) => {
         returned_defaulter_old_case: 'Returned Defaulter (Old Case)',
         transferred_from_bsfp_nsep: 'Transferred from BSFP/NSEP',
         transferred_from_tsfp: 'Transferred from TSFP',
+        difficultydrinkingbreastfeeding: 'Difficulty Drinking or Breastfeeding',
+        hyperbilirubinaemiajaundice: 'hyperbilirubinaemia/\nJaundice',
     };
     return keyValues[key];
 };
@@ -250,8 +256,32 @@ let beneficiaryFollowupCategories = (program: string | null) => {
         { key: 'defaulters', label: 'Defaulters' },
         { key: 'non_respondent', label: 'Non-respondent' },
         { key: 'medical_investigation', label: 'Transfer to PHC' },
-        //{ key: 'death', label: 'Death' },
+        {
+            key: 'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__',
+            label: 'Failure to gain weight',
+        },
     ];
+    // TSFP and OTP refer to SC, and transfer to each other.
+    if (program === 'TSFP') {
+        beneficiaryCategory.push(
+            { key: 'referral_to_sc_itp', label: 'Referral to SC' },
+            { key: 'transfer_to_otp', label: 'Referral to OTP' },
+        );
+    }
+    if (program === 'OTP') {
+        beneficiaryCategory.push(
+            { key: 'referral_to_sc_itp', label: 'Referral to SC' },
+            { key: 'transfer_to_tsfp', label: 'Referral to TSFP' },
+        );
+    }
+    // BSFP transfers to TSFP and OTP (confirmed with `confirm_tsfp_referral`
+    // and `confirm_otp_referral`).
+    if (program === 'BSFP') {
+        beneficiaryCategory.push(
+            { key: 'transfer_to_tsfp', label: 'Referral to TSFP' },
+            { key: 'transfer_to_otp', label: 'Referral to OTP' },
+        );
+    }
     // BSFP/NSEP have no PHC referral pathway (unlike TSFP/OTP), so that
     // category never applies to their followup report.
     if (program === 'BSFP' || program === 'NSEP') {
@@ -296,6 +326,7 @@ const NON_FOOD_STOCK_ITEMS: Record<string, string> = {
 export {
     groupBy,
     sumByAge,
+    getBeneficiaryAge,
     categoryDictionary,
     sumByAgeOnField,
     defaultEmptyDataByCategory,

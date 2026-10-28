@@ -130,13 +130,6 @@ const loadStockLedgerItems = (
                 endDate,
             ),
         );
-        console.info(
-            'Load stock items ...:',
-            orgUnitId,
-            items,
-            startDate,
-            endDate,
-        );
         //const items = JSON.parse(FAKE_STOCK_LEDGER_ITEMS).filter((item:any) => item?.orgUnitId === orgUnitId || item?.parentOrgUnitId === orgUnitId);
         return Array.isArray(items) ? items : [];
     } catch {
@@ -172,7 +165,6 @@ const processFoodStockData = (
     // Balance of every SKU before the first day of the period.
     const openingStock: Record<string, number> =
         foodInitialStock(startDay, orgUnitId) ?? {};
-    console.info('OPENING STOCK ...:', openingStock);
 
     // The native end date is exclusive (createdAt <= its midnight), so the
     // day after is requested to keep the movements of the last day.
@@ -199,7 +191,6 @@ const processFoodStockData = (
             emptyRow(item, Number(opening) || 0),
         ]),
     );
-    console.info('ALL ROWS ...:', rows);
 
     const movements = ledgerItems.flatMap(ledgerItem => {
         const question = parseQuestion(ledgerItem.questionName);
@@ -253,7 +244,6 @@ const processFoodStockData = (
                 ledgerItem.createdAt >= countFrom.get(sku)!,
         )
         .forEach(({ ledgerItem, sku, movement }) => {
-            console.info('LEDGER ITEM ....:', ledgerItem);
             const row = rows.get(sku)!;
             const quantity = Number(ledgerItem.value) || 0;
             const values = submissionsById.get(
@@ -269,7 +259,6 @@ const processFoodStockData = (
                 row.lost[lossReason(values)] += quantity;
                 row.lost.total += quantity;
             }
-            console.info('ROW ...:', row);
         });
 
     // Stock at the end of the period, once every movement is counted.

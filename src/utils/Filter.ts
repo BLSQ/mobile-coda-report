@@ -1,6 +1,6 @@
 import Entity from '../entity/Entity';
 import Form from '../entity/Form';
-import { timeStampToDate } from './DateFormatter';
+import { timeStampToDate, toDays } from './DateFormatter';
 import { orderBy } from 'lodash';
 
 const PROGRAM_FIELDS = [
@@ -12,8 +12,26 @@ const PROGRAM_FIELDS = [
     'new_programme',
 ];
 
+// BSFP confirms its transfers to TSFP and OTP with `confirm_tsfp_referral`
+// and `confirm_otp_referral` on its admission and followup forms (Child
+// Under 5 and PBWG).
+const BSFP_REFERRAL_FORMS = [
+    'bsfp_child_visit',
+    'bsfp_child_followup_visit',
+    'bsfp_pbwg_visit',
+    'bsfp_pbwg_followup_visit',
+];
+
+// The BSFP visit confirming a referral sets `_programme` to NONE (the
+// beneficiary leaves BSFP), so it is only linked to BSFP through its form.
+const isBsfpReferralStep = (step: any) =>
+    BSFP_REFERRAL_FORMS.includes(step?.formFormId) &&
+    (isChecked(step?.values?.confirm_tsfp_referral) ||
+        isChecked(step?.values?.confirm_otp_referral));
+
 const isStepLinkedToProgram = (step: any, program: string) =>
-    PROGRAM_FIELDS.some(field => step?.values?.[field]?.includes(program));
+    PROGRAM_FIELDS.some(field => step?.values?.[field]?.includes(program)) ||
+    (program === 'BSFP' && isBsfpReferralStep(step));
 
 // Some forms (e.g. Bangladesh's BSFP-PBWG assistance forms) don't record
 // which program they belong to at all — they can only be attributed to a
@@ -48,13 +66,14 @@ const filterStepsInPeriod = (
                 step?.values?.next_visit__date__ ||
                 step?.values?._display_next_visit,
         );
-        let nextVisitDays =
+        let nextVisitDays = toDays(
             step?.values?.next_visit_days ??
-            step?.values?.number_of_days__int__ ??
-            step?.values?.tsfp_next_visit ??
-            step?.values?.TSFP_next_visit ??
-            step?.values?.otp_next_visit ??
-            step?.values?.OTP_next_visit;
+                step?.values?.number_of_days__int__ ??
+                step?.values?.tsfp_next_visit ??
+                step?.values?.TSFP_next_visit ??
+                step?.values?.otp_next_visit ??
+                step?.values?.OTP_next_visit,
+        );
         const secondNextVisit = timeStampToDate(
             new Date(nextVisitDate).setDate(
                 new Date(nextVisitDate).getDate() + nextVisitDays,
@@ -85,110 +104,9 @@ const visitsDataByStatus = (
 ) => {
     return entities
         .map(row => {
-            let age =
-                row.profile?.values?.age_months ??
-                row.profile?.values?.age ??
-                row.profile?.values?.age__int__;
-
-            let visits = row.visits.filter((visit: any) => {
-                let response = visit?.values[fieldName] === value;
-                let fieldValue = visit?.values && visit?.values[fieldName];
-                switch (fieldName) {
-                    case 'disability_status__bool__':
-                        if (response) {
-                            value = 'yes';
-                            fieldName = 'disability_status';
-                        }
-                        break;
-                    case 'respiratory_rate':
-                        if (
-                            fieldValue &&
-                            ((age <= 12 &&
-                                ![
-                                    '<30',
-                                    '30',
-                                    '3039',
-                                    '4049',
-                                    '30-39',
-                                ].includes(fieldValue)) ||
-                                (age > 12 &&
-                                    !['<30', '30', '3039', '30-39'].includes(
-                                        fieldValue,
-                                    )))
-                        ) {
-                            value = 'poor';
-                            response = true;
-                        }
-                        break;
-                    case 'specify_signs':
-                        response =
-                            visit?.values &&
-                            visit?.values[fieldName]?.includes(value);
-                        break;
-
-                    case 'fully_immunization':
-                        response =
-                            visit?.values &&
-                            visit?.values?.immunization_status === '1';
-
-                        break;
-
-                    case 'not_fully_immunization':
-                        response =
-                            visit?.values &&
-                            visit?.values?.immunization_status === '0';
-                        break;
-
-                    case 'measles_vacc_proof':
-                        response =
-                            visit?.values &&
-                            visit?.values?.measles_vacc === '1';
-                        break;
-
-                    case 'no_measles_vacc_proof':
-                        response =
-                            visit?.values &&
-                            visit?.values?.measles_vacc === '0';
-                        break;
-
-                    case 'apatheticpassive':
-                        response =
-                            visit?.values &&
-                            visit?.values?.state_consciousness ===
-                                'apatheticpassive';
-                        break;
-
-                    case 'skin_infections':
-                        value = fieldValue?.replace(/\[|\]/gi, '').split(',');
-                        response =
-                            (value &&
-                                value.length > 0 &&
-                                !value?.includes('none')) ||
-                            false;
-                        break;
-
-                    case 'lymph_nodes':
-                        value = fieldValue?.replace(/\[|\]/gi, '').split(',');
-                        response =
-                            (value &&
-                                value.length > 0 &&
-                                !value?.includes('none')) ||
-                            false;
-                        break;
-
-                    case 'medical_complications':
-                        response =
-                            fieldValue?.includes(value) ||
-                            visit?.values?.have_complications === '1' ||
-                            visit?.values?.have_complications === 'yes';
-                        break;
-
-                    default:
-                        response = visit?.values[fieldName] === value;
-                        break;
-                }
-                return response;
-            });
+            let visits = row.visits.filter(
+                (visit: any) => visit?.values?.[fieldName] === value,
+            );
             return {
                 ...row,
                 visits: visits,
@@ -198,18 +116,6 @@ const visitsDataByStatus = (
             };
         })
         .filter(row => row.visitsNumber > 0);
-};
-
-const visitsDataByFieldList = (entities: Array<any>, fieldsWithValues: any) => {
-    return Object.keys(fieldsWithValues).map((fieldName: string) => {
-        let value = fieldsWithValues[fieldName];
-        const entitiesWithVisitByStatus = visitsDataByStatus(
-            entities,
-            fieldName,
-            value,
-        );
-        return entitiesWithVisitByStatus;
-    });
 };
 
 const visitsDataByValuesList = (
@@ -226,14 +132,18 @@ const visitsDataByValuesList = (
         return entitiesWithVisitByStatus;
     });
 };
+const isChecked = (value: any) =>
+    value === '1' || value === 1 || value === true || value === 'true';
 
 export {
+    BSFP_REFERRAL_FORMS,
     stepsLinkedToProgram,
     isStepLinkedToProgram,
     isStepWithoutProgram,
     filterStepsInPeriod,
     visitsDataByStatus,
     entitiesByStatus,
-    visitsDataByFieldList,
     visitsDataByValuesList,
+    isChecked,
+    toDays,
 };

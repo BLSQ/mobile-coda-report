@@ -56,5 +56,10 @@ if (appId != null && country == null) {
 country = country ?? 'southSudan';
 
 export const countryConfig: CountryConfig = configs[country];
-export type { CountryConfig, AdmissionTypeMatch } from './types';
+export type {
+    CountryConfig,
+    AdmissionTypeMatch,
+    MedicalSection,
+    MedicalRow,
+} from './types';
 export { foodInitialStock };

@@ -1,11 +1,14 @@
 import Entity from '../entity/Entity';
 import {
+    BSFP_REFERRAL_FORMS,
     stepsLinkedToProgram,
     isStepLinkedToProgram,
     isStepWithoutProgram,
     filterStepsInPeriod,
     entitiesByStatus,
     visitsDataByStatus,
+    isChecked,
+    toDays,
 } from './Filter';
 import { timeStampToDate, removeTime } from './DateFormatter';
 import { keyBy, orderBy, uniqBy } from 'lodash';
@@ -85,6 +88,7 @@ const categoryWithData = (
                 data,
                 category,
                 'Total Follow up',
+                program,
             );
             mainData[category] = [followUps];
             break;
@@ -153,48 +157,49 @@ const categoryWithData = (
                         transferredOut,
                         category,
                         'transferred_out',
+                        program,
                     ),
                     admissionByStatus(
                         entityType,
                         dismissedDueToCheating,
                         category,
                         'dismissed_due_to_cheating',
+                        program,
                     ),
                     admissionByStatus(
                         entityType,
                         voluntary,
                         category,
                         'voluntary',
+                        program,
                     ),
-                    admissionByStatus(entityType, other, category, 'other'),
+                    admissionByStatus(
+                        entityType,
+                        other,
+                        category,
+                        'other',
+                        program,
+                    ),
                 ];
                 break;
             }
-            const absentees = followUpData(
+            // Read off the E-Register exit so the main report counts the same
+            // absentees/defaulters as the Follow-up report: only beneficiaries
+            // of this program in the period (TSFP and OTP share the same
+            // forms), and only when no other exit (cured, transfer...) wins.
+            const registers = eRegister(
                 entities,
                 program,
-                'absentees',
-                entityType,
-            );
-            const allAbsentes = defaulterCases(
-                absentees,
                 startDate,
                 endDate,
-                program,
-            ).filter((entity: any) => entity?.counter === 1);
-
-            const defaulters = followUpData(
-                entities,
-                program,
-                'defaulters',
                 entityType,
             );
-            let defaulted = defaulterCases(
-                defaulters,
-                startDate,
-                endDate,
-                program,
-            ).filter((entity: any) => entity?.counter > 1);
+            const exitsOfType = (exitType: string) =>
+                registers
+                    .filter((entity: any) => entity?.exit_type === exitType)
+                    .map((entity: any) => entity?.exit);
+            const allAbsentes = exitsOfType('absentees');
+            const defaulted = exitsOfType('defaulters');
             const deathCases = visitsDataByStatus(
                 entities,
                 'reason_not_continue',
@@ -207,20 +212,40 @@ const categoryWithData = (
             );
             const cured = visitsDataByStatus(entities, 'cured__bool__', true);
             mainData[category] = [
-                admissionByStatus(entityType, cured, category, 'cured'),
+                admissionByStatus(
+                    entityType,
+                    cured,
+                    category,
+                    'cured',
+                    program,
+                ),
                 admissionByStatus(
                     entityType,
                     allAbsentes,
                     category,
                     'absentees',
+                    program,
                 ),
-                admissionByStatus(entityType, defaulted, category, 'defaulter'),
-                admissionByStatus(entityType, deathCases, category, 'death'),
+                admissionByStatus(
+                    entityType,
+                    defaulted,
+                    category,
+                    'defaulter',
+                    program,
+                ),
+                admissionByStatus(
+                    entityType,
+                    deathCases,
+                    category,
+                    'death',
+                    program,
+                ),
                 admissionByStatus(
                     entityType,
                     non_respondent,
                     category,
                     'non_respondent__int__',
+                    program,
                 ),
             ];
             break;
@@ -248,18 +273,21 @@ const categoryWithData = (
                     withdrawal,
                     category,
                     'voluntarywithdrawal',
+                    program,
                 ),
                 admissionByStatus(
                     entityType,
                     dismissal,
                     category,
                     'dismissedduetocheating',
+                    program,
                 ),
                 admissionByStatus(
                     entityType,
                     transferredout,
                     category,
                     'transferredout',
+                    program,
                 ),
             ];
 
@@ -284,12 +312,14 @@ const categoryWithData = (
                 allFolloWup,
                 category,
                 'Follow Ups',
+                program,
             );
             let totalAdmissions = admissionByStatus(
                 entityType,
                 allAdmissions,
                 category,
                 'Total Admissions',
+                program,
             );
             mainData[category] = [totalFolloWups, totalAdmissions];
 
@@ -332,6 +362,7 @@ const subMainCategoryData = (
                 filteredEntities,
                 category,
                 criteria,
+                program,
             );
             return {
                 ...admissionsByStatus,
@@ -408,6 +439,65 @@ const dataCategory = (
     return rows;
 };
 
+const hasBsfpReferral = (entity: any, field: string) =>
+    (entity?.visits ?? []).some(
+        (visit: any) =>
+            BSFP_REFERRAL_FORMS.includes(visit?.formFormId) &&
+            isChecked(visit?.values?.[field]),
+    );
+
+const hasVisitFlag = (entity: any, field: string) =>
+    (entity?.visits ?? []).some((visit: any) =>
+        isChecked(visit?.values?.[field]),
+    );
+
+// OTP flags its transfer to TSFP with `_transfer_to_tsfp`.
+const isTransferredToTsfp = (entity: any, program: string) =>
+    program === 'BSFP'
+        ? hasBsfpReferral(entity, 'confirm_tsfp_referral')
+        : hasVisitFlag(entity, '_transfer_to_tsfp');
+
+// TSFP flags its transfer to OTP with `_transfer_to_otp`.
+const isTransferredToOtp = (entity: any, program: string) =>
+    program === 'BSFP'
+        ? hasBsfpReferral(entity, 'confirm_otp_referral')
+        : hasVisitFlag(entity, '_transfer_to_otp');
+
+// TSFP and OTP transfer to each other, and BSFP transfers to both: a
+// beneficiary transferred out of the program has exited it, so missed visits
+// afterwards are not absences.
+const isTransferredOut = (entity: any, program: string) => {
+    if (program === 'BSFP') {
+        return (
+            isTransferredToTsfp(entity, program) ||
+            isTransferredToOtp(entity, program)
+        );
+    }
+    if (program?.includes('TSFP')) {
+        return isTransferredToOtp(entity, program);
+    }
+    if (program?.includes('OTP')) {
+        return isTransferredToTsfp(entity, program);
+    }
+    return false;
+};
+
+// TSFP and OTP refer to SC: a beneficiary referred to SC has left the
+// program for inpatient care, so missed visits afterwards are not absences.
+// The SC referral is confirmed on the medical form.
+const FAILURE_TO_GAIN_WEIGHT =
+    'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__';
+
+// The followup forms flag a beneficiary losing weight over 2 visits or not
+// gaining weight over 3 visits.
+const hasFailedToGainWeight = (entity: any) =>
+    hasVisitFlag(entity, FAILURE_TO_GAIN_WEIGHT);
+
+const isReferredToSc = (entity: any) =>
+    (entity?.visits ?? []).some((visit: any) =>
+        isChecked(visit?.values?.confirm_referral_medical_first__bool__),
+    );
+
 const followUpData = (
     entities: Array<Entity>,
     program: string,
@@ -425,6 +515,16 @@ const followUpData = (
         if (beneficiaryType === 'PBWG') {
             forms = countryConfig.pbwgFormsByCategory[status][entityType] ?? [];
         }
+    }
+    if (status === 'absentees' || status === 'defaulters') {
+        entities = entities?.filter(
+            entity =>
+                !isTransferredOut(entity, program) &&
+                !(
+                    (program?.includes('TSFP') || program?.includes('OTP')) &&
+                    isReferredToSc(entity)
+                ),
+        );
     }
     let beneficiariesAdmissions = entities
         ?.map(entity => {
@@ -678,7 +778,6 @@ const defaulterCases = (
         'wfp_coda_pbwg_assistance',
         'child_assistance_admission_2_u6',
         'child_assistance_follow_up_2',
-        'child_antropometric_followUp_tsfp_2',
     ];
     let rows = entities.map(entity => {
         let lastVisitDate = null;
@@ -687,11 +786,11 @@ const defaulterCases = (
             ['createdAt'],
             ['asc'],
         ).filter((visit: any) => assistanceForms.includes(visit?.formFormId));
-        //Keep only 1 assistance by date
-        const assistanceVisitsByDate = uniqBy(assistanceVisits, [
-            'formFormId',
-            'createdAt',
-        ]);
+        //Keep only 1 assistance by form and date
+        const assistanceVisitsByDate = uniqBy(
+            assistanceVisits,
+            (visit: any) => `${visit?.formFormId}|${visit?.createdAt}`,
+        );
         const anthropometricVisits = orderBy(
             entity.visits,
             ['createdAt'],
@@ -701,15 +800,16 @@ const defaulterCases = (
         });
         let counter = 0;
         assistanceVisitsByDate.forEach((visit: any) => {
-            let nextVisitDays =
+            let nextVisitDays = toDays(
                 visit?.values?.next_visit ??
-                visit?.values?.number_of_days__int__ ??
-                visit?.values?.next_visit_days ??
-                visit?.values?.next_visit_date__date__;
+                    visit?.values?.number_of_days__int__ ??
+                    visit?.values?.next_visit_days,
+            );
             const nextVisit =
                 visit?.values?.new_next_visit__date__ ??
                 visit?.values?._display_next_visit ??
-                visit?.values?.next_visit__date__;
+                visit?.values?.next_visit__date__ ??
+                visit?.values?.next_visit_date__date__;
             const nextVisitDate = timeStampToDate(nextVisit);
             const secondNextVisit = new Date(nextVisitDate).setDate(
                 new Date(nextVisitDate).getDate() + nextVisitDays,
@@ -718,12 +818,6 @@ const defaulterCases = (
             const currentDate = timeStampToDate(new Date());
             const currentTime = new Date().getHours();
 
-            console.info(
-                'NEXT VISIT DATE ...:',
-                nextVisitDate,
-                'SECOND VISIT DATE ...:',
-                secondNextVisitDate,
-            );
             //check if the beneficiary missed 1 next visit!
             if (
                 nextVisitDate !== '' &&
@@ -735,12 +829,6 @@ const defaulterCases = (
                         let createdAt = timeStampToDate(
                             visit?.values?.visit_date ??
                                 visit?.values?._visit_date,
-                        );
-                        console.info(
-                            'CURRENT VISIT DATE ...:',
-                            createdAt,
-                            'CURRENT NEXT VISIT ...:',
-                            nextVisitDate,
                         );
                         return createdAt === nextVisitDate;
                     });
@@ -815,7 +903,7 @@ const agregatedBeneficiaryFolloWup = (
         'referral_to_sc_itp',
         'medical_investigation',
         'home_visits',
-        'weight_loss_2_visits_or_no_weight_gain_in_3_visits__int__',
+        'non_respondent',
     ];
 
     let allData: any[] = [];
@@ -830,23 +918,22 @@ const agregatedBeneficiaryFolloWup = (
     registers
         .filter(
             (entity: any) =>
-                entity?.new_admission_type !== '' ||
-                entity?.admissionType !== '' ||
-                entity?.exit?.status !== '',
+                !!entity?.admissionType || entity?.exit_type !== '',
         )
         .forEach((entity: any) => {
-            let admissionType =
-                entity?.new_admission_type !== '' ||
-                entity?.admissionType ||
-                '';
-            let status = entity?.exit?.status ?? '';
+            let admissionType = entity?.admissionType ?? '';
+            let status = entity?.exit_type ?? '';
             const {
                 caretaker_name,
                 caregiver_name,
                 caretaker_Last_name,
                 caregiver_Last_name,
+                caregiver_phone_number,
+                caretaker_phone_number,
                 card_number,
                 health_card,
+                registration_number,
+                path_address,
             } = entity?.profile?.values ?? {};
             let profile = {
                 id: entity?.id,
@@ -858,13 +945,13 @@ const agregatedBeneficiaryFolloWup = (
                 careGiver: `${caretaker_name ?? caregiver_name ?? ''} ${
                     caretaker_Last_name ?? caregiver_Last_name ?? ''
                 }`,
-                registrationNumber: health_card ?? card_number,
+                phoneNumber: caregiver_phone_number ?? caretaker_phone_number,
+                address: path_address,
+                registrationNumber:
+                    health_card ?? card_number ?? registration_number,
             };
 
-            if (
-                allCategories?.includes(status) ||
-                allCategories?.includes(admissionType)
-            ) {
+            if (allCategories?.includes(status)) {
                 allData.push({
                     ...profile,
                     status: status,
@@ -875,6 +962,48 @@ const agregatedBeneficiaryFolloWup = (
                     ...profile,
                     status: admissionType,
                 });
+            }
+            if (entity?.failureToGainWeight) {
+                allData.push({
+                    ...profile,
+                    status: FAILURE_TO_GAIN_WEIGHT,
+                });
+            }
+            // TSFP and OTP refer to SC, and transfer to each other.
+            if (program === 'TSFP' || program === 'OTP') {
+                if (entity?.referralToSc && status !== 'referral_to_sc_itp') {
+                    allData.push({
+                        ...profile,
+                        status: 'referral_to_sc_itp',
+                    });
+                }
+                if (program === 'TSFP' && entity?.transferToOtp) {
+                    allData.push({
+                        ...profile,
+                        status: 'transfer_to_otp',
+                    });
+                }
+                if (program === 'OTP' && entity?.transferToTsfp) {
+                    allData.push({
+                        ...profile,
+                        status: 'transfer_to_tsfp',
+                    });
+                }
+            }
+            // BSFP transfers to TSFP and OTP.
+            if (program === 'BSFP') {
+                if (entity?.transferToTsfp) {
+                    allData.push({
+                        ...profile,
+                        status: 'transfer_to_tsfp',
+                    });
+                }
+                if (entity?.transferToOtp) {
+                    allData.push({
+                        ...profile,
+                        status: 'transfer_to_otp',
+                    });
+                }
             }
         });
     return allData;
@@ -892,4 +1021,8 @@ export {
     defaulterCases,
     agregatedBeneficiaryFolloWup,
     categoryWithData,
+    isReferredToSc,
+    isTransferredToTsfp,
+    isTransferredToOtp,
+    hasFailedToGainWeight,
 };

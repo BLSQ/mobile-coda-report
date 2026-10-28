@@ -62,6 +62,12 @@ const yearMonthToDateFirst = (yearMonth: string) => {
     return new Date(year + '-' + month + '-01')?.toISOString();
 };
 
+// Forms save the days to the next visit as text ("14"), a number, "" or not
+// at all: as an integer, 0 when empty or missing.
+const toDays = (value: any): number => {
+    const days = parseInt(value, 10);
+    return Number.isNaN(days) ? 0 : days;
+}
 export {
     dateFromJson,
     removeTime,
@@ -69,4 +75,5 @@ export {
     timeStampToDateString,
     weekToDateStartMonday,
     yearMonthToDateFirst,
+    toDays
 };
