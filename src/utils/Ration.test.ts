@@ -147,3 +147,23 @@ describe('suppliesByVisit', () => {
         );
     });
 });
+
+describe('suppliesGiven with another ration', () => {
+    it('lists the other ration after the main one', () => {
+        expect(
+            suppliesGiven([
+                visit({
+                    ration_given: 'rusf',
+                    ration_quantity: '14',
+                    another_ration_provided: '1',
+                    other_ration_specify: 'Oil',
+                    other_ration_quantity: 2,
+                    other_ration_unit: 'kg',
+                }),
+            ]),
+        ).toEqual([
+            { type: 'rusf', quantity: 14 },
+            { type: 'Oil (kg)', quantity: 2 },
+        ]);
+    });
+});
