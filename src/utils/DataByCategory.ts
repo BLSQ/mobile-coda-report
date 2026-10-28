@@ -13,7 +13,10 @@ import {
     isTransferredToTsfp,
     isTransferredToOtp,
     hasFailedToGainWeight,
+    assistanceGiven,
 } from './DataFilter';
+import { suppliesGiven, suppliesByVisit } from './Ration';
+import { keyBy } from 'lodash';
 import { timeStampToDateString, removeTime } from './DateFormatter';
 import { countryConfig, MedicalRow } from '../config/country';
 
@@ -379,6 +382,20 @@ const eRegister = (
         'child_antropometric_followUp_tsfp_2',
     ];
 
+    // The assistance visits of the period, as counted in the main report's
+    // Ration table.
+    const assistancesById = keyBy(
+        assistanceGiven(
+            entities,
+            program,
+            startDate,
+            endDate,
+            'rationGiven',
+            entityType,
+        ),
+        'id',
+    );
+
     let beneficiaries = initialData.map(entity => {
         let discharges: any = {
             cured: cured.find(
@@ -445,6 +462,8 @@ const eRegister = (
             anthropometricForms,
             program,
         );
+        const assistanceVisits = assistancesById[entity.id]?.visits ?? [];
+        const visitSupplies = suppliesByVisit(visits, assistanceVisits);
         const exit = discharges[exitType];
         let exitDate = '';
         if (exit) {
@@ -478,7 +497,10 @@ const eRegister = (
                 entity?.profile?.values?.actual_birthday__date__,
             ),
             address: entity?.profile?.values?.path_address,
-            visits: visits,
+            visits: visits.map((visit: any, index: number) => ({
+                ...visit,
+                supplies: visitSupplies[index],
+            })),
             weight:
                 visits[0]?.values?.previous_weight_kgs__decimal__ ||
                 visits[0]?.values?.weight_kgs,
@@ -518,6 +540,7 @@ const eRegister = (
             exitWeight: exit?.exitWeight,
             exitDate: exitDate,
             lengthOfStay: lengthOfStay,
+            supplies: suppliesGiven(assistanceVisits),
             exitMuac:
                 exitType !== '' &&
                 (visits[visits.length - 1]?.values?.muac ??

@@ -7,6 +7,7 @@ import { render, screen, within } from '@testing-library/react';
 import LoadFormsForEntityType from '../Android';
 import { ChildrenUnder5 } from '../report/ChildrenUnder5';
 import { FolloWupCategories } from '../report/FollowUpCategories';
+import { ERegistry } from '../report/ERegistry';
 import Entity from '../entity/Entity';
 import submissions from './fixtures/child_under5.json';
 
@@ -147,6 +148,124 @@ describe('Child Under 5 report, with the forms of the server', () => {
             '1',
             '0',
         ]);
+    });
+
+    describe('e-registry', () => {
+        // The phone sends createdAt as a date string, the fixtures as milliseconds: the
+        // assistance forms record no visit date, so only their createdAt places them in the
+        // period.
+        beforeEach(() => {
+            useSubmissions(
+                submissions.map(row => ({
+                    ...row,
+                    createdAt: new Date(row.createdAt).toString(),
+                })),
+            );
+        });
+
+        // The last cell of the row of the beneficiary named so, then of the rows of its visits.
+        const suppliesOf = (name: string, rowCount: number) => {
+            const rows = screen.getAllByRole('row');
+            const index = rows.findIndex(row =>
+                row.textContent?.includes(name),
+            );
+            return rows.slice(index, index + rowCount).map(row => {
+                const cells = within(row).getAllByRole('cell');
+                return cells[cells.length - 1]?.textContent;
+            });
+        };
+
+        it.each([
+            // Two assistance visits of 14 sachets of RUSF each, one after each anthropometric
+            // visit.
+            ['TSFP', 'Rahim', ['RUSF: 28', 'RUSF: 14', 'RUSF: 14']],
+            // The OTP assistance form records its ration in ration_type_otp.
+            ['OTP', 'Karim', ['RUTF: 3', 'RUTF: 3']],
+        ])(
+            'shows the supplies given to the %s child %s, in total then on each visit',
+            async (program, name, supplies) => {
+                const entities = await loadEntities(CHILD_UNDER_5);
+
+                render(
+                    <div>
+                        {ERegistry(
+                            program,
+                            entities,
+                            START,
+                            END,
+                            CHILD_UNDER_5,
+                            '',
+                        )}
+                    </div>,
+                );
+
+                expect(suppliesOf(name, supplies.length)).toEqual(supplies);
+            },
+        );
+
+        describe('with a ration given on the medical form', () => {
+            // The medical admission of the TSFP child gives 2 sachets of RUSF, besides the
+            // 14 of each of its assistance visits.
+            beforeEach(() => {
+                useSubmissions(
+                    submissions.map(row => ({
+                        ...row,
+                        createdAt: new Date(row.createdAt).toString(),
+                        values:
+                            row.entityId === 'child-tsfp-muac' &&
+                            row.formFormId === 'Child Medical Admission_2_u6'
+                                ? {
+                                      ...row.values,
+                                      ration_type_tsfp: 'rusf',
+                                      quantity: 2,
+                                  }
+                                : row.values,
+                    })),
+                );
+            });
+
+            it('counts it in the Ration section of the main report', async () => {
+                const entities = await loadEntities(CHILD_UNDER_5);
+
+                render(
+                    <div>
+                        {ChildrenUnder5(
+                            entities,
+                            START,
+                            END,
+                            'TSFP',
+                            CHILD_UNDER_5,
+                        )}
+                    </div>,
+                );
+
+                expect(rowOf('RUSF')).toEqual(['RUSF', '30']);
+            });
+
+            it('shows it with the visit it was given on in the e-registry', async () => {
+                const entities = await loadEntities(CHILD_UNDER_5);
+
+                render(
+                    <div>
+                        {ERegistry(
+                            'TSFP',
+                            entities,
+                            START,
+                            END,
+                            CHILD_UNDER_5,
+                            '',
+                        )}
+                    </div>,
+                );
+
+                // The medical admission comes after the first anthropometric visit.
+                expect(suppliesOf('Rahim', 3)).toEqual([
+                    'RUSF: 30',
+                    'RUSF: 16',
+                    'RUSF: 14',
+                ]);
+            });
+        });
     });
 
     describe('followup categories', () => {
