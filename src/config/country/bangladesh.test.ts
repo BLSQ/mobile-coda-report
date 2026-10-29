@@ -194,9 +194,12 @@ describe('bangladesh NSEP support', () => {
 
     it('formsByCategory routes NSEP through both nsep_child_visit and nsep_child_followup_visit, except followUps which is the followup form alone', () => {
         const bothNsepForms = ['nsep_child_visit', 'nsep_child_followup_visit'];
+        // A child moved from NSEP to BSFP gets the NSEP ration on the BSFP forms too.
         const nsepAssistanceForms = [
             'nsep_child_visit_assistance',
             'nsep_child_followup_visit_assistance',
+            'bsfp_child_visit',
+            'bsfp_child_followup_visit',
         ];
         expect(bangladesh.formsByCategory.admission.NSEP).toEqual(
             bothNsepForms,

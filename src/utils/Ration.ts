@@ -6,6 +6,7 @@ import { countryConfig } from '../config/country';
 // ups) must not be counted as a ration of type "undefined".
 const rationTypeOf = (visit: any): string =>
     visit?.values?.ration ||
+    visit?.values?.ration_given ||
     visit?.values?.ration_type ||
     visit?.values?.ration_type_tsfp ||
     visit?.values?.ration_type_otp ||
@@ -39,9 +40,44 @@ const rationQuantityField = (ration: string): string => {
 // record theirs in `quantity` instead of the ration type's own field.
 const quantityOf = (visit: any, field: string): number => {
     const quantity = parseFloat(
-        visit?.values?.[field] ?? visit?.values?.quantity,
+        visit?.values?.[field] ??
+            visit?.values?.main_other_ration_quantity ??
+            visit?.values?.quantity,
     );
     return Number.isNaN(quantity) ? 0 : quantity;
+};
+
+// The other ration given at a visit besides its main one (e.g. Bangladesh's
+// BSFP/NSEP "another ration provided"), named with what was typed in and
+// its unit, or null when there is none.
+const otherRationOf = (visit: any) => {
+    const values = visit?.values;
+    const name = `${values?.other_ration_specify ?? ''}`.trim();
+    if (!name || `${values?.another_ration_provided}` === '0') {
+        return null;
+    }
+    const unit = values?._other_ration_unit_label || values?.other_ration_unit;
+    const quantity = parseFloat(values?.other_ration_quantity);
+    return {
+        type: unit ? `${name} (${unit})` : name,
+        quantity: Number.isNaN(quantity) ? 0 : quantity,
+    };
+};
+
+// The total quantity of each other ration given over these visits, in the
+// order each was first given.
+const otherRationsGiven = (visits: Array<any>) => {
+    const totals = new Map<string, number>();
+    visits.forEach(visit => {
+        const other = otherRationOf(visit);
+        if (other) {
+            totals.set(
+                other.type,
+                (totals.get(other.type) ?? 0) + other.quantity,
+            );
+        }
+    });
+    return Array.from(totals, ([type, quantity]) => ({ type, quantity }));
 };
 
 // The quantity of ration given at a visit. Some forms (e.g. Bangladesh's
@@ -55,19 +91,21 @@ const rationQuantityOf = (visit: any): number =>
     );
 
 // The total quantity of each ration type given over these visits, in the
-// order each type was first given.
+// order each type was first given, then of each other ration.
 const suppliesGiven = (visits: Array<any>) => {
     const visitsByType = groupBy(
         visits.filter(visit => !!rationTypeOf(visit)),
         rationTypeOf,
     );
-    return Object.entries(visitsByType).map(([type, visitsOfType]) => ({
-        type,
-        quantity: visitsOfType.reduce(
-            (total: number, visit: any) => total + rationQuantityOf(visit),
-            0,
-        ),
-    }));
+    return Object.entries(visitsByType)
+        .map(([type, visitsOfType]) => ({
+            type,
+            quantity: visitsOfType.reduce(
+                (total: number, visit: any) => total + rationQuantityOf(visit),
+                0,
+            ),
+        }))
+        .concat(otherRationsGiven(visits));
 };
 
 const timeOf = (visit: any): number => new Date(visit?.createdAt).getTime();
@@ -100,6 +138,9 @@ export {
     rationTypeOf,
     rationQuantityField,
     quantityOf,
+    rationQuantityOf,
+    otherRationOf,
+    otherRationsGiven,
     suppliesGiven,
     suppliesByVisit,
 };
