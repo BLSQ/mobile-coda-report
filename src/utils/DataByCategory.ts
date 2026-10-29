@@ -555,7 +555,7 @@ const eRegister = (
                 removeTime(entity?.profile?.createdAt).getTime();
             lengthOfStay = Math.round(duration / (1000 * 3600 * 24));
         }
-        const { path_address, current_ou_name, org_unit_name } =
+        const { path_address, current_ou_name, org_unit_name, facility_name } =
             entity?.profile?.values ?? {};
         return {
             ...entity,
@@ -574,6 +574,7 @@ const eRegister = (
                 path_address ??
                 current_ou_name ??
                 org_unit_name ??
+                facility_name ??
                 entity?.profile?.orgUnitName,
             visits: visits.map((visit: any, index: number) => ({
                 ...visit,
