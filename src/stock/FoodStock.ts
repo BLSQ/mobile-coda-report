@@ -4,6 +4,7 @@ import FoodStockItem, {
 } from './FoodStockItem';
 import { foodInitialStock } from '../config/country';
 import { callStockBridge } from './StockBridge';
+import { addQuantities, noQuantity, submissionQuantity } from './FoodQuantity';
 //import FAKE_DATA from '../fake/FakeData';
 //import FAKE_LOCAL_HF from '../fake/FakeLocalHealthFacility';
 
@@ -108,7 +109,6 @@ const loadFoodStockSubmissions = (orgUnitId: string): FoodStockSubmission[] => {
                 ),
         );
         //const submissions = JSON.parse(FAKE_DATA);
-        //console.info('SUBMISSIONS ...', submissions);
         return Array.isArray(submissions)
             ? submissions.filter(
                   submission => submission?.formFormId === FOOD_STOCK_FORM,
@@ -137,14 +137,18 @@ const batchKey = (fields: ReturnType<typeof batchFields>) =>
     ]);
 
 const noMovements = (): FoodStockMovements => ({
-    received: 0,
-    transferred: { loanAndBorrowing: 0, other: 0, total: 0 },
+    received: noQuantity(),
+    transferred: {
+        loanAndBorrowing: noQuantity(),
+        other: noQuantity(),
+        total: noQuantity(),
+    },
     lost: {
-        infestation: 0,
-        expired: 0,
-        stolen: 0,
-        other: 0,
-        total: 0,
+        infestation: noQuantity(),
+        expired: noQuantity(),
+        stolen: noQuantity(),
+        other: noQuantity(),
+        total: noQuantity(),
     },
 });
 
@@ -165,19 +169,36 @@ const quantities = (values: any, commodity: string) => ({
     lost: Number(values?.[`total_${commodity}_losses`]) || 0,
 });
 
+// Adds the quantity moved by a submission, in sachets, boxes, kg and metric
+// tons as recorded on it, to the movement of its activity.
 const addMovements = (
     target: FoodStockMovements,
     values: any,
     { received, transferred, lost }: ReturnType<typeof quantities>,
 ) => {
-    target.received += received;
+    if (received) {
+        target.received = addQuantities(
+            target.received,
+            submissionQuantity(values, received),
+        );
+    }
     if (transferred) {
-        target.transferred[transferReason(values)] += transferred;
-        target.transferred.total += transferred;
+        const quantity = submissionQuantity(values, transferred);
+        const reason = transferReason(values);
+        target.transferred[reason] = addQuantities(
+            target.transferred[reason],
+            quantity,
+        );
+        target.transferred.total = addQuantities(
+            target.transferred.total,
+            quantity,
+        );
     }
     if (lost) {
-        target.lost[lossReason(values)] += lost;
-        target.lost.total += lost;
+        const quantity = submissionQuantity(values, lost);
+        const reason = lossReason(values);
+        target.lost[reason] = addQuantities(target.lost[reason], quantity);
+        target.lost.total = addQuantities(target.lost.total, quantity);
     }
 };
 
@@ -258,9 +279,9 @@ const processFoodStockData = (
             // counted.
             end:
                 item.opening +
-                item.received -
-                item.transferred.total -
-                item.lost.total,
+                item.received.sachets -
+                item.transferred.total.sachets -
+                item.lost.total.sachets,
             batches: Array.from(item.batches.values())
                 .map(batch => ({
                     ...batch,
