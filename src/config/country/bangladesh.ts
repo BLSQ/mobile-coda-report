@@ -7,6 +7,7 @@ import {
     complicationRows,
     SOUTH_SUDAN_COMPLICATIONS,
 } from './medical';
+import { admissionTypeOf } from './admission';
 import southSudan from './southSudan';
 import { bsfpnsepAdmissionTypesByCategory } from './bsfpnsep';
 
@@ -70,7 +71,7 @@ const matchAdmissionType = (
 ): AdmissionTypeMatch | null => {
     const criteria = OWN_CRITERIA[baseType];
     if (criteria != null && beneficiaryType === 'Child Under 5') {
-        return values?.admission_type === baseType
+        return admissionTypeOf(values) === baseType
             ? { baseType, criteria }
             : null;
     }
@@ -78,7 +79,7 @@ const matchAdmissionType = (
         // NSEP types carry no separate criteria field — '' here must match
         // the '' NSEP_TYPE_CRITERIA declares for the same baseType below,
         // since a report row only renders when the two agree.
-        return values?.admission_type === baseType
+        return admissionTypeOf(values) === baseType
             ? { baseType, criteria: '' }
             : null;
     }
@@ -90,7 +91,7 @@ const matchAdmissionType = (
         // Checked only when program === 'BSFP': 'new_case' etc. mean
         // something different (and criteria-bearing) for TSFP-PBWG, which
         // must keep falling through to South Sudan's matcher below.
-        return values?.admission_type === baseType
+        return admissionTypeOf(values) === baseType
             ? { baseType, criteria: '' }
             : null;
     }
@@ -209,9 +210,12 @@ const bsfpAssistanceForms = [
 // separate followup form only covers follow-up visits and ration given.
 const nsepAdmissionForms = ['nsep_child_visit'];
 const nsepFollowupForms = ['nsep_child_followup_visit'];
+// NSEP assistance could also come from BSFP forms when a beneficiary moved from NSEP to BSFP
 const nsepAssistanceForms = [
     'nsep_child_visit_assistance',
     'nsep_child_followup_visit_assistance',
+    'bsfp_child_visit',
+    'bsfp_child_followup_visit',
 ];
 
 const formsByCategory: Record<string, Record<string, string[]>> = {
@@ -245,9 +249,10 @@ const formsByCategory: Record<string, Record<string, string[]>> = {
         BSFP: bsfpAdmissionForms.concat(bsfpFollowupForms),
         NSEP: nsepAdmissionForms.concat(nsepFollowupForms),
     },
+    // The medical forms also give rations, besides the assistance forms.
     rationGiven: {
-        TSFP: childUnder5AssistanceForms,
-        OTP: childUnder5AssistanceForms,
+        TSFP: childUnder5AssistanceForms.concat(childUnder5MedicalForms),
+        OTP: childUnder5AssistanceForms.concat(childUnder5MedicalForms),
         BSFP: bsfpAdmissionForms.concat(
             bsfpFollowupForms.concat(bsfpAssistanceForms),
         ),
@@ -320,8 +325,9 @@ const pbwgFormsByCategory: Record<string, Record<string, string[]>> = {
         TSFP: pbwgAdmissionForms.concat(pbwgFollowUpForms),
         BSFP: bsfpPbwgAdmissionForms.concat(bsfpPbwgFollowupForms),
     },
+    // The medical forms also give rations, besides the assistance forms.
     rationGiven: {
-        TSFP: pbwgAssistanceForms,
+        TSFP: pbwgAssistanceForms.concat(pbwgMedicalForms),
         BSFP: bsfpPbwgAdmissionForms.concat(
             bsfpPbwgFollowupForms.concat(bsfpPbwgAssistanceForms),
         ),
@@ -374,7 +380,9 @@ const bsfpPbwgAdmissionTypesByCategory: Record<string, string[]> = {
 // assistanceGiven (DataFilter.ts) only consults this once those 3 come
 // back empty, so it doesn't affect any program that does use one of them.
 const resolveRationType = (values: any): string | undefined =>
-    values?.ration_given ?? values?.assistance_given;
+    values?.ration_given ??
+    values?.assistance_other_specify ??
+    values?.assistance_given;
 
 const yes = (field: string) => is(field, '1');
 
@@ -453,6 +461,17 @@ const childUnder5MedicalSections: MedicalSection[] = [
     },
 ];
 
+// The BSFP and NSEP visit forms book the next visit themselves, so the
+// eRegister reads each as both the visit and its booking.
+const eRegisterVisitForms = [
+    ...bsfpAdmissionForms,
+    ...bsfpFollowupForms,
+    ...nsepAdmissionForms,
+    ...nsepFollowupForms,
+    ...bsfpPbwgAdmissionForms,
+    ...bsfpPbwgFollowupForms,
+];
+
 const bangladesh: CountryConfig = {
     screeningForms,
     formsByCategory,
@@ -461,6 +480,7 @@ const bangladesh: CountryConfig = {
     pbwgAdmissionTypesByCategory,
     bsfpnsepAdmissionTypesByCategory,
     bsfpPbwgAdmissionTypesByCategory,
+    eRegisterVisitForms,
     entityTypeByProgram,
     admissionTypeWithCriteria,
     matchAdmissionType,

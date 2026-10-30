@@ -1,6 +1,28 @@
 .App {
     width: 100%;
     height: 100%;
+    padding-bottom: 100px;
+    box-sizing: border-box;
+}
+
+@media print {
+    .App {
+        padding-bottom: 0;
+    }
+}
+
+/* The Food items table scrolls both ways under its sticky header, within
+   the screen and clear of the print button; printed, it shows all its rows. */
+.food-items-table {
+    overflow: auto;
+    max-height: calc(100vh - 100px);
+}
+
+@media print {
+    .food-items-table {
+        overflow: visible;
+        max-height: none;
+    }
 }
 
 button.back {
@@ -124,4 +146,23 @@ td.align {
     .pagination {
         flex-direction: column;
     }
+}
+
+/* Supplies given in the E-Register: one item per line, separated by a rule. */
+.supply {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 6px;
+    padding: 3px 4px;
+    text-align: left;
+}
+
+.supply + .supply {
+    border-top: 3px dashed #555;
+}
+
+.supply-quantity {
+    font-weight: 600;
+    white-space: nowrap;
 }

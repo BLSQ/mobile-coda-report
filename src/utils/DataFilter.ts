@@ -19,6 +19,7 @@ import {
     admissionByStatus,
 } from './DataByCategory';
 import { groupBy } from './Array';
+import { rationTypeOf, otherRationOf } from './Ration';
 import { countryConfig } from '../config/country';
 
 const entitiesWithVisits = (
@@ -131,56 +132,24 @@ const categoryWithData = (
                 // distinct from every other program's cured/death/
                 // defaulter/non_respondent shape above — rendered via
                 // BsfpPbwgDischargeSummary, not the generic Summary().
-                const transferredOut = visitsDataByStatus(
-                    entities,
-                    'reason_not_continue',
-                    'transferred_out',
-                );
-                const dismissedDueToCheating = visitsDataByStatus(
-                    entities,
-                    'reason_not_continue',
-                    'dismissed_due_to_cheating',
-                );
-                const voluntary = visitsDataByStatus(
-                    entities,
-                    'reason_not_continue',
-                    'voluntary',
-                );
-                const other = visitsDataByStatus(
-                    entities,
-                    'reason_not_continue',
-                    'other',
-                );
-                mainData[category] = [
-                    admissionByStatus(
-                        entityType,
-                        transferredOut,
-                        category,
+                const rowsByValue = (rows: Array<[string, any, string]>) =>
+                    rows.map(([field, value, label]) =>
+                        admissionByStatus(
+                            entityType,
+                            visitsDataByStatus(entities, field, value),
+                            category,
+                            label,
+                            program,
+                        ),
+                    );
+                mainData[category] = rowsByValue(
+                    [
                         'transferred_out',
-                        program,
-                    ),
-                    admissionByStatus(
-                        entityType,
-                        dismissedDueToCheating,
-                        category,
                         'dismissed_due_to_cheating',
-                        program,
-                    ),
-                    admissionByStatus(
-                        entityType,
-                        voluntary,
-                        category,
                         'voluntary',
-                        program,
-                    ),
-                    admissionByStatus(
-                        entityType,
-                        other,
-                        category,
                         'other',
-                        program,
-                    ),
-                ];
+                    ].map(reason => ['reason_not_continue', reason, reason]),
+                );
                 break;
             }
             // Read off the E-Register exit so the main report counts the same
@@ -544,16 +513,6 @@ const followUpData = (
         .filter(entity => entity.visitsNumber > 0);
     return beneficiariesAdmissions;
 };
-// A visit's ration type, or undefined when it records none — forms that
-// share a rationGiven list without recording a ration (e.g. anthropometric
-// follow ups) must not be counted as a ration of type "undefined".
-const rationTypeOf = (visit: any): string =>
-    visit?.values?.ration ||
-    visit?.values?.ration_type ||
-    visit?.values?.ration_type_tsfp ||
-    countryConfig.resolveRationType?.(visit?.values) ||
-    '';
-
 const assistanceGiven = (
     entities: Array<Entity>,
     program: string,
@@ -604,7 +563,7 @@ const assistanceGiven = (
                 );
                 return (
                     forms.includes(visit?.formFormId) &&
-                    !!rationTypeOf(visit) &&
+                    (!!rationTypeOf(visit) || !!otherRationOf(visit)) &&
                     ((startPeriod <= createdAt && endPeriod >= createdAt) ||
                         (startPeriod <= visitDate && endPeriod >= visitDate))
                 );
@@ -767,6 +726,7 @@ const defaulterCases = (
         'wfp_coda_pbwg_anthropometric',
         'Anthropometric visit child_U6',
         'child_antropometric_followUp_tsfp_2',
+        ...(countryConfig.eRegisterVisitForms ?? []),
     ];
     const assistanceForms = [
         'child_assistance_admission',
@@ -778,6 +738,7 @@ const defaulterCases = (
         'wfp_coda_pbwg_assistance',
         'child_assistance_admission_2_u6',
         'child_assistance_follow_up_2',
+        ...(countryConfig.eRegisterVisitForms ?? []),
     ];
     let rows = entities.map(entity => {
         let lastVisitDate = null;
@@ -809,6 +770,7 @@ const defaulterCases = (
                 visit?.values?.new_next_visit__date__ ??
                 visit?.values?._display_next_visit ??
                 visit?.values?.next_visit__date__ ??
+                visit?.values?.new_next_visit_date__date__ ??
                 visit?.values?.next_visit_date__date__;
             const nextVisitDate = timeStampToDate(nextVisit);
             const secondNextVisit = new Date(nextVisitDate).setDate(
@@ -933,7 +895,6 @@ const agregatedBeneficiaryFolloWup = (
                 card_number,
                 health_card,
                 registration_number,
-                path_address,
             } = entity?.profile?.values ?? {};
             let profile = {
                 id: entity?.id,
@@ -946,7 +907,7 @@ const agregatedBeneficiaryFolloWup = (
                     caretaker_Last_name ?? caregiver_Last_name ?? ''
                 }`,
                 phoneNumber: caregiver_phone_number ?? caretaker_phone_number,
-                address: path_address,
+                address: entity?.address,
                 registrationNumber:
                     health_card ?? card_number ?? registration_number,
             };

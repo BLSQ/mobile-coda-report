@@ -1,4 +1,5 @@
 import { defaulterCases } from './DataFilter';
+import { reportConfig } from '../config/reportConfig';
 
 const day = (offset: number) => {
     const date = new Date();
@@ -50,5 +51,24 @@ describe('defaulterCases', () => {
                 visit('child_antropometric_followUp_tsfp_2', -3, {}),
             ]),
         ).toBe(0);
+    });
+});
+
+describe('South Sudan eRegister', () => {
+    const reportKeys = (entityType: string, program: string) =>
+        reportConfig
+            .find(option => option.key === entityType)
+            ?.programs?.find(option => option.key === program)
+            ?.reportOptions?.map(option => option.key);
+
+    it('is not offered for BSFP and NSEP', () => {
+        expect(reportKeys('Child Under 5', 'BSFP')).not.toContain(
+            'BSFP_eRegister',
+        );
+        expect(reportKeys('Child Under 5', 'NSEP')).not.toContain(
+            'NSEP_eRegister',
+        );
+        expect(reportKeys('PBWG', 'BSFP')).not.toContain('PBWG_BSFP_eRegister');
+        expect(reportKeys('Child Under 5', 'TSFP')).toContain('TSFP_eRegister');
     });
 });

@@ -37,6 +37,10 @@ export interface CountryConfig {
     pbwgAdmissionTypesByCategory: Record<string, string[]>;
     bsfpnsepAdmissionTypesByCategory?: Record<string, string[]>;
     bsfpPbwgAdmissionTypesByCategory?: Record<string, string[]>;
+    // Visit forms that both record a visit and book the next one, read by
+    // the eRegister (Bangladesh's BSFP and NSEP). Only a country defining
+    // them offers the BSFP and NSEP eRegister.
+    eRegisterVisitForms?: string[];
     entityTypeByProgram: (program: string, type: string) => string;
     admissionTypeWithCriteria: (
         program: string,

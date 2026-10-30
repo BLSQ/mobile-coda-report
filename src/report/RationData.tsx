@@ -1,5 +1,12 @@
-import { categoryDictionary, sumByFieldValues } from '../utils/Array';
-import { groupBy } from 'lodash';
+import { categoryDictionary } from '../utils/Array';
+import { groupBy, sumBy } from 'lodash';
+import {
+    rationTypeOf,
+    rationQuantityField,
+    quantityOf,
+    rationQuantityOf,
+    otherRationsGiven,
+} from '../utils/Ration';
 
 const table = {
     margin: 'auto',
@@ -18,32 +25,10 @@ const DEFAULT_RATION_TYPES: string[] = [
     'lns_mq',
 ];
 
-const defaultQuantityField = (ration: string): string => {
-    if (['csb', 'csb1', 'csb2'].includes(ration)) {
-        return '_csb_packets';
-    }
-    if (ration === 'lndf') {
-        return '_lndf_kgs';
-    }
-    if (ration === 'wsb') {
-        return '_wsb_packets';
-    }
-    if (ration === 'wsbp') {
-        return '_wsbp_packets';
-    }
-    if (ration === 'cash_voucher') {
-        return '_cash_total';
-    }
-    if (ration === 'in_kind') {
-        return 'ration_quantity';
-    }
-    return '_total_number_of_sachets';
-};
-
 // `rationTypes` lets a program restrict which ration rows it shows (e.g.
 // NSEP only ever records rusf/wsbp/lns_mq) instead of always listing every
 // ration type this app knows about, most of which would just show 0 for
-// that program. `quantityField`, when given, overrides defaultQuantityField
+// that program. `quantityField`, when given, overrides rationQuantityField
 // for every type this call shows (e.g. Bangladesh's BSFP report reads
 // rusf/wsbp/lns_mq quantities from a single ration_quantity field, unlike
 // NSEP's per-type field names for those same 3 ration types). Both are
@@ -52,20 +37,31 @@ const defaultQuantityField = (ration: string): string => {
 const RationData = (props: any): any => {
     const { rationTypes, quantityField, ...entities } = props ?? {};
     const types: string[] = rationTypes ?? DEFAULT_RATION_TYPES;
-    let groupRationByType = groupBy({ ...entities }, 'ration');
-    const rations = types.map((ration: string) => {
-        let rows = groupRationByType[ration] ?? [];
-        let assistanceVisits = rows.reduce(
-            (value: any, row: any) => value.concat(row.visits),
-            [],
-        );
-        let fieldName = quantityField ?? defaultQuantityField(ration);
-        let quantity = sumByFieldValues(assistanceVisits, fieldName);
-        return {
-            type: categoryDictionary(ration),
-            quantity: quantity,
-        };
+    // A beneficiary can be given several ration types (e.g. one on the
+    // medical form, another on the assistance form), so each visit is
+    // counted under its own.
+    const visits = Object.values(entities).flatMap(
+        (row: any) => row?.visits ?? [],
+    );
+    const visitsByType = groupBy(visits, rationTypeOf);
+    // The program's ration types are always listed; any other ration type
+    // given in the period follows, then the other rations typed in.
+    const givenTypes = Object.keys(visitsByType).filter(
+        ration => !!ration && !types.includes(ration),
+    );
+    const total = (ration: string, quantity: (visit: any) => number) => ({
+        type: categoryDictionary(ration) ?? ration,
+        quantity: sumBy(visitsByType[ration] ?? [], quantity),
     });
+    const rations = types
+        .map(ration => {
+            const fieldName = quantityField ?? rationQuantityField(ration);
+            return total(ration, visit => quantityOf(visit, fieldName));
+        })
+        // Each visit of another type keeps its own quantity field (e.g.
+        // cash in _cash_total), whatever the program's quantityField.
+        .concat(givenTypes.map(ration => total(ration, rationQuantityOf)))
+        .concat(otherRationsGiven(visits));
 
     return (
         <table style={table}>

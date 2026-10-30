@@ -38,7 +38,7 @@ const foodInitialStock = (date: string, orgUnitId: string) => {
             // @ts-ignore Android is injected globally by the native WebView bridge
             Android.getStockValueAt(date, orgUnitId),
         );
-        //const stocks = JSON.parse(DEFAULT_STOCK)
+        //const stocks = JSON.parse(DEFAULT_STOCK);
         return stocks;
     } catch {
         return null;

@@ -3,6 +3,7 @@ import {
     visitsDataByValuesList,
     visitsDataByStatus,
     isChecked,
+    stepsLinkedToProgram,
 } from './Filter';
 import {
     filterDataOnProgram,
@@ -13,9 +14,20 @@ import {
     isTransferredToTsfp,
     isTransferredToOtp,
     hasFailedToGainWeight,
+    assistanceGiven,
 } from './DataFilter';
-import { timeStampToDateString, removeTime } from './DateFormatter';
-import { countryConfig, MedicalRow } from '../config/country';
+import { suppliesGiven, suppliesByVisit } from './Ration';
+import { keyBy } from 'lodash';
+import {
+    timeStampToDate,
+    timeStampToDateString,
+    removeTime,
+} from './DateFormatter';
+import { countryConfig, MedicalRow, MedicalSection } from '../config/country';
+import {
+    admissionTypeOf,
+    admissionCriteriaOf,
+} from '../config/country/admission';
 
 const pbwgMedicalStatusByCategory: any = {
     Malaria: ['positive', 'negative'],
@@ -24,24 +36,29 @@ const pbwgMedicalStatusByCategory: any = {
     'Breastfeeding problems': ['yes', 'no'],
     'Referred for treatment': ['yes', 'no'],
 };
+const profilePhysiologyStatus = (entity: any): string | undefined =>
+    entity.profile?.values?.physiology_status;
+
+// By default a woman's physiology status and age are the ones of her
+// profile; a report can read them elsewhere (e.g. IYCF, from the form).
 const admissionPBWGByStatus = (
     entities: Array<any>,
     status: string,
     key: string,
+    physiologyOf: (entity: any) => string | undefined = profilePhysiologyStatus,
+    ageOf: (entity: any) => number | undefined = getBeneficiaryAge,
 ) => {
     let pregnant = entities?.filter(
-        (entity: any) =>
-            entity.profile?.values?.physiology_status === 'pregnant',
+        (entity: any) => physiologyOf(entity) === 'pregnant',
     );
     let lactating = entities?.filter(
-        (entity: any) =>
-            entity.profile?.values?.physiology_status === 'breastfeeding',
+        (entity: any) => physiologyOf(entity) === 'breastfeeding',
     );
 
     const count = (group: Array<any>, ageCheck: (age: number) => boolean) =>
         ['Total Follow up', 'Follow Ups'].includes(status)
-            ? sumByAgeOnField(group, ageCheck, 'visitsNumber')
-            : sumByAge(group, ageCheck);
+            ? sumByAgeOnField(group, ageCheck, 'visitsNumber', ageOf)
+            : sumByAge(group, ageCheck, ageOf);
 
     const byPhysiology = (ageCheck: (age: number) => boolean) => [
         count(pregnant, ageCheck),
@@ -272,6 +289,34 @@ const splitByText = (row: MedicalRow, entities: Array<any>) => {
         : [{ label: row.label, entities: [] }];
 };
 
+// Splits the beneficiaries of a report row into its columns, e.g.
+// admissionChildUnder5ByStatus (age and gender) or admissionPBWGByStatus
+// (age and physiology status).
+type RowCounter = (entities: Array<any>, status: string, label: string) => any;
+
+const childUnder5Counter =
+    (withUnder6: boolean): RowCounter =>
+    (entities, status, label) =>
+        admissionChildUnder5ByStatus(entities, status, label, withUnder6);
+
+// The tables of a sectioned report (medical, IYCF): each row counts the
+// beneficiaries with a visit matching it. In a "Follow Ups" section, the
+// matching visits are counted instead.
+const sectionsReport = (
+    entities: Array<any>,
+    sections: MedicalSection[],
+    countRow: RowCounter,
+) =>
+    sections.map(section => ({
+        category: section.title,
+        rows: section.rows
+            .flatMap(row => splitByText(row, entitiesMatching(entities, row)))
+            .map(({ label, entities }) => ({
+                ...countRow(entities, section.title, label),
+                label,
+            })),
+    }));
+
 const childrenUnder5MedicalReport = (
     entities: Array<any>,
     program: string,
@@ -285,22 +330,11 @@ const childrenUnder5MedicalReport = (
         endDate,
     );
     let rows = followUpData(initialData, program, 'medicals', 'Child Under 5');
-    const withUnder6 = hasUnder6Column(program);
-
-    return countryConfig.childUnder5MedicalSections.map(section => ({
-        category: section.title,
-        rows: section.rows
-            .flatMap(row => splitByText(row, entitiesMatching(rows, row)))
-            .map(({ label, entities }) => ({
-                ...admissionChildUnder5ByStatus(
-                    entities,
-                    section.title,
-                    label,
-                    withUnder6,
-                ),
-                label,
-            })),
-    }));
+    return sectionsReport(
+        rows,
+        countryConfig.childUnder5MedicalSections,
+        childUnder5Counter(hasUnder6Column(program)),
+    );
 };
 
 const medicalReports = (
@@ -335,6 +369,39 @@ const medicalReports = (
         ),
     }));
 };
+
+// The beneficiary's admission visit to the program, wherever it is from the
+// period: the latest one up to the end of the period, so a readmission in
+// the period wins over the first admission and a period with only
+// follow-ups still gets it (e.g. BSFP PBWG, whose registration has no
+// admission type); else the first one after the period.
+const admissionVisitOf = (entity: any, program: string, endDate: Date) => {
+    const endPeriod = timeStampToDate(endDate.toISOString());
+    const admissions = stepsLinkedToProgram(
+        entity?.visits ?? [],
+        program,
+    ).filter((visit: any) => admissionTypeOf(visit?.values));
+    const untilEnd = admissions.filter(
+        (visit: any) => timeStampToDate(visit?.createdAt) <= endPeriod,
+    );
+    return untilEnd[untilEnd.length - 1] ?? admissions[0];
+};
+
+// The criteria of the admission, as the main report reads it: some forms
+// bake it into the admission type (e.g. Bangladesh's new_case_MUAC).
+const admissionCriteriaOfVisit = (
+    visit: any,
+    beneficiaryType: string,
+    program: string,
+) =>
+    (visit &&
+        countryConfig.matchAdmissionType(
+            visit.values,
+            admissionTypeOf(visit.values),
+            beneficiaryType,
+            program,
+        )?.criteria) ||
+    admissionCriteriaOf(visit?.values);
 
 const eRegister = (
     entities: Array<any>,
@@ -377,7 +444,24 @@ const eRegister = (
         'wfp_coda_pbwg_anthropometric',
         'Anthropometric visit child_U6',
         'child_antropometric_followUp_tsfp_2',
+        ...(countryConfig.eRegisterVisitForms ?? []),
     ];
+
+    // The assistance visits of the period, as counted in the main report's
+    // Ration table.
+    const assistancesById = keyBy(
+        assistanceGiven(
+            entities,
+            program,
+            startDate,
+            endDate,
+            'rationGiven',
+            entityType,
+        ),
+        'id',
+    );
+
+    const entitiesById = keyBy(entities, 'id');
 
     let beneficiaries = initialData.map(entity => {
         let discharges: any = {
@@ -438,6 +522,11 @@ const eRegister = (
         const transferToOtp = isTransferredToOtp(entity, program);
         const transferToTsfp = isTransferredToTsfp(entity, program);
         const failureToGainWeight = hasFailedToGainWeight(entity);
+        const admissionVisit = admissionVisitOf(
+            entitiesById[entity.id],
+            program,
+            endDate,
+        );
         const visits = visitsLinkedToForms(
             startDate,
             endDate,
@@ -445,6 +534,8 @@ const eRegister = (
             anthropometricForms,
             program,
         );
+        const assistanceVisits = assistancesById[entity.id]?.visits ?? [];
+        const visitSupplies = suppliesByVisit(visits, assistanceVisits);
         const exit = discharges[exitType];
         let exitDate = '';
         if (exit) {
@@ -464,6 +555,8 @@ const eRegister = (
                 removeTime(entity?.profile?.createdAt).getTime();
             lengthOfStay = Math.round(duration / (1000 * 3600 * 24));
         }
+        const { path_address, current_ou_name, org_unit_name, facility_name } =
+            entity?.profile?.values ?? {};
         return {
             ...entity,
             firstName: entity?.profile?.values?.first_name,
@@ -477,29 +570,42 @@ const eRegister = (
             birth_date: timeStampToDateString(
                 entity?.profile?.values?.actual_birthday__date__,
             ),
-            address: entity?.profile?.values?.path_address,
-            visits: visits,
+            address:
+                path_address ??
+                current_ou_name ??
+                org_unit_name ??
+                facility_name ??
+                entity?.profile?.orgUnitName,
+            visits: visits.map((visit: any, index: number) => ({
+                ...visit,
+                supplies: visitSupplies[index],
+            })),
+            // The admission columns are read off the admission visit, even
+            // outside the period, then off the first visit of the period.
+            admissionVisit: admissionVisit,
             weight:
+                admissionVisit?.values?.previous_weight_kgs__decimal__ ||
+                admissionVisit?.values?.weight_kgs ||
                 visits[0]?.values?.previous_weight_kgs__decimal__ ||
                 visits[0]?.values?.weight_kgs,
             muac: visits[0]?.values?.muac,
-            whzScore: visits[0]?.values?._whz_score,
+            whzScore:
+                admissionVisit?.values?._whz_score ??
+                visits[0]?.values?._whz_score,
             admissionType:
-                entity?.visitLinkedToProgram?.values?.new_admission_type ??
-                entity?.visitLinkedToProgram?.values?.admission_type ??
-                visits[0]?.values?.new_admission_type ??
-                visits[0]?.values?.admission_type ??
-                visits[0]?.values?.admission_type_yellow ??
-                visits[0]?.values?.admission_type_red ??
-                entity?.profile?.values?.admission_type,
+                admissionTypeOf(admissionVisit?.values) ??
+                admissionTypeOf(entity?.visitLinkedToProgram?.values) ??
+                admissionTypeOf(visits[0]?.values) ??
+                admissionTypeOf(entity?.profile?.values),
             admissionChoice:
-                entity?.visitLinkedToProgram?.values?.admission_criteria ??
-                entity?.visitLinkedToProgram?.values?.admission_choice ??
-                visits[0]?.values?.admission_choice ??
-                visits[0]?.values?.admission_criteria_yellow ??
-                visits[0]?.values?.admission_criteria_red ??
-                visits[0]?.values?.admission_criteria ??
-                entity?.profile?.values?.admission_choice,
+                admissionCriteriaOfVisit(
+                    admissionVisit,
+                    entity?.entityTypeName,
+                    program,
+                ) ??
+                admissionCriteriaOf(entity?.visitLinkedToProgram?.values) ??
+                admissionCriteriaOf(visits[0]?.values) ??
+                admissionCriteriaOf(entity?.profile?.values),
             visit_number: visits.length,
             oedemaStatus:
                 visits[0]?.values?.oedema_severity === '1'
@@ -518,6 +624,7 @@ const eRegister = (
             exitWeight: exit?.exitWeight,
             exitDate: exitDate,
             lengthOfStay: lengthOfStay,
+            supplies: suppliesGiven(assistanceVisits),
             exitMuac:
                 exitType !== '' &&
                 (visits[visits.length - 1]?.values?.muac ??
@@ -535,6 +642,8 @@ export {
     admissionByStatus,
     sumDataWithCommonKeys,
     childrenUnder5MedicalReport,
+    sectionsReport,
+    childUnder5Counter,
     pbwgMedicalDataReport,
     pbwgMedicalStatusByCategory,
     medicalReports,
