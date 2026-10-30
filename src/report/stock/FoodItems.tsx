@@ -111,7 +111,7 @@ const groupStart = { borderLeft: '2.5pt solid black' } as const;
 const unitTh = {
     ...th,
     padding: '4px 6px',
-    fontSize: '11px',
+    fontSize: '12px',
     fontWeight: 'normal',
     whiteSpace: 'nowrap',
 } as const;
@@ -133,7 +133,7 @@ const looseSachetsStyle = {
     borderRadius: '8px',
     backgroundColor: '#fff1cc',
     color: '#7a4f00',
-    fontSize: '10px',
+    fontSize: '12px',
     fontWeight: 'bold',
 } as const;
 
