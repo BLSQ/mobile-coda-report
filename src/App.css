@@ -11,6 +11,20 @@
     }
 }
 
+/* The Food items table scrolls both ways under its sticky header, within
+   the screen and clear of the print button; printed, it shows all its rows. */
+.food-items-table {
+    overflow: auto;
+    max-height: calc(100vh - 100px);
+}
+
+@media print {
+    .food-items-table {
+        overflow: visible;
+        max-height: none;
+    }
+}
+
 button.back {
     margin: 10px;
 }
