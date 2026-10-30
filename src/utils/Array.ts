@@ -226,6 +226,7 @@ const categoryDictionary = (key: string) => {
         wsb: 'Super Cerial Plus/ WSB+',
         wsbp: 'Super Cerial Plus Plus/ WSB++',
         lns_mq: 'LNS-MQ',
+        lns_sq: 'LNS-SQ',
         measles_status: 'Measles vaccination Status',
         deworming: 'Deworming',
         cash_voucher: 'Cash Voucher',

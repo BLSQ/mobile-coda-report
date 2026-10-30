@@ -27,6 +27,7 @@ const COMMODITY_TO_SKU: Record<string, string> = {
     wsb: 'Super Cerial Plus/ WSB+',
     wsbp: 'Super Cerial Plus Plus/ WSB++',
     lns_mq: 'LNS - Medium Quantity (LNS- MQ)',
+    lns_sq: 'LNS - Small Quantity (LNS- SQ)',
     rusf: 'Ready-to-Use Supplementary Food (RUSF) Large Quantity',
     rutf: 'Ready to use Therapeutic Food (RUTF)',
     oil: 'Oil',
