@@ -12,9 +12,10 @@ const root = {
 } as const;
 
 // The quantity columns make the table wide: it scrolls instead of squeezing
-// its cells, under its header (see .food-items-table in App.css).
+// its cells
 const tableWrapper = {
     width: '100%',
+    overflowX: 'auto',
     marginTop: '20px',
 } as const;
 
@@ -26,18 +27,12 @@ const table = {
     fontVariantNumeric: 'tabular-nums',
 } as const;
 
-// The header stays on top while the rows scroll vertically.
-const thead = { position: 'sticky', top: 0, zIndex: 2 } as const;
-
-// Collapsed borders do not follow the sticky header either: the bottom
-// border of its cells is drawn with a shadow.
 const th = {
     border: '1pt solid black',
     textAlign: 'center',
     padding: '8px',
     backgroundColor: '#f2f2f2',
     borderCollapse: 'collapse',
-    boxShadow: 'inset 0 -1pt 0 black',
 } as const;
 
 // Columns describing the rows, with fixed widths. The pinned ones stay on the
@@ -112,11 +107,6 @@ const UNITS = [
 ] as const;
 
 const groupStart = { borderLeft: '2.5pt solid black' } as const;
-
-const thGroupStart = {
-    ...groupStart,
-    boxShadow: 'inset 2.5pt -1pt 0 black',
-} as const;
 
 const unitTh = {
     ...th,
@@ -259,7 +249,7 @@ const StockCell = ({
     </td>
 );
 
-const SachetsTh = () => <th style={{ ...unitTh, ...thGroupStart }}>Sachets</th>;
+const SachetsTh = () => <th style={{ ...unitTh, ...groupStart }}>Sachets</th>;
 
 // Movements of a batch row, or of the item: its batch rows added up.
 const MovementCells = ({ row }: { row: FoodStockMovements }) => (
@@ -276,7 +266,7 @@ const MovementCells = ({ row }: { row: FoodStockMovements }) => (
 
 const GroupTh = ({ label, rowSpan }: { label: string; rowSpan?: number }) => (
     <th
-        style={{ ...th, ...thGroupStart }}
+        style={{ ...th, ...groupStart }}
         colSpan={UNITS.length}
         rowSpan={rowSpan}
     >
@@ -302,9 +292,9 @@ const FoodItems = ({
                     {`${startDate.toDateString()} to ${endDate.toDateString()}`}
                 </h3>
             )}
-            <div className="food-items-table" style={tableWrapper}>
+            <div style={tableWrapper}>
                 <table style={table}>
-                    <thead style={thead}>
+                    <thead>
                         <tr>
                             {ROW_COLUMNS.map((column, index) => (
                                 <th
@@ -314,35 +304,29 @@ const FoodItems = ({
                                         ...columnStyle(index),
                                         backgroundColor: th.backgroundColor,
                                         zIndex: 2,
-                                        boxShadow: [
-                                            columnStyle(index).boxShadow,
-                                            th.boxShadow,
-                                        ]
-                                            .filter(Boolean)
-                                            .join(', '),
                                     }}
                                     rowSpan={3}
                                 >
                                     {column.label}
                                 </th>
                             ))}
-                            <th style={{ ...th, ...thGroupStart }} rowSpan={2}>
+                            <th style={{ ...th, ...groupStart }} rowSpan={2}>
                                 Opening stock
                             </th>
                             <GroupTh label="Received" rowSpan={2} />
                             <th
-                                style={{ ...th, ...thGroupStart }}
+                                style={{ ...th, ...groupStart }}
                                 colSpan={3 * UNITS.length}
                             >
                                 Transferred
                             </th>
                             <th
-                                style={{ ...th, ...thGroupStart }}
+                                style={{ ...th, ...groupStart }}
                                 colSpan={5 * UNITS.length}
                             >
                                 Lost
                             </th>
-                            <th style={{ ...th, ...thGroupStart }} rowSpan={2}>
+                            <th style={{ ...th, ...groupStart }} rowSpan={2}>
                                 End stock
                             </th>
                         </tr>
@@ -367,7 +351,7 @@ const FoodItems = ({
                                             ...(unit.color && {
                                                 backgroundColor: unit.color,
                                             }),
-                                            ...(index === 0 && thGroupStart),
+                                            ...(index === 0 && groupStart),
                                         }}
                                     >
                                         {unit.label}
