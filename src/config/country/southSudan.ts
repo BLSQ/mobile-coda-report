@@ -7,6 +7,7 @@ import {
     complicationRows,
     SOUTH_SUDAN_COMPLICATIONS,
 } from './medical';
+import { admissionTypeOf, admissionCriteriaOf } from './admission';
 
 const entityTypeByProgram = (program: string, type: string): string => {
     let entityType = '';
@@ -328,14 +329,13 @@ const matchAdmissionType = (
     _beneficiaryType?: string | null,
     _program?: string,
 ): AdmissionTypeMatch | null => {
-    const rawType = values?.new_admission_type ?? values?.admission_type;
+    const rawType = admissionTypeOf(values);
     if (rawType !== baseType) {
         return null;
     }
     return {
         baseType,
-        criteria:
-            values?.admission_criteria ?? values?.admission_criteria_yellow,
+        criteria: admissionCriteriaOf(values),
     };
 };
 

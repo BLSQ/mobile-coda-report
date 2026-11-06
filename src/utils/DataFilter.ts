@@ -19,7 +19,7 @@ import {
     admissionByStatus,
 } from './DataByCategory';
 import { groupBy } from './Array';
-import { rationTypeOf } from './Ration';
+import { rationTypeOf, otherRationOf } from './Ration';
 import { countryConfig } from '../config/country';
 
 const entitiesWithVisits = (
@@ -563,7 +563,7 @@ const assistanceGiven = (
                 );
                 return (
                     forms.includes(visit?.formFormId) &&
-                    !!rationTypeOf(visit) &&
+                    (!!rationTypeOf(visit) || !!otherRationOf(visit)) &&
                     ((startPeriod <= createdAt && endPeriod >= createdAt) ||
                         (startPeriod <= visitDate && endPeriod >= visitDate))
                 );
@@ -726,6 +726,7 @@ const defaulterCases = (
         'wfp_coda_pbwg_anthropometric',
         'Anthropometric visit child_U6',
         'child_antropometric_followUp_tsfp_2',
+        ...(countryConfig.eRegisterVisitForms ?? []),
     ];
     const assistanceForms = [
         'child_assistance_admission',
@@ -737,6 +738,7 @@ const defaulterCases = (
         'wfp_coda_pbwg_assistance',
         'child_assistance_admission_2_u6',
         'child_assistance_follow_up_2',
+        ...(countryConfig.eRegisterVisitForms ?? []),
     ];
     let rows = entities.map(entity => {
         let lastVisitDate = null;
@@ -768,6 +770,7 @@ const defaulterCases = (
                 visit?.values?.new_next_visit__date__ ??
                 visit?.values?._display_next_visit ??
                 visit?.values?.next_visit__date__ ??
+                visit?.values?.new_next_visit_date__date__ ??
                 visit?.values?.next_visit_date__date__;
             const nextVisitDate = timeStampToDate(nextVisit);
             const secondNextVisit = new Date(nextVisitDate).setDate(
@@ -892,7 +895,6 @@ const agregatedBeneficiaryFolloWup = (
                 card_number,
                 health_card,
                 registration_number,
-                path_address,
             } = entity?.profile?.values ?? {};
             let profile = {
                 id: entity?.id,
@@ -905,7 +907,7 @@ const agregatedBeneficiaryFolloWup = (
                     caretaker_Last_name ?? caregiver_Last_name ?? ''
                 }`,
                 phoneNumber: caregiver_phone_number ?? caretaker_phone_number,
-                address: path_address,
+                address: entity?.address,
                 registrationNumber:
                     health_card ?? card_number ?? registration_number,
             };

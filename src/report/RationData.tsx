@@ -1,6 +1,12 @@
 import { categoryDictionary } from '../utils/Array';
 import { groupBy, sumBy } from 'lodash';
-import { rationTypeOf, rationQuantityField, quantityOf } from '../utils/Ration';
+import {
+    rationTypeOf,
+    rationQuantityField,
+    quantityOf,
+    rationQuantityOf,
+    otherRationsGiven,
+} from '../utils/Ration';
 
 const table = {
     margin: 'auto',
@@ -34,19 +40,28 @@ const RationData = (props: any): any => {
     // A beneficiary can be given several ration types (e.g. one on the
     // medical form, another on the assistance form), so each visit is
     // counted under its own.
-    const visitsByType = groupBy(
-        Object.values(entities).flatMap((row: any) => row?.visits ?? []),
-        rationTypeOf,
+    const visits = Object.values(entities).flatMap(
+        (row: any) => row?.visits ?? [],
     );
-    const rations = types.map((ration: string) => {
-        const fieldName = quantityField ?? rationQuantityField(ration);
-        return {
-            type: categoryDictionary(ration),
-            quantity: sumBy(visitsByType[ration] ?? [], visit =>
-                quantityOf(visit, fieldName),
-            ),
-        };
+    const visitsByType = groupBy(visits, rationTypeOf);
+    // The program's ration types are always listed; any other ration type
+    // given in the period follows, then the other rations typed in.
+    const givenTypes = Object.keys(visitsByType).filter(
+        ration => !!ration && !types.includes(ration),
+    );
+    const total = (ration: string, quantity: (visit: any) => number) => ({
+        type: categoryDictionary(ration) ?? ration,
+        quantity: sumBy(visitsByType[ration] ?? [], quantity),
     });
+    const rations = types
+        .map(ration => {
+            const fieldName = quantityField ?? rationQuantityField(ration);
+            return total(ration, visit => quantityOf(visit, fieldName));
+        })
+        // Each visit of another type keeps its own quantity field (e.g.
+        // cash in _cash_total), whatever the program's quantityField.
+        .concat(givenTypes.map(ration => total(ration, rationQuantityOf)))
+        .concat(otherRationsGiven(visits));
 
     return (
         <table style={table}>

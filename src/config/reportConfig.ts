@@ -70,6 +70,50 @@ export interface EntityTypeOption {
     reportOptions?: ReportOption[];
 }
 
+// The eRegister of a Child Under 5 program.
+const childERegister = (key: string): ReportOption => ({
+    key,
+    label: 'eRegister',
+    render: context =>
+        ERegistry(
+            context.program,
+            context.entities,
+            context.startDate,
+            context.endDate,
+            'Child Under 5',
+            '',
+        ),
+});
+
+// The eRegister of a PBWG program, for the chosen physiology status.
+const pbwgERegister = (key: string): ReportOption => ({
+    key,
+    label: 'eRegister',
+    needsPhysiologyStatus: true,
+    render: context => {
+        // `needsPhysiologyStatus` guarantees this is set
+        // before App.tsx ever calls render.
+        if (!context.physiologyStatus) return null;
+        return ERegistry(
+            context.program,
+            context.entities?.filter(
+                (entity: any) =>
+                    entity?.profile?.values?.physiology_status ===
+                    context.physiologyStatus,
+            ),
+            context.startDate,
+            context.endDate,
+            context.entityType,
+            context.physiologyStatus,
+        );
+    },
+});
+
+// The BSFP and NSEP eRegister read the visit forms only Bangladesh defines
+// (countryConfig.eRegisterVisitForms).
+const bangladeshOnly = (option: ReportOption): ReportOption[] =>
+    countryConfig.eRegisterVisitForms ? [option] : [];
+
 export const reportConfig: EntityTypeOption[] = [
     {
         key: 'Child Under 5',
@@ -116,19 +160,7 @@ export const reportConfig: EntityTypeOption[] = [
                                 context.entityType,
                             ),
                     },
-                    {
-                        key: 'TSFP_eRegister',
-                        label: 'eRegister',
-                        render: context =>
-                            ERegistry(
-                                context.program,
-                                context.entities,
-                                context.startDate,
-                                context.endDate,
-                                'Child Under 5',
-                                '',
-                            ),
-                    },
+                    childERegister('TSFP_eRegister'),
                 ],
             },
             {
@@ -172,19 +204,7 @@ export const reportConfig: EntityTypeOption[] = [
                                 context.entityType,
                             ),
                     },
-                    {
-                        key: 'OTP_eRegister',
-                        label: 'eRegister',
-                        render: context =>
-                            ERegistry(
-                                context.program,
-                                context.entities,
-                                context.startDate,
-                                context.endDate,
-                                'Child Under 5',
-                                '',
-                            ),
-                    },
+                    childERegister('OTP_eRegister'),
                 ],
             },
             {
@@ -238,6 +258,7 @@ export const reportConfig: EntityTypeOption[] = [
                                 context.entityType,
                             ),
                     },
+                    ...bangladeshOnly(childERegister('BSFP_eRegister')),
                 ],
             },
             {
@@ -282,6 +303,7 @@ export const reportConfig: EntityTypeOption[] = [
                                 context.entityType,
                             ),
                     },
+                    ...bangladeshOnly(childERegister('NSEP_eRegister')),
                 ],
             },
             {
@@ -360,29 +382,7 @@ export const reportConfig: EntityTypeOption[] = [
                             );
                         },
                     },
-                    {
-                        key: 'PBWG_eRegister',
-                        label: 'eRegister',
-                        needsPhysiologyStatus: true,
-                        render: context => {
-                            // `needsPhysiologyStatus` guarantees this is set
-                            // before App.tsx ever calls render.
-                            if (!context.physiologyStatus) return null;
-                            return ERegistry(
-                                context.program,
-                                context.entities?.filter(
-                                    (entity: any) =>
-                                        entity?.profile?.values
-                                            ?.physiology_status ===
-                                        context.physiologyStatus,
-                                ),
-                                context.startDate,
-                                context.endDate,
-                                context.entityType,
-                                context.physiologyStatus,
-                            );
-                        },
-                    },
+                    pbwgERegister('PBWG_eRegister'),
                 ],
             },
             {
@@ -423,6 +423,7 @@ export const reportConfig: EntityTypeOption[] = [
                             );
                         },
                     },
+                    ...bangladeshOnly(pbwgERegister('PBWG_BSFP_eRegister')),
                 ],
             },
             {
