@@ -20,9 +20,10 @@ const getBeneficiaryAge = (beneficiary: any) => {
 const sumByAge = (
     entities: Array<Entity>,
     ageCheck: (age: number) => boolean,
+    ageOf: (beneficiary: any) => number | undefined = getBeneficiaryAge,
 ): number => {
     return sumBy(entities, child => {
-        let age = getBeneficiaryAge(child);
+        let age = ageOf(child);
         if (age != null && ageCheck(age)) {
             return 1;
         }
@@ -34,9 +35,10 @@ const sumByAgeOnField = (
     entities: Array<any>,
     ageCheck: (age: number) => boolean,
     status: string,
+    ageOf: (beneficiary: any) => number | undefined = getBeneficiaryAge,
 ) => {
     return sumBy(entities, child => {
-        let age = getBeneficiaryAge(child);
+        let age = ageOf(child);
         let visitSatus = child[status];
         if (age != null && ageCheck(age)) {
             return visitSatus ?? 0;

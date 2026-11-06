@@ -10,6 +10,8 @@ import { PBWGFollowUpCategories } from '../report/PBWG/PBWGFollowUpCategories';
 import { ScreeningData } from '../report/ScreeningData';
 import { FoodItems } from '../report/stock/FoodItems';
 import { NonFoodItems } from '../report/stock/NonFoodItems';
+import { IYCFReport } from '../report/IYCFReport';
+import { PBWGIYCFReport } from '../report/PBWG/PBWGIYCFReport';
 import { countryConfig } from './country';
 import Form from '../entity/Form';
 
@@ -282,6 +284,22 @@ export const reportConfig: EntityTypeOption[] = [
                     },
                 ],
             },
+            {
+                key: 'IYCF',
+                label: 'IYCF',
+                reportOptions: [
+                    {
+                        key: 'IYCF',
+                        label: 'IYCF Report',
+                        render: context =>
+                            IYCFReport(
+                                context.entities,
+                                context.startDate,
+                                context.endDate,
+                            ),
+                    },
+                ],
+            },
         ],
     },
     {
@@ -404,6 +422,22 @@ export const reportConfig: EntityTypeOption[] = [
                                 context.physiologyStatus,
                             );
                         },
+                    },
+                ],
+            },
+            {
+                key: 'IYCF',
+                label: 'IYCF',
+                reportOptions: [
+                    {
+                        key: 'PBWG_IYCF',
+                        label: 'IYCF Report (pregnant women)',
+                        render: context =>
+                            PBWGIYCFReport(
+                                context.entities,
+                                context.startDate,
+                                context.endDate,
+                            ),
                     },
                 ],
             },
