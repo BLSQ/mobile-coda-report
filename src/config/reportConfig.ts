@@ -438,9 +438,6 @@ export const reportConfig: EntityTypeOption[] = [
                 label: 'Food item',
                 render: context =>
                     FoodItems({
-                        submissions: context.forms.filter(form =>
-                            countryConfig.stockForms.includes(form.formFormId),
-                        ),
                         startDate: context.startDate,
                         endDate: context.endDate,
                     }),

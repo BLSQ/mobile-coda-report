@@ -41,6 +41,24 @@ const getPageItems = (current: number, total: number): Array<number | null> => {
     return items;
 };
 
+// The quantity of each ration type given, one per line.
+const Supplies = ({
+    supplies,
+}: {
+    supplies?: Array<{ type: string; quantity: number }>;
+}) => (
+    <td style={table}>
+        {supplies?.map(supply => (
+            <div key={supply.type} className="supply">
+                <span className="supply-type">
+                    {categoryDictionary(supply.type) ?? supply.type}:
+                </span>{' '}
+                <span className="supply-quantity">{supply.quantity}</span>
+            </div>
+        ))}
+    </td>
+);
+
 type Props = {
     beneficiaries: Array<any>;
     program: string | undefined;
@@ -93,6 +111,7 @@ const EregistryBeneficiaries = ({
                         <th style={table}>Exit Weight</th>
                         <th style={table}>Exit MUAC</th>
                         <th style={table}>Duration(days)</th>
+                        <th style={table}>Supplies given</th>
                     </tr>
                 </thead>
                 <tbody style={table}>
@@ -169,6 +188,9 @@ const EregistryBeneficiaries = ({
                                     <td style={table}>
                                         {beneficiary?.lengthOfStay}
                                     </td>
+                                    <Supplies
+                                        supplies={beneficiary?.supplies}
+                                    />
                                 </tr>
                                 {beneficiary?.visits.map((visit: any) => {
                                     let oedemaStatus = null;
@@ -221,7 +243,10 @@ const EregistryBeneficiaries = ({
                                                 </td>
                                             )}
 
-                                            <td style={table} colSpan={7} />
+                                            <td style={table} colSpan={6} />
+                                            <Supplies
+                                                supplies={visit?.supplies}
+                                            />
                                         </tr>
                                     );
                                 })}

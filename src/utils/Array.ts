@@ -30,16 +30,6 @@ const sumByAge = (
     });
 };
 
-const sumByFieldValues = (rows: any[], keyName: string) => {
-    return rows.reduce((value: any, visit: any) => {
-        if (visit?.values[keyName] !== '') {
-            return value + parseFloat(visit?.values[keyName] ?? 0);
-        } else {
-            return value;
-        }
-    }, 0);
-};
-
 const sumByAgeOnField = (
     entities: Array<any>,
     ageCheck: (age: number) => boolean,
@@ -330,7 +320,6 @@ export {
     categoryDictionary,
     sumByAgeOnField,
     defaultEmptyDataByCategory,
-    sumByFieldValues,
     beneficiaryFollowupCategories,
     NON_FOOD_STOCK_ITEMS,
 };

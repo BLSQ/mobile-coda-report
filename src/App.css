@@ -125,3 +125,22 @@ td.align {
         flex-direction: column;
     }
 }
+
+/* Supplies given in the E-Register: one item per line, separated by a rule. */
+.supply {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 6px;
+    padding: 3px 4px;
+    text-align: left;
+}
+
+.supply + .supply {
+    border-top: 3px dashed #555;
+}
+
+.supply-quantity {
+    font-weight: 600;
+    white-space: nowrap;
+}
