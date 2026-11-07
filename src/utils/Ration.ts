@@ -15,25 +15,17 @@ const rationTypeOf = (visit: any): string =>
 
 // The field a ration type's quantity is recorded in.
 const rationQuantityField = (ration: string): string => {
-    if (['csb', 'csb1', 'csb2'].includes(ration)) {
-        return '_csb_packets';
-    }
-    if (ration === 'lndf') {
-        return '_lndf_kgs';
-    }
-    if (ration === 'wsb') {
-        return '_wsb_packets';
-    }
-    if (ration === 'wsbp') {
-        return '_wsbp_packets';
-    }
-    if (ration === 'cash_voucher') {
-        return '_cash_total';
-    }
-    if (ration === 'in_kind') {
-        return 'ration_quantity';
-    }
-    return '_total_number_of_sachets';
+    const fields: Record<string, string> = {
+        csb: '_csb_packets',
+        csb1: '_csb_packets',
+        csb2: '_csb_packets',
+        lndf: '_lndf_kgs',
+        wsb: '_wsb_packets',
+        wsbp: '_wsbp_packets',
+        cash_voucher: '_cash_total',
+        in_kind: 'ration_quantity',
+    };
+    return fields[ration] ?? '_total_number_of_sachets';
 };
 
 // The quantity of ration a visit records in this field. The medical forms
