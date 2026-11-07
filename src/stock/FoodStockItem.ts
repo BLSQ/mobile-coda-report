@@ -1,16 +1,18 @@
+import { FoodQuantity } from './FoodQuantity';
+
 interface FoodStockMovements {
-    received: number;
+    received: FoodQuantity;
     readonly transferred: {
-        loanAndBorrowing: number;
-        other: number;
-        total: number;
+        loanAndBorrowing: FoodQuantity;
+        other: FoodQuantity;
+        total: FoodQuantity;
     };
     readonly lost: {
-        infestation: number;
-        expired: number;
-        stolen: number;
-        other: number;
-        total: number;
+        infestation: FoodQuantity;
+        expired: FoodQuantity;
+        stolen: FoodQuantity;
+        other: FoodQuantity;
+        total: FoodQuantity;
     };
 }
 
@@ -26,8 +28,8 @@ interface FoodStockBatch extends FoodStockMovements {
     readonly boxSize: string;
 }
 
-// Stock of a food item: its opening and end stock combine all its batches,
-// the movements of the period are the sum of its batch rows.
+// Stock of a food item: its opening and end stock, in sachets, combine all
+// its batches, the movements of the period are the sum of its batch rows.
 interface FoodStockItem extends FoodStockMovements {
     readonly item: string;
     readonly opening: number;

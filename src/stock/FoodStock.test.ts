@@ -1,4 +1,5 @@
 import { processFoodStockData } from './FoodStock';
+import { noQuantity } from './FoodQuantity';
 
 const day = (date: string) => new Date(`${date}T00:00:00`).getTime();
 
@@ -61,7 +62,11 @@ const SUBMISSIONS = [
         commodity: 'wsbp',
         batch_number: 'B2',
         box_size: '15',
+        quantity: 30,
+        total_packets: '30',
         total_wsbp: '30',
+        total_weight: '45',
+        tonnage: '0.045',
     }),
     submission('t1', '2026-09-11', {
         activity: 'transfer',
@@ -166,15 +171,29 @@ describe('processFoodStockData', () => {
     });
 
     it('shows the expiry date of the batch, even received before the period', () => {
+        const none = noQuantity();
+        // Without total_packets, the commodity quantity is used.
+        const five = {
+            sachets: 5,
+            boxes: { full: 0, looseSachets: 5, sachetsPerBox: 150 },
+            kg: 0,
+            mt: 0,
+        };
         expect(process()[1].batches[0]).toEqual({
             batch: 'B1',
             expiryDate: '2027-01-31',
             unit: 'sachets/packets',
             packagingSize: '150',
             boxSize: '',
-            received: 0,
-            transferred: { loanAndBorrowing: 5, other: 0, total: 5 },
-            lost: { infestation: 0, expired: 0, stolen: 0, other: 0, total: 0 },
+            received: none,
+            transferred: { loanAndBorrowing: five, other: none, total: five },
+            lost: {
+                infestation: none,
+                expired: none,
+                stolen: none,
+                other: none,
+                total: none,
+            },
         });
     });
 
@@ -182,22 +201,49 @@ describe('processFoodStockData', () => {
         const [, b2, b2Box15] = process()[1].batches;
         expect(b2).toMatchObject({
             expiryDate: '2027-06-30',
-            received: 40,
-            transferred: { other: 3, total: 3 },
+            received: { sachets: 40 },
+            transferred: { other: { sachets: 3 }, total: { sachets: 3 } },
         });
         expect(b2Box15).toMatchObject({
             expiryDate: '2027-06-30',
-            received: 30,
+            received: { sachets: 30 },
         });
     });
 
     it('sums the batch rows into the item movements', () => {
         expect(process()[1]).toMatchObject({
-            received: 70,
-            transferred: { loanAndBorrowing: 5, other: 3, total: 8 },
+            received: { sachets: 70 },
+            transferred: {
+                loanAndBorrowing: { sachets: 5 },
+                other: { sachets: 3 },
+                total: { sachets: 8 },
+            },
         });
         expect(process()[2]).toMatchObject({
-            lost: { infestation: 2, expired: 1, stolen: 0, other: 0, total: 3 },
+            lost: {
+                infestation: { sachets: 2 },
+                expired: { sachets: 1 },
+                stolen: { sachets: 0 },
+                other: { sachets: 0 },
+                total: { sachets: 3 },
+            },
+        });
+    });
+
+    it('takes the sachets, weight and tonnage recorded on the submissions', () => {
+        // r1: 40 sachets without weight; r2: 30 packets weighing 45 kg.
+        const [, , b2Box15] = process()[1].batches;
+        expect(b2Box15.received).toEqual({
+            sachets: 30,
+            boxes: { full: 0, looseSachets: 30, sachetsPerBox: 150 },
+            kg: 45,
+            mt: 0.045,
+        });
+        expect(process()[1].received).toEqual({
+            sachets: 70,
+            boxes: { full: 0, looseSachets: 70, sachetsPerBox: 150 },
+            kg: 45,
+            mt: 0.045,
         });
     });
 
