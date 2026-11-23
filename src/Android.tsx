@@ -1,4 +1,4 @@
-import { chain } from 'lodash';
+import { chain, sortBy } from 'lodash';
 import Entity from './entity/Entity';
 import Form from './entity/Form';
 import { dateFromJson } from './utils/DateFormatter';
@@ -7,8 +7,27 @@ import { countryConfig } from './config/country';
 //import FAKE_LOCAL_HF from './fake/FakeLocalHealthFacility';
 //import FAKE_SCREENING_DATA from './fake/FakeScreeningData';
 
+const SCREENING = 'SCREENING';
+const STOCK = 'STOCK';
+const SCREENING_TALLY_FORM = 'screening_tally';
 
-function toForm(form: any): Form {
+// Form values holding the org unit a submission was made for, when it isn't
+// the org unit the submission is attached to.
+const ORG_UNIT_VALUE_FIELDS = [
+    'org_unit_id',
+    'current_ou_id',
+    '_ou_id',
+    'parent1_ou_id',
+    'parent2_ou_id',
+    'parent3_ou_id',
+];
+
+interface LoadedForms {
+    forms: Array<Form>;
+    entities: Array<Entity>;
+}
+
+const toForm = (form: any): Form => {
     return {
         id: form.id,
         formId: form.formId,
@@ -22,174 +41,143 @@ function toForm(form: any): Form {
         updatedAt: dateFromJson(form.updatedAt),
         values: form.values,
     } as Form;
-}
+};
 
-interface LoadedForms {
-    // Every submission the bridge returned for this entity type, flat and
-    // unfiltered — reports that don't fit the "beneficiary with visits"
-    // shape (e.g. Screening's tally forms) read from this directly instead
-    // of from `entities`.
-    forms: Array<Form>;
-    // The same submissions grouped by entityId into beneficiary profiles
-    // with their visits, for reports built around a beneficiary.
-    entities: Array<Entity>;
-}
+// Every row as a Form, chronologically sorted.
+const toSortedForms = (rows: any[]): Array<Form> => {
+    return sortBy(rows.map(toForm), 'createdAt');
+};
 
-// Screening's tally forms aren't tied to a beneficiary entity, so they're
-// requested and returned as a flat, chronologically sorted list rather than
-// grouped into entities.
-function toFlatForms(rows: any[]): Array<Form> {
-    return chain(rows)
-        .map(row => toForm(row))
-        .sortBy('createdAt')
-        .value();
-}
+const isAtHealthFacility = (row: any, healthFacilityId: string): boolean => {
+    return (
+        row?.orgUnitId === healthFacilityId ||
+        ORG_UNIT_VALUE_FIELDS.some(
+            field => row?.values?.[field] === healthFacilityId,
+        )
+    );
+};
 
-function toEntities(rows: any[], localHealthFacilityId: string): Array<Entity> {
+const toEntities = (rows: any[], healthFacilityId: string): Array<Entity> => {
     return (
         chain(rows)
             // Rows not tied to a beneficiary (e.g. stock reports) would otherwise
             // be grouped into a single profile-less "undefined" entity.
             .filter(row => row.entityId != null)
             .groupBy(row => row.entityId)
-            .map((entityRows: Array<any>, key) => {
+            .map((entityRows: Array<any>, entityId): Entity => {
+                const profile = entityRows.find(row => row.id === entityId);
                 return {
-                    id: key as string,
+                    id: entityId,
                     entityTypeId: entityRows[0].entityTypeId,
                     entityTypeName: entityRows[0].entityTypeName,
-                    profile: chain(entityRows)
-                        .filter(row => row.id === key)
-                        .map(row => toForm(row))
-                        .value()[0],
-                    visits: chain(entityRows)
-                        .filter(
+                    profile: profile && toForm(profile),
+                    visits: toSortedForms(
+                        entityRows.filter(
                             row =>
-                                row.id !== key &&
-                                (row.orgUnitId === localHealthFacilityId ||
-                                    row?.values?.org_unit_id ===
-                                        localHealthFacilityId ||
-                                    row?.values?.current_ou_id ===
-                                        localHealthFacilityId ||
-                                    row?.values?._ou_id ===
-                                        localHealthFacilityId ||
-                                    row?.values?.parent1_ou_id ===
-                                        localHealthFacilityId ||
-                                    row?.values?.parent2_ou_id ===
-                                        localHealthFacilityId ||
-                                    row?.values?.parent3_ou_id ===
-                                        localHealthFacilityId),
-                        )
-                        .map(row => toForm(row))
-                        .sort((f1: Form, f2: Form) => {
-                            if (f1.createdAt < f2.createdAt) {
-                                return -1;
-                            }
-                            if (f1.createdAt > f2.createdAt) {
-                                return 1;
-                            }
-                            return 0;
-                        })
-                        .value(),
-                } as Entity;
+                                row.id !== entityId &&
+                                isAtHealthFacility(row, healthFacilityId),
+                        ),
+                    ),
+                };
             })
             .value()
     );
-}
+};
 
-// Loads only the submissions relevant to one beneficiary type at a time,
-// scoping the native bridge call to it so the device doesn't have to ship
-// every form on every request. Screening is the one exception: its tally
-// forms aren't scoped to a single org unit on the native side, so they're
-// requested across every org unit and filtered down to this health
-// facility once the response comes back.
-function LoadFormsForEntityType(
+let lastRequestId = 0;
+const loadForms = (
+    orgUnits: string | null,
+    entityTypes: string | null,
+    forms: string[] | null,
+): Promise<any[]> => {
+    return new Promise(resolve => {
+        lastRequestId += 1;
+        const requestId = lastRequestId;
+        function onMessage(ev: MessageEvent) {
+            const payload = JSON.parse(ev.data);
+            // We receive a string and compare it with a number, so eqeqeq is
+            // deliberately relaxed here.
+            // eslint-disable-next-line eqeqeq
+            if (!payload || payload.id != requestId) {
+                return;
+            }
+            window.removeEventListener('message', onMessage);
+            resolve(Array.isArray(payload.data) ? payload.data : []);
+        }
+        window.addEventListener('message', onMessage);
+
+        // @ts-ignore Android is injected globally by the native WebView bridge
+        Android.loadForms(
+            orgUnits,
+            entityTypes,
+            null,
+            null,
+            forms?.join(',') ?? null,
+            null,
+            requestId,
+        );
+        // Fake data (local dev): replace the Android.loadForms() call above by
+        // const rows = [
+        //     ...JSON.parse(FAKE_DATA),
+        //     ...JSON.parse(FAKE_SCREENING_DATA),
+        // ].filter((row: any) =>
+        //     forms
+        //         ? forms.includes(row?.formFormId)
+        //         : row?.entityTypeName === entityTypes,
+        // );
+        // window.postMessage(JSON.stringify({ id: requestId, data: rows }), '*');
+    });
+};
+
+const loadScreeningRows = async (healthFacilityId: string): Promise<any[]> => {
+    const tallyForms = countryConfig.screeningForms.filter(
+        form => form === SCREENING_TALLY_FORM,
+    );
+    const visitForms = countryConfig.screeningForms.filter(
+        form => form !== SCREENING_TALLY_FORM,
+    );
+    const tallyRows = tallyForms.length
+        ? await loadForms(null, null, tallyForms)
+        : [];
+    const visitRows = visitForms.length
+        ? await loadForms(healthFacilityId, null, visitForms)
+        : [];
+    return [...tallyRows, ...visitRows].filter(
+        row =>
+            row?.parentOrgUnitId === healthFacilityId ||
+            isAtHealthFacility(row, healthFacilityId),
+    );
+};
+
+const loadEntityTypeForms = async (
+    entityTypeName: string,
+): Promise<LoadedForms> => {
+    // @ts-ignore Android is injected globally by the native WebView bridge
+    const healthFacilityId: string = JSON.parse(Android.currentOrgUnit()).id;
+    //const healthFacilityId: string = JSON.parse(FAKE_LOCAL_HF).id;
+    if (entityTypeName === SCREENING) {
+        const rows = await loadScreeningRows(healthFacilityId);
+        return { forms: toSortedForms(rows), entities: [] };
+    }
+    const rows =
+        entityTypeName === STOCK
+            ? await loadForms(healthFacilityId, null, countryConfig.stockForms)
+            : await loadForms(healthFacilityId, entityTypeName, null);
+    return {
+        forms: toSortedForms(rows),
+        entities: toEntities(rows, healthFacilityId),
+    };
+};
+
+const LoadFormsForEntityType = (
     entityTypeName: string | null,
     callback: (result: LoadedForms) => void,
-): void {
+): void => {
     if (entityTypeName == null) {
         callback({ forms: [], entities: [] });
         return;
     }
-
-    // @ts-ignore Android is injected globally by the native WebView bridge
-    const localHealthFacility = JSON.parse(Android.currentOrgUnit());
-    //const localHealthFacility = JSON.parse(FAKE_LOCAL_HF);
-
-    const requestId = Math.floor(Math.random() * 1000);
-    const isScreening = entityTypeName === 'SCREENING';
-    // Stock submissions aren't attached to an entity type either, so they're
-    // requested by their formFormIds instead.
-    const isStock = entityTypeName === 'STOCK';
-
-    function onMessage(ev: MessageEvent) {
-        const payload = JSON.parse(ev.data);
-        // We receive a string and compare it with a number, so eqeqeq is
-        // deliberately relaxed here.
-        // eslint-disable-next-line eqeqeq
-        if (!payload || payload.id != requestId) {
-            return;
-        }
-        window.removeEventListener('message', onMessage);
-
-        if (isScreening) {
-            const rows = Array.isArray(payload?.data)
-                ? payload.data.filter(
-                      (row: any) =>
-                          row?.parentOrgUnitId === localHealthFacility.id ||
-                          row?.orgUnitId === localHealthFacility.id ||
-                          row?.values?.org_unit_id === localHealthFacility.id ||
-                          row?.values?.current_ou_id ===
-                              localHealthFacility.id ||
-                          row?.values?._ou_id === localHealthFacility.id ||
-                          row?.values?.parent1_ou_id ===
-                              localHealthFacility.id ||
-                          row?.values?.parent2_ou_id ===
-                              localHealthFacility.id ||
-                          row?.values?.parent3_ou_id === localHealthFacility.id,
-                  )
-                : [];
-
-            callback({ forms: toFlatForms(rows), entities: [] });
-        } else {
-            const rows = payload?.data ?? [];
-            callback({
-                forms: toFlatForms(rows),
-                entities: toEntities(rows, localHealthFacility.id),
-            });
-        }
-    }
-    window.addEventListener('message', onMessage);
-
-    // @ts-ignore Android is injected globally by the native WebView bridge
-    Android.loadForms(
-        // Screening tally forms aren't scoped by org unit on the native
-        // side, so the org unit filter is left out and applied client-side
-        // instead once the data comes back.
-        isScreening ? null : localHealthFacility.id,
-        isScreening || isStock ? null : entityTypeName,
-        null,
-        null,
-        isScreening
-            ? countryConfig.screeningForms.join(',')
-            : isStock
-            ? countryConfig.stockForms.join(',')
-            : null,
-        null,
-        requestId,
-    );
-    // let formsData = [];
-    // if (isScreening) {
-    //     formsData = JSON.parse(FAKE_SCREENING_DATA).filter((form: any) =>
-    //         countryConfig.screeningForms.includes(form?.formFormId),
-    //     );
-    // } else {
-    //     formsData = JSON.parse(FAKE_DATA).filter((form: any) =>
-    //         isStock
-    //             ? countryConfig.stockForms.includes(form?.formFormId)
-    //             : form?.entityTypeName === entityTypeName,
-    //     );
-    // }
-    // window.postMessage(JSON.stringify({ id: requestId, data: formsData }), '*');
-}
+    loadEntityTypeForms(entityTypeName).then(callback);
+};
 
 export default LoadFormsForEntityType;
