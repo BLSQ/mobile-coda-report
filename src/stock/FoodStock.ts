@@ -5,8 +5,9 @@ import FoodStockItem, {
 import { foodInitialStock } from '../config/country';
 import { callStockBridge } from './StockBridge';
 import { addQuantities, noQuantity, submissionQuantity } from './FoodQuantity';
-//import FAKE_DATA from '../fake/FakeData';
-//import FAKE_LOCAL_HF from '../fake/FakeLocalHealthFacility';
+import FAKE_DATA from '../fake/FakeData';
+import FAKE_LOCAL_HF from '../fake/FakeLocalHealthFacility';
+import FAKE_STOCK_FOOD_ITEM from '../fake/FakeStockLedgerItems';
 
 // One submission of the food_item_stock form, as returned by
 // Android.loadForms(): a single activity (receive, transfer, losses...) on
@@ -19,6 +20,17 @@ interface FoodStockSubmission {
 }
 
 const FOOD_STOCK_FORM = 'food_item_stock';
+
+// One row of the stock ledger, as returned by
+// Android.loadStockLedgerItems(): a quantity of one commodity added to or
+// subtracted from the stock by a submission.
+interface StockLedgerItem {
+    questionName: string;
+    formName: string;
+    value: number;
+    impact: 'ADD' | 'SUBTRACT';
+    createdAt: number | string;
+}
 
 // Commodity code used in the food_item_stock question names
 // (total_<code>, total_<code>_losses, total_<code>_transfered) mapped to the
@@ -120,6 +132,38 @@ const loadFoodStockSubmissions = (orgUnitId: string): FoodStockSubmission[] => {
     }
 };
 
+// Rations given to the beneficiaries: the ledger rows subtracted from the
+// stock by the assistance visits (Child/PBWG TSFP Assistance and their
+// follow ups); the food_item_stock rows are its transfers and losses.
+const isDistribution = (row: StockLedgerItem) =>
+    row?.impact === 'SUBTRACT' && /assistance/i.test(row?.formName ?? '');
+
+const loadDistributions = (orgUnitId: string): StockLedgerItem[] => {
+    try {
+        const rows = callStockBridge<StockLedgerItem[]>(orgUnitId, () =>
+            // @ts-ignore Android is injected globally by the native WebView bridge
+            Android.loadStockLedgerItems(orgUnitId),
+        );
+        // const rows = JSON.parse(FAKE_STOCK_FOOD_ITEM);
+        return Array.isArray(rows) ? rows.filter(isDistribution) : [];
+    } catch {
+        return [];
+    }
+};
+
+// Commodity of a ledger question, named after its code
+// (_total_number_of_sachets_rusf, _wsb_packets, oil_ration); the longest
+// code wins so lns_mq isn't read as another code it contains.
+const commodityOf = (questionName: string): string | undefined => {
+    const tokens = `_${questionName}_`;
+    return Object.keys(COMMODITY_TO_SKU)
+        .filter(code => tokens.includes(`_${code}_`))
+        .sort((a, b) => b.length - a.length)[0];
+};
+
+const ledgerTime = (row: StockLedgerItem) =>
+    Number(row.createdAt) || Date.parse(`${row.createdAt}`);
+
 // Fields separating the batch rows of a food item: a batch packed in
 // different units, packaging or box sizes gets one row per way of packing it.
 const batchFields = (values: any) => ({
@@ -156,6 +200,7 @@ const noMovements = (): FoodStockMovements => ({
 const emptyItem = (item: string, opening: number) => ({
     item,
     opening,
+    distributed: 0,
     ...noMovements(),
     batches: new Map<string, FoodStockBatch>(),
 });
@@ -220,10 +265,12 @@ const processFoodStockData = (
     // batches combined.
     const openingStock: Record<string, number> =
         foodInitialStock(toLocalDateString(startDate), orgUnitId) ?? {};
+    // Every food item is shown, even without stock nor activity: its
+    // quantities are then all 0.
     const items = new Map(
-        Object.entries(openingStock).map(([item, opening]) => [
+        [...itemOrder, ...Object.keys(openingStock)].map(item => [
             item,
-            emptyItem(item, Number(opening) || 0),
+            emptyItem(item, Number(openingStock[item]) || 0),
         ]),
     );
 
@@ -272,6 +319,17 @@ const processFoodStockData = (
             });
         });
 
+    // Distributions aren't recorded per batch: they only count for the item.
+    loadDistributions(orgUnitId).forEach(row => {
+        const time = ledgerTime(row);
+        if (!(time >= start.getTime() && time <= end.getTime())) return;
+        const commodity = commodityOf(row.questionName);
+        if (commodity == null) return;
+        const sku = COMMODITY_TO_SKU[commodity];
+        if (!items.has(sku)) items.set(sku, emptyItem(sku, 0));
+        items.get(sku)!.distributed += Number(row.value) || 0;
+    });
+
     return Array.from(items.values())
         .sort((a, b) => itemRank(a.item) - itemRank(b.item))
         .map(item => ({
@@ -282,7 +340,8 @@ const processFoodStockData = (
                 item.opening +
                 item.received.sachets -
                 item.transferred.total.sachets -
-                item.lost.total.sachets,
+                item.lost.total.sachets -
+                item.distributed,
             batches: Array.from(item.batches.values())
                 .map(batch => ({
                     ...batch,
@@ -308,4 +367,4 @@ const processFoodStockData = (
 };
 
 export { processFoodStockData };
-export type { FoodStockSubmission };
+export type { FoodStockSubmission, StockLedgerItem };
