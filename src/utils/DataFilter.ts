@@ -396,7 +396,13 @@ const dataCategory = (
         );
         let total = null;
         if (data) {
-            total = sumDataWithCommonKeys(data, 'Total', entityType);
+            // The Total section adds up the follow ups and the admissions:
+            // its sum is everyone in the program.
+            total = sumDataWithCommonKeys(
+                data,
+                category === 'Total' ? 'Total in program' : 'Total',
+                entityType,
+            );
         }
         return {
             program: program,
