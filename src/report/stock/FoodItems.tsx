@@ -228,12 +228,12 @@ const MOVEMENTS: {
     { key: 'lostTotal', quantity: row => row.lost.total, bold: true },
 ];
 
-// The item columns, the opening and end stock in sachets, and the movements
-// split per unit.
-const COLUMNS = 6 + 2 + MOVEMENTS.length * UNITS.length;
+// The item columns, the opening, distributed and end stock in sachets, and
+// the movements split per unit.
+const COLUMNS = 6 + 3 + MOVEMENTS.length * UNITS.length;
 
-// Opening and end stock of an item, in sachets only: they are not split per
-// batch, so their box size is unknown.
+// Opening, distributed and end stock of an item, in sachets only: they are
+// not split per batch, so their box size is unknown.
 const StockCell = ({
     sachets,
     rowSpan,
@@ -327,6 +327,9 @@ const FoodItems = ({
                                 Lost
                             </th>
                             <th style={{ ...th, ...groupStart }} rowSpan={2}>
+                                Distributed
+                            </th>
+                            <th style={{ ...th, ...groupStart }} rowSpan={2}>
                                 End stock
                             </th>
                         </tr>
@@ -359,6 +362,7 @@ const FoodItems = ({
                                 )),
                             )}
                             <SachetsTh />
+                            <SachetsTh />
                         </tr>
                     </thead>
                     <tbody>
@@ -383,6 +387,12 @@ const FoodItems = ({
                             const openingCells = (
                                 <StockCell
                                     sachets={item.opening}
+                                    rowSpan={rowSpan}
+                                />
+                            );
+                            const distributedCells = (
+                                <StockCell
+                                    sachets={item.distributed}
                                     rowSpan={rowSpan}
                                 />
                             );
@@ -416,6 +426,7 @@ const FoodItems = ({
                                             </td>
                                             {openingCells}
                                             <MovementCells row={item} />
+                                            {distributedCells}
                                             {endCells}
                                         </tr>
                                     )}
@@ -476,6 +487,7 @@ const FoodItems = ({
                                             </td>
                                             {index === 0 && openingCells}
                                             <MovementCells row={batch} />
+                                            {index === 0 && distributedCells}
                                             {index === 0 && endCells}
                                         </tr>
                                     ))}

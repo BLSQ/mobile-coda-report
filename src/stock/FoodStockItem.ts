@@ -28,11 +28,14 @@ interface FoodStockBatch extends FoodStockMovements {
     readonly boxSize: string;
 }
 
-// Stock of a food item: its opening and end stock, in sachets, combine all
-// its batches, the movements of the period are the sum of its batch rows.
+// Stock of a food item: its opening, distributed and end stock, in sachets,
+// combine all its batches, the movements of the period are the sum of its batch rows.
 interface FoodStockItem extends FoodStockMovements {
     readonly item: string;
     readonly opening: number;
+    // Sachets given to the beneficiaries during the assistance visits of the
+    // period, all batches combined.
+    distributed: number;
     end: number;
     readonly batches: FoodStockBatch[];
 }
