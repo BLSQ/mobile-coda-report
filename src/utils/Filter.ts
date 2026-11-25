@@ -46,6 +46,38 @@ const stepsLinkedToProgram = (steps: Array<Form>, program: string) => {
     );
 };
 
+// Next visit a visit planned. The date changed on the visit wins over the
+// one planned before it; empty answers are skipped.
+const NEXT_VISIT_DATE_FIELDS = [
+    'new_next_visit__date__',
+    'new_next_visit_date__date__',
+    '_display_next_visit',
+    'next_visit__date__',
+    'next_visit_date__date__',
+];
+
+// Day (as timeStampToDate gives it) of the next visit, '' when none.
+const nextVisitDateOf = (visit: any): string =>
+    NEXT_VISIT_DATE_FIELDS.map(field =>
+        timeStampToDate(visit?.values?.[field] || undefined),
+    ).find(day => day !== '') ?? '';
+
+// Days planned between two visits, 0 when the form doesn't give it.
+const VISIT_INTERVAL_FIELDS = [
+    'next_visit_days',
+    'number_of_days__int__',
+    'next_visit',
+    'tsfp_next_visit',
+    'TSFP_next_visit',
+    'otp_next_visit',
+    'OTP_next_visit',
+];
+
+const visitIntervalOf = (visit: any): number =>
+    VISIT_INTERVAL_FIELDS.map(field => toDays(visit?.values?.[field])).find(
+        days => days > 0,
+    ) ?? 0;
+
 const filterStepsInPeriod = (
     steps: Array<Form>,
     startDate: Date,
@@ -60,20 +92,8 @@ const filterStepsInPeriod = (
         let visitDate = timeStampToDate(
             step?.values?._visit_date || step?.values?.visit_date,
         );
-        let nextVisitDate = timeStampToDate(
-            step?.values?.next_visit_date__date__ ||
-                step?.values?.new_next_visit__date__ ||
-                step?.values?.next_visit__date__ ||
-                step?.values?._display_next_visit,
-        );
-        let nextVisitDays = toDays(
-            step?.values?.next_visit_days ??
-                step?.values?.number_of_days__int__ ??
-                step?.values?.tsfp_next_visit ??
-                step?.values?.TSFP_next_visit ??
-                step?.values?.otp_next_visit ??
-                step?.values?.OTP_next_visit,
-        );
+        let nextVisitDate = nextVisitDateOf(step);
+        let nextVisitDays = visitIntervalOf(step);
         const secondNextVisit = timeStampToDate(
             new Date(nextVisitDate).setDate(
                 new Date(nextVisitDate).getDate() + nextVisitDays,
@@ -146,4 +166,6 @@ export {
     visitsDataByValuesList,
     isChecked,
     toDays,
+    nextVisitDateOf,
+    visitIntervalOf,
 };

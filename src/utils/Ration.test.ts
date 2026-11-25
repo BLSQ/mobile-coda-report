@@ -1,4 +1,9 @@
-import { quantityOf, suppliesGiven, suppliesByVisit } from './Ration';
+import {
+    quantityOf,
+    suppliesGiven,
+    suppliesByVisit,
+    rationsOf,
+} from './Ration';
 
 const visit = (values: Record<string, any>) => ({ values });
 
@@ -165,5 +170,153 @@ describe('suppliesGiven with another ration', () => {
             { type: 'rusf', quantity: 14 },
             { type: 'Oil (kg)', quantity: 2 },
         ]);
+    });
+});
+
+describe('several rations given at one visit', () => {
+    const form = (formFormId: string, values: Record<string, any>) => ({
+        formFormId,
+        values,
+    });
+
+    // A ration of the ration_repeat group, as the PBWG forms save it.
+    const repeated = (ration: string, packets: string) => ({
+        ration,
+        _sachets_rep: packets,
+        _wsb_packets_rep: ration === 'wsb' ? packets : '0',
+        _wsbp_packets_rep: ration === 'wsbp' ? packets : '0',
+        _rusf_packets_rep: ration === 'rusf' ? packets : '0',
+    });
+
+    it('reads the ration_repeat group of the medical forms', () => {
+        expect(
+            rationsOf(
+                form('wfp_coda_medical_follow_up_visit_PBWG', {
+                    ration_type: 'RUSF, WSB+, WSB++',
+                    ration_repeat: JSON.stringify([
+                        repeated('wsb', '2'),
+                        repeated('wsbp', '3'),
+                        repeated('rusf', '28'),
+                    ]),
+                    // What the assistance forms read, not the medical ones.
+                    _selected_rusf: 'rusf',
+                    _rusf_packets: '99',
+                }),
+            ),
+        ).toEqual([
+            { type: 'wsb', quantity: 2 },
+            { type: 'wsbp', quantity: 3 },
+            { type: 'rusf', quantity: 28 },
+        ]);
+    });
+
+    it('reads the _selected_ fields of the assistance forms', () => {
+        expect(
+            rationsOf(
+                form('wfp_coda_pbwg_assistance_followup', {
+                    ration_type: 'RUSF, WSB+, WSB++',
+                    _selected_rusf: 'rusf',
+                    _selected_wsb: 'wsb',
+                    _selected_wsbp: 'wsbp',
+                    _rusf_packets: '28',
+                    _wsb_packets: '2',
+                    _wsbp_packets: '2',
+                    // Not selected: not given.
+                    _rutf_packets: '5',
+                }),
+            ),
+        ).toEqual([
+            { type: 'rusf', quantity: 28 },
+            { type: 'wsb', quantity: 2 },
+            { type: 'wsbp', quantity: 2 },
+        ]);
+    });
+
+    it('reads RUTF the same way', () => {
+        expect(
+            rationsOf(
+                form('wfp_coda_pbwg_assistance', {
+                    _selected_rutf: 'rutf',
+                    _rutf_packets: '35',
+                }),
+            ),
+        ).toEqual([{ type: 'rutf', quantity: 35 }]);
+        expect(
+            rationsOf(
+                form('wfp_coda_medical_visit_PBWG', {
+                    ration_repeat: [
+                        { ration: 'rutf', _rutf_packets_rep: '35' },
+                    ],
+                }),
+            ),
+        ).toEqual([{ type: 'rutf', quantity: 35 }]);
+    });
+
+    it('falls back on the other way of recording several rations', () => {
+        expect(
+            rationsOf(
+                form('wfp_coda_pbwg_assistance', {
+                    ration_repeat: JSON.stringify([repeated('wsb', '3')]),
+                }),
+            ),
+        ).toEqual([{ type: 'wsb', quantity: 3 }]);
+        expect(
+            rationsOf(
+                form('wfp_coda_medical_visit_PBWG', {
+                    _selected_wsb: 'wsb',
+                    _wsb_packets: '20',
+                }),
+            ),
+        ).toEqual([{ type: 'wsb', quantity: 20 }]);
+    });
+
+    it('leaves out a selected type its form gives no packets for', () => {
+        // The child assistance forms select every type but count elsewhere.
+        expect(
+            rationsOf(
+                form('child_assistance_admission_2_u6', {
+                    ration_type_otp: 'rutf',
+                    _selected_wsb: 'wsb',
+                    _selected_lns_mq: 'lns_mq',
+                    _total_wsb_packets: '1',
+                    _total_number_of_sachets: '35',
+                }),
+            ),
+        ).toEqual([{ type: 'rutf', quantity: 35 }]);
+    });
+
+    it('sums each ration type over the visits', () => {
+        expect(
+            suppliesGiven([
+                form('wfp_coda_medical_visit_PBWG', {
+                    ration_repeat: JSON.stringify([
+                        repeated('wsb', '20'),
+                        repeated('wsbp', '14'),
+                    ]),
+                }),
+                form('wfp_coda_pbwg_assistance', {
+                    _selected_wsb: 'wsb',
+                    _selected_rusf: 'rusf',
+                    _wsb_packets: '3',
+                    _rusf_packets: '14',
+                }),
+            ]),
+        ).toEqual([
+            { type: 'wsb', quantity: 23 },
+            { type: 'wsbp', quantity: 14 },
+            { type: 'rusf', quantity: 14 },
+        ]);
+    });
+
+    it('ignores a ration_repeat it cannot read', () => {
+        expect(
+            rationsOf(
+                form('wfp_coda_medical_visit_PBWG', {
+                    ration_repeat: 'not json',
+                    ration: 'rusf',
+                    _total_number_of_sachets: '14',
+                }),
+            ),
+        ).toEqual([{ type: 'rusf', quantity: 14 }]);
     });
 });
