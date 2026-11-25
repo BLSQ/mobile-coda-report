@@ -8,9 +8,10 @@ import {
     entitiesByStatus,
     visitsDataByStatus,
     isChecked,
-    toDays,
+    nextVisitDateOf,
+    visitIntervalOf,
 } from './Filter';
-import { timeStampToDate, removeTime } from './DateFormatter';
+import { timeStampToDate } from './DateFormatter';
 import { keyBy, orderBy, uniqBy } from 'lodash';
 import {
     admissionChildUnder5ByStatus,
@@ -19,7 +20,7 @@ import {
     admissionByStatus,
 } from './DataByCategory';
 import { groupBy } from './Array';
-import { rationTypeOf, otherRationOf } from './Ration';
+import { otherRationOf, givesRation, rationsOf } from './Ration';
 import { countryConfig } from '../config/country';
 
 const entitiesWithVisits = (
@@ -569,18 +570,16 @@ const assistanceGiven = (
                 );
                 return (
                     forms.includes(visit?.formFormId) &&
-                    (!!rationTypeOf(visit) || !!otherRationOf(visit)) &&
+                    (givesRation(visit) || !!otherRationOf(visit)) &&
                     ((startPeriod <= createdAt && endPeriod >= createdAt) ||
                         (startPeriod <= visitDate && endPeriod >= visitDate))
                 );
             },
         );
 
-        let groupByRationType = groupBy(visits, rationTypeOf);
-        let rationType = Object.keys(groupByRationType);
         return {
             ...entity,
-            ration: rationType.length > 0 ? rationType[0] : '',
+            ration: visits.flatMap(visit => rationsOf(visit))[0]?.type ?? '',
             visits: visits,
         };
     });
@@ -712,6 +711,18 @@ const visitsLinkedToForms = (
     });
 };
 
+// Day a visit was carried out.
+const visitDayOf = (visit: any) =>
+    timeStampToDate(
+        visit?.values?.visit_date ??
+            visit?.values?._visit_date ??
+            visit?.createdAt,
+    );
+
+// `days` after a day given by timeStampToDate (midnight UTC).
+const addDays = (day: string, days: number) =>
+    new Date(Date.parse(day) + days * 24 * 3600 * 1000).toISOString();
+
 const defaulterCases = (
     entities: Array<any>,
     startDate: Date,
@@ -746,8 +757,12 @@ const defaulterCases = (
         'child_assistance_follow_up_2',
         ...(countryConfig.eRegisterVisitForms ?? []),
     ];
+    const today = timeStampToDate(new Date());
+    // A planned day is missed once it is over, or from 17:00 on that day.
+    const isOver = (day: string) =>
+        today > day || (today === day && new Date().getHours() >= 17);
+
     let rows = entities.map(entity => {
-        let lastVisitDate = null;
         const assistanceVisits = orderBy(
             entity.visits,
             ['createdAt'],
@@ -765,83 +780,55 @@ const defaulterCases = (
         ).filter((visit: any) => {
             return anthropometricForms.includes(visit?.formFormId);
         });
+
+        // Only the latest visit planned counts: a later assistance visit
+        // proves the beneficiary came to the ones planned before it.
+        const lastPlanned = [...assistanceVisitsByDate]
+            .reverse()
+            .find((visit: any) => nextVisitDateOf(visit) !== '');
+        const nextVisitDate = lastPlanned ? nextVisitDateOf(lastPlanned) : '';
+
+        // Any anthropometric visit on or after the planned day, even late,
+        // is the beneficiary coming back.
+        const cameBack = anthropometricVisits.some(
+            (visit: any) => visitDayOf(visit) >= nextVisitDate,
+        );
+
         let counter = 0;
-        assistanceVisitsByDate.forEach((visit: any) => {
-            let nextVisitDays = toDays(
-                visit?.values?.next_visit ??
-                    visit?.values?.number_of_days__int__ ??
-                    visit?.values?.next_visit_days,
-            );
-            const nextVisit =
-                visit?.values?.new_next_visit__date__ ??
-                visit?.values?._display_next_visit ??
-                visit?.values?.next_visit__date__ ??
-                visit?.values?.new_next_visit_date__date__ ??
-                visit?.values?.next_visit_date__date__;
-            const nextVisitDate = timeStampToDate(nextVisit);
-            const secondNextVisit = new Date(nextVisitDate).setDate(
-                new Date(nextVisitDate).getDate() + nextVisitDays,
-            );
-            const secondNextVisitDate = timeStampToDate(secondNextVisit);
-            const currentDate = timeStampToDate(new Date());
-            const currentTime = new Date().getHours();
-
-            //check if the beneficiary missed 1 next visit!
-            if (
-                nextVisitDate !== '' &&
-                startPeriod <= nextVisitDate &&
-                endPeriod >= nextVisitDate
-            ) {
-                let carriedOutAnthropometricVisits =
-                    anthropometricVisits.filter((visit: any) => {
-                        let createdAt = timeStampToDate(
-                            visit?.values?.visit_date ??
-                                visit?.values?._visit_date,
-                        );
-                        return createdAt === nextVisitDate;
-                    });
+        let lastVisitDate: string | null = null;
+        if (
+            nextVisitDate !== '' &&
+            startPeriod <= nextVisitDate &&
+            endPeriod >= nextVisitDate &&
+            !cameBack &&
+            isOver(nextVisitDate)
+        ) {
+            // Missed the planned visit: absent, the day of that visit.
+            counter = 1;
+            lastVisitDate = nextVisitDate;
+            // Missed the one after too: defaulter. Only TSFP and OTP
+            // beneficiaries default; the interval between visits is the one
+            // planned, or the programme's when the form doesn't give it.
+            const interval = program.includes('OTP')
+                ? 7
+                : program.includes('TSFP')
+                ? 14
+                : null;
+            if (interval != null) {
+                const secondVisitDate = addDays(
+                    nextVisitDate,
+                    visitIntervalOf(lastPlanned) || interval,
+                );
                 if (
-                    (currentDate > nextVisitDate || currentTime >= 17) &&
-                    carriedOutAnthropometricVisits.length === 0
+                    startPeriod <= secondVisitDate &&
+                    endPeriod >= secondVisitDate &&
+                    isOver(secondVisitDate)
                 ) {
-                    counter++;
+                    counter = 2;
+                    lastVisitDate = secondVisitDate;
                 }
             }
-            //check if the beneficiary missed 2 consecutives visites! with the last visit at 17PM
-            const daysDiffInTime =
-                new Date().getTime() - new Date(nextVisitDate).getTime();
-            const daysDiff = Math.round(daysDiffInTime / (1000 * 3600 * 24));
-
-            const sameDiffTime =
-                removeTime(new Date()).getTime() -
-                removeTime(new Date(secondNextVisitDate)).getTime();
-            const sameDayDiff = Math.round(sameDiffTime / (1000 * 3600 * 24));
-
-            if (
-                secondNextVisitDate !== '' &&
-                startPeriod <= secondNextVisitDate &&
-                endPeriod >= secondNextVisitDate
-            ) {
-                lastVisitDate = secondNextVisitDate;
-                //Check if the beneficiary missed the visit after 17PM
-                if (
-                    (sameDayDiff === 0 && currentTime >= 17) ||
-                    sameDayDiff > 0
-                ) {
-                    if (program.includes('OTP')) {
-                        if (daysDiff > 7) {
-                            counter = counter + 2;
-                        }
-                    } else {
-                        if (program.includes('TSFP')) {
-                            if (daysDiff > 14) {
-                                counter = counter + 2;
-                            }
-                        }
-                    }
-                }
-            }
-        });
+        }
         return {
             ...entity,
             assistances: assistanceVisitsByDate,
@@ -849,9 +836,13 @@ const defaulterCases = (
             counter: counter,
             dischargeDate: lastVisitDate,
             exitDate: lastVisitDate,
+            // The weight the last assistance form carries over (children),
+            // or the one last measured (the PBWG assistance forms have none).
             exitWeight:
                 assistanceVisitsByDate[assistanceVisitsByDate.length - 1]
-                    ?.values?.previous_weight_kgs__decimal__,
+                    ?.values?.previous_weight_kgs__decimal__ ??
+                anthropometricVisits[anthropometricVisits.length - 1]?.values
+                    ?.weight_kgs,
             status: counter === 1 ? 'absentees' : entity?.status,
         };
     });

@@ -403,6 +403,13 @@ const admissionCriteriaOfVisit = (
         )?.criteria) ||
     admissionCriteriaOf(visit?.values);
 
+// MUAC measured on a visit: the child's, or the woman's on the PBWG
+// admission (mother_muac) and follow-up (mothers_muac) forms.
+const muacOf = (visit: any) =>
+    visit?.values?.muac ??
+    visit?.values?.mothers_muac ??
+    visit?.values?.mother_muac;
+
 const eRegister = (
     entities: Array<any>,
     program: string,
@@ -588,7 +595,7 @@ const eRegister = (
                 admissionVisit?.values?.weight_kgs ||
                 visits[0]?.values?.previous_weight_kgs__decimal__ ||
                 visits[0]?.values?.weight_kgs,
-            muac: visits[0]?.values?.muac,
+            muac: muacOf(visits[0]),
             whzScore:
                 admissionVisit?.values?._whz_score ??
                 visits[0]?.values?._whz_score,
@@ -621,13 +628,21 @@ const eRegister = (
             failureToGainWeight: failureToGainWeight,
             exit_type: exitType,
             exit: exit,
-            exitWeight: exit?.exitWeight,
+            // The exits that don't give a weight (cured, death...) leave
+            // with the one measured on the last visit.
+            exitWeight:
+                exit?.exitWeight ??
+                (exitType !== ''
+                    ? visits[visits.length - 1]?.values?.weight_kgs ??
+                      visits[visits.length - 1]?.values
+                          ?.previous_weight_kgs__decimal__
+                    : undefined),
             exitDate: exitDate,
             lengthOfStay: lengthOfStay,
             supplies: suppliesGiven(assistanceVisits),
             exitMuac:
                 exitType !== '' &&
-                (visits[visits.length - 1]?.values?.muac ??
+                (muacOf(visits[visits.length - 1]) ??
                     visits[visits.length - 1]?.values?.previous_muac ??
                     visits[visits.length - 1]?.values
                         ?.previous_oedema_status__int__),
@@ -637,6 +652,7 @@ const eRegister = (
 };
 
 export {
+    muacOf,
     admissionChildUnder5ByStatus,
     admissionPBWGByStatus,
     admissionByStatus,

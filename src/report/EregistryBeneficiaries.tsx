@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { categoryDictionary } from '../utils/Array';
 import { timeStampToDateString } from '../utils/DateFormatter';
+import { muacOf } from '../utils/DataByCategory';
 
 const table = {
     margin: 'auto',
@@ -107,7 +108,7 @@ const EregistryBeneficiaries = ({
                         {physiology === '' && <th style={table}>WHZ</th>}
                         <th style={table}>Status</th>
                         <th style={table}>Visit number</th>
-                        <th style={table}>Exit Date</th>
+                        <th style={table}>Exit/Action Date</th>
                         <th style={table}>Exit Weight</th>
                         <th style={table}>Exit MUAC</th>
                         <th style={table}>Duration(days)</th>
@@ -234,7 +235,7 @@ const EregistryBeneficiaries = ({
                                                 </td>
                                             )}
                                             <td style={table}>
-                                                {visit?.values?.muac}
+                                                {muacOf(visit)}
                                             </td>
 
                                             {physiology === '' && (
