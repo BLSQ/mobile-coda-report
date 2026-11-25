@@ -1,4 +1,4 @@
-import { CSSProperties, Fragment } from 'react';
+import { CSSProperties, Fragment, ReactNode } from 'react';
 import { FoodStockMovements } from '../../stock/FoodStockItem';
 import { processFoodStockData } from '../../stock/FoodStock';
 import { FoodQuantity } from '../../stock/FoodQuantity';
@@ -229,7 +229,7 @@ const MOVEMENTS: {
 ];
 
 // The item columns, the opening, distributed and end stock in sachets, and
-// the movements split per unit.
+// the movements split per unit. Distributed comes right after Received.
 const COLUMNS = 6 + 3 + MOVEMENTS.length * UNITS.length;
 
 // Opening, distributed and end stock of an item, in sachets only: they are
@@ -252,14 +252,24 @@ const StockCell = ({
 const SachetsTh = () => <th style={{ ...unitTh, ...groupStart }}>Sachets</th>;
 
 // Movements of a batch row, or of the item: its batch rows added up.
-const MovementCells = ({ row }: { row: FoodStockMovements }) => (
+// `afterReceived` (the distributed cell) is put right after Received; the
+// rows it spans leave its column out.
+const MovementCells = ({
+    row,
+    afterReceived,
+}: {
+    row: FoodStockMovements;
+    afterReceived?: ReactNode;
+}) => (
     <>
         {MOVEMENTS.map(movement => (
-            <QuantityCells
-                key={movement.key}
-                quantity={movement.quantity(row)}
-                bold={movement.bold}
-            />
+            <Fragment key={movement.key}>
+                <QuantityCells
+                    quantity={movement.quantity(row)}
+                    bold={movement.bold}
+                />
+                {movement.key === 'received' && afterReceived}
+            </Fragment>
         ))}
     </>
 );
@@ -314,6 +324,9 @@ const FoodItems = ({
                                 Opening stock
                             </th>
                             <GroupTh label="Received" rowSpan={2} />
+                            <th style={{ ...th, ...groupStart }} rowSpan={2}>
+                                Distributed
+                            </th>
                             <th
                                 style={{ ...th, ...groupStart }}
                                 colSpan={3 * UNITS.length}
@@ -325,9 +338,6 @@ const FoodItems = ({
                                 colSpan={5 * UNITS.length}
                             >
                                 Lost
-                            </th>
-                            <th style={{ ...th, ...groupStart }} rowSpan={2}>
-                                Distributed
                             </th>
                             <th style={{ ...th, ...groupStart }} rowSpan={2}>
                                 End stock
@@ -345,8 +355,8 @@ const FoodItems = ({
                         </tr>
                         <tr>
                             <SachetsTh />
-                            {MOVEMENTS.flatMap(movement =>
-                                UNITS.map((unit, index) => (
+                            {MOVEMENTS.flatMap(movement => [
+                                ...UNITS.map((unit, index) => (
                                     <th
                                         key={`${movement.key}-${unit.key}`}
                                         style={{
@@ -360,8 +370,10 @@ const FoodItems = ({
                                         {unit.label}
                                     </th>
                                 )),
-                            )}
-                            <SachetsTh />
+                                ...(movement.key === 'received'
+                                    ? [<SachetsTh key="distributed" />]
+                                    : []),
+                            ])}
                             <SachetsTh />
                         </tr>
                     </thead>
@@ -425,8 +437,10 @@ const FoodItems = ({
                                                 -
                                             </td>
                                             {openingCells}
-                                            <MovementCells row={item} />
-                                            {distributedCells}
+                                            <MovementCells
+                                                row={item}
+                                                afterReceived={distributedCells}
+                                            />
                                             {endCells}
                                         </tr>
                                     )}
@@ -486,8 +500,13 @@ const FoodItems = ({
                                                 {batch.boxSize || '-'}
                                             </td>
                                             {index === 0 && openingCells}
-                                            <MovementCells row={batch} />
-                                            {index === 0 && distributedCells}
+                                            <MovementCells
+                                                row={batch}
+                                                afterReceived={
+                                                    index === 0 &&
+                                                    distributedCells
+                                                }
+                                            />
                                             {index === 0 && endCells}
                                         </tr>
                                     ))}
