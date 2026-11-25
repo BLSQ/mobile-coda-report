@@ -84,11 +84,11 @@ const categoryWithData = (
     }
     switch (category) {
         case 'Follow Ups':
-            let data = followUpData(entities, program, 'followUps', entityType);
+            // Counts the beneficiaries, not their visits.
             let followUps = admissionByStatus(
                 entityType,
-                data,
-                category,
+                followedUpBeneficiaries(entities, program, entityType),
+                'Followed up beneficiaries',
                 'Total Follow up',
                 program,
             );
@@ -264,10 +264,9 @@ const categoryWithData = (
             break;
 
         case 'Total':
-            let allFolloWup = followUpData(
+            let allFolloWup = followedUpBeneficiaries(
                 entities,
                 program,
-                'followUps',
                 entityType,
             );
             let allAdmissions = followUpData(
@@ -474,24 +473,56 @@ const isReferredToSc = (entity: any) =>
         isChecked(visit?.values?.confirm_referral_medical_first__bool__),
     );
 
+// The forms of a category (e.g. 'admission', 'followUps') for a program.
+const formsOf = (
+    program: string,
+    status: string,
+    beneficiaryType: string,
+): string[] => {
+    const entityType = countryConfig.entityTypeByProgram(
+        program,
+        beneficiaryType,
+    );
+    if (beneficiaryType === 'Child Under 5') {
+        return countryConfig.formsByCategory[status][entityType] ?? [];
+    }
+    if (beneficiaryType === 'PBWG') {
+        return countryConfig.pbwgFormsByCategory[status][entityType] ?? [];
+    }
+    return [];
+};
+
+// The beneficiaries with a follow-up visit, leaving out the ones admitted
+// in the period: they are already counted in the admissions. Some programs
+// (e.g. BSFP) list the follow-up forms among the admission forms, so only
+// a visit on an admission form that isn't a follow-up form is an admission.
+const followedUpBeneficiaries = (
+    entities: Array<Entity>,
+    program: string,
+    beneficiaryType: string,
+) => {
+    const followUpForms = formsOf(program, 'followUps', beneficiaryType);
+    const admitted = new Set(
+        followUpData(entities, program, 'admission', beneficiaryType)
+            .filter(entity =>
+                entity.visits.some(
+                    (visit: any) => !followUpForms.includes(visit?.formFormId),
+                ),
+            )
+            .map(entity => entity.id),
+    );
+    return followUpData(entities, program, 'followUps', beneficiaryType).filter(
+        entity => !admitted.has(entity.id),
+    );
+};
+
 const followUpData = (
     entities: Array<Entity>,
     program: string,
     status: string,
     beneficiaryType: string,
 ) => {
-    const entityType = countryConfig.entityTypeByProgram(
-        program,
-        beneficiaryType,
-    );
-    let forms: any = [];
-    if (beneficiaryType === 'Child Under 5') {
-        forms = countryConfig.formsByCategory[status][entityType] ?? [];
-    } else {
-        if (beneficiaryType === 'PBWG') {
-            forms = countryConfig.pbwgFormsByCategory[status][entityType] ?? [];
-        }
-    }
+    const forms = formsOf(program, status, beneficiaryType);
     if (status === 'absentees' || status === 'defaulters') {
         entities = entities?.filter(
             entity =>
