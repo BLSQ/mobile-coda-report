@@ -1,4 +1,3 @@
-import { groupBy } from './Array';
 import { countryConfig } from '../config/country';
 
 // A visit's ration type, or '' when it records none — forms that share a
@@ -82,23 +81,122 @@ const rationQuantityOf = (visit: any): number =>
             : rationQuantityField(rationTypeOf(visit)),
     );
 
+interface Ration {
+    type: string;
+    quantity: number;
+}
+
+const isFilled = (value: any) => value != null && `${value}`.trim() !== '';
+
+const toQuantity = (value: any): number => {
+    const quantity = parseFloat(value);
+    return Number.isNaN(quantity) ? 0 : quantity;
+};
+
+// The rations of the ration_repeat group, filled once per ration given: its
+// type in `ration`, its quantity in _<type>_packets_rep (e.g.
+// _wsb_packets_rep), or the sachets it comes to.
+const repeatedRationsOf = (visit: any): Ration[] => {
+    let repeat = visit?.values?.ration_repeat;
+    if (typeof repeat === 'string') {
+        try {
+            repeat = JSON.parse(repeat);
+        } catch {
+            return [];
+        }
+    }
+    if (!Array.isArray(repeat)) return [];
+    return repeat
+        .filter((item: any) => isFilled(item?.ration))
+        .map((item: any) => {
+            const type = `${item.ration}`.trim();
+            const quantity = [
+                item[`_${type}_packets_rep`],
+                item._sachets_rep,
+                item.manual_quantity,
+            ].find(isFilled);
+            return { type, quantity: toQuantity(quantity) };
+        });
+};
+
+const SELECTED_PREFIX = '_selected_';
+
+// Fields that can hold the quantity of a ration type selected on an
+// assistance form: _<type>_packets on the PBWG forms; the totals on the
+// child forms (e.g. _total_wsb_packets, _total_number_of_sachets_rutf, and
+// _total_lns_packets for lns_mq).
+const selectedQuantityFields = (type: string): string[] => {
+    const base = type.split('_')[0];
+    return [
+        `_${type}_packets`,
+        `_total_${type}_packets`,
+        `_total_${base}_packets`,
+        `_total_number_of_sachets_${type}`,
+    ];
+};
+
+// The rations selected on an assistance form, given together: each in a
+// _selected_<type> field (e.g. _selected_wsb), its quantity in one of
+// selectedQuantityFields. A selected type without a quantity is left out.
+const selectedRationsOf = (visit: any): Ration[] =>
+    Object.keys(visit?.values ?? {})
+        .filter(
+            field =>
+                field.startsWith(SELECTED_PREFIX) &&
+                isFilled(visit.values[field]),
+        )
+        .map(field => field.slice(SELECTED_PREFIX.length))
+        .map(type => ({
+            type,
+            quantity: selectedQuantityFields(type)
+                .map(field => visit.values[field])
+                .find(isFilled),
+        }))
+        .filter(({ quantity }) => quantity !== undefined)
+        .map(({ type, quantity }) => ({
+            type,
+            quantity: toQuantity(quantity),
+        }));
+
+const isMedicalForm = (visit: any) =>
+    `${visit?.formFormId ?? ''}`.toLowerCase().includes('medical');
+
+// Every ration given at a visit with its quantity. Several rations given at
+// once are read off the ration_repeat group on the medical forms and off
+// the _selected_ fields on the assistance forms, each falling back on the
+// other; a single ration off the visit's ration type, its quantity read by
+// `singleQuantity`.
+const rationsOf = (
+    visit: any,
+    singleQuantity: (visit: any) => number = rationQuantityOf,
+): Ration[] => {
+    const [first, second] = isMedicalForm(visit)
+        ? [repeatedRationsOf, selectedRationsOf]
+        : [selectedRationsOf, repeatedRationsOf];
+    const firstRations = first(visit);
+    const several = firstRations.length > 0 ? firstRations : second(visit);
+    if (several.length > 0) return several;
+    const type = rationTypeOf(visit);
+    return type ? [{ type, quantity: singleQuantity(visit) }] : [];
+};
+
+const givesRation = (visit: any) => rationsOf(visit).length > 0;
+
+// The total quantity of each ration, in the order each was first given.
+const sumRations = (rations: Ration[]): Ration[] => {
+    const totals = new Map<string, number>();
+    rations.forEach(({ type, quantity }) =>
+        totals.set(type, (totals.get(type) ?? 0) + quantity),
+    );
+    return Array.from(totals, ([type, quantity]) => ({ type, quantity }));
+};
+
 // The total quantity of each ration type given over these visits, in the
 // order each type was first given, then of each other ration.
-const suppliesGiven = (visits: Array<any>) => {
-    const visitsByType = groupBy(
-        visits.filter(visit => !!rationTypeOf(visit)),
-        rationTypeOf,
+const suppliesGiven = (visits: Array<any>) =>
+    sumRations(visits.flatMap(visit => rationsOf(visit))).concat(
+        otherRationsGiven(visits),
     );
-    return Object.entries(visitsByType)
-        .map(([type, visitsOfType]) => ({
-            type,
-            quantity: visitsOfType.reduce(
-                (total: number, visit: any) => total + rationQuantityOf(visit),
-                0,
-            ),
-        }))
-        .concat(otherRationsGiven(visits));
-};
 
 const timeOf = (visit: any): number => new Date(visit?.createdAt).getTime();
 
@@ -135,4 +233,8 @@ export {
     otherRationsGiven,
     suppliesGiven,
     suppliesByVisit,
+    rationsOf,
+    givesRation,
+    sumRations,
 };
+export type { Ration };

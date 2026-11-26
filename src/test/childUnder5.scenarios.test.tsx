@@ -94,7 +94,7 @@ describe('Child Under 5 report, with the forms of the server', () => {
         ]);
     });
 
-    it('counts the follow-up visit of the TSFP child', async () => {
+    it('counts the follow-up of the TSFP child admitted in the period', async () => {
         const entities = await loadEntities(CHILD_UNDER_5);
 
         render(
@@ -103,7 +103,7 @@ describe('Child Under 5 report, with the forms of the server', () => {
             </div>,
         );
 
-        // One anthropometric follow-up visit was filled after the enrollment.
+        // The child was admitted and followed up in the period: counted once in the Follow Ups.
         expect(rowOf('Total Follow up')).toEqual([
             'Total Follow up',
             '1',
@@ -113,6 +113,66 @@ describe('Child Under 5 report, with the forms of the server', () => {
             '1',
             '0',
         ]);
+    });
+
+    it('counts once the TSFP child admitted before the period', async () => {
+        const entities = await loadEntities(CHILD_UNDER_5);
+        // Only the visits from the follow-up on: the admission was before the period.
+        const followedUp = entities.map(entity => {
+            const followUp = entity.visits.findIndex(
+                visit =>
+                    visit.formFormId === 'child_antropometric_followUp_tsfp_2',
+            );
+            return followUp < 0
+                ? entity
+                : { ...entity, visits: entity.visits.slice(followUp) };
+        });
+
+        render(
+            <div>
+                {ChildrenUnder5(followedUp, START, END, 'TSFP', CHILD_UNDER_5)}
+            </div>,
+        );
+
+        // A beneficiary, not its visits: 1 even with the medical and assistance follow-ups.
+        expect(rowOf('Total Follow up')).toEqual([
+            'Total Follow up',
+            '1',
+            '0',
+            '0',
+            '0',
+            '1',
+            '0',
+        ]);
+        expect(rowOf('Total in program')).toEqual([
+            'Total in program',
+            '1',
+            '0',
+            '1',
+        ]);
+    });
+
+    it('labels the sum of the follow ups and the admissions "Total in program"', async () => {
+        const entities = await loadEntities(CHILD_UNDER_5);
+
+        render(
+            <div>
+                {ChildrenUnder5(entities, START, END, 'TSFP', CHILD_UNDER_5)}
+            </div>,
+        );
+
+        // The TSFP child, admitted and followed up in the period: the Total counts its admission only.
+        expect(rowOf('Total in program')).toEqual([
+            'Total in program',
+            '1',
+            '0',
+            '1',
+        ]);
+        // The other sections keep their "Total" row.
+        const labels = screen
+            .getAllByRole('row')
+            .map(row => within(row).queryAllByRole('cell')[0]?.textContent);
+        expect(labels).toContain('Total');
     });
 
     it('does not count the OTP child in the TSFP report', async () => {

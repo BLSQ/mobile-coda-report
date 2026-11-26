@@ -1,11 +1,12 @@
 import { categoryDictionary } from '../utils/Array';
-import { groupBy, sumBy } from 'lodash';
 import {
     rationTypeOf,
     rationQuantityField,
     quantityOf,
     rationQuantityOf,
     otherRationsGiven,
+    rationsOf,
+    sumRations,
 } from '../utils/Ration';
 
 const table = {
@@ -38,29 +39,37 @@ const RationData = (props: any): any => {
     const { rationTypes, quantityField, ...entities } = props ?? {};
     const types: string[] = rationTypes ?? DEFAULT_RATION_TYPES;
     // A beneficiary can be given several ration types (e.g. one on the
-    // medical form, another on the assistance form), so each visit is
-    // counted under its own.
+    // medical form, another on the assistance form, or several on one
+    // form), so each ration is counted under its own type.
     const visits = Object.values(entities).flatMap(
         (row: any) => row?.visits ?? [],
     );
-    const visitsByType = groupBy(visits, rationTypeOf);
+    // A single ration of the program's types reads its quantity off
+    // `quantityField` when given; any other ration type keeps its own
+    // quantity field (e.g. cash in _cash_total).
+    const singleQuantity = (visit: any) => {
+        const ration = rationTypeOf(visit);
+        return types.includes(ration)
+            ? quantityOf(visit, quantityField ?? rationQuantityField(ration))
+            : rationQuantityOf(visit);
+    };
+    const given = sumRations(
+        visits.flatMap(visit => rationsOf(visit, singleQuantity)),
+    );
+    const quantityGiven = (ration: string) =>
+        given.find(row => row.type === ration)?.quantity ?? 0;
     // The program's ration types are always listed; any other ration type
     // given in the period follows, then the other rations typed in.
-    const givenTypes = Object.keys(visitsByType).filter(
-        ration => !!ration && !types.includes(ration),
-    );
-    const total = (ration: string, quantity: (visit: any) => number) => ({
-        type: categoryDictionary(ration) ?? ration,
-        quantity: sumBy(visitsByType[ration] ?? [], quantity),
-    });
     const rations = types
-        .map(ration => {
-            const fieldName = quantityField ?? rationQuantityField(ration);
-            return total(ration, visit => quantityOf(visit, fieldName));
-        })
-        // Each visit of another type keeps its own quantity field (e.g.
-        // cash in _cash_total), whatever the program's quantityField.
-        .concat(givenTypes.map(ration => total(ration, rationQuantityOf)))
+        .concat(
+            given
+                .map(row => row.type)
+                .filter(ration => !types.includes(ration)),
+        )
+        .map(ration => ({
+            type: categoryDictionary(ration) ?? ration,
+            quantity: quantityGiven(ration),
+        }))
         .concat(otherRationsGiven(visits));
 
     return (

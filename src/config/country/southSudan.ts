@@ -100,7 +100,7 @@ const assistanceFoodItemForms = [
 ];
 
 const admissionTypesByCategory: Record<string, string[]> = {
-    'Follow Ups': ['Total Follow up'],
+    'Follow Ups': ['Total Follow ups'],
     'New admissions': ['new_case', 'readmission_as_non_respondent', 'relapse'],
     'Old cases': [
         'returned_defaulter',
@@ -119,7 +119,7 @@ const admissionTypesByCategory: Record<string, string[]> = {
 };
 
 const pbwgAdmissionTypesByCategory: Record<string, string[]> = {
-    'Follow Ups': ['Total Follow up'],
+    'Follow Ups': ['Total Follow ups'],
     'New admissions': ['new_case', 'readmission_as_non_respondent', 'relapse'],
     'Old cases': [
         'returned_defaulter',
