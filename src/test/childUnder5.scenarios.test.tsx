@@ -94,7 +94,7 @@ describe('Child Under 5 report, with the forms of the server', () => {
         ]);
     });
 
-    it('does not count again as a follow-up the TSFP child admitted in the period', async () => {
+    it('counts the follow-up of the TSFP child admitted in the period', async () => {
         const entities = await loadEntities(CHILD_UNDER_5);
 
         render(
@@ -103,14 +103,14 @@ describe('Child Under 5 report, with the forms of the server', () => {
             </div>,
         );
 
-        // The child was admitted and followed up in the period: the admission counts it.
+        // The child was admitted and followed up in the period: counted once in the Follow Ups.
         expect(rowOf('Total Follow up')).toEqual([
             'Total Follow up',
+            '1',
             '0',
             '0',
             '0',
-            '0',
-            '0',
+            '1',
             '0',
         ]);
     });
@@ -161,7 +161,7 @@ describe('Child Under 5 report, with the forms of the server', () => {
             </div>,
         );
 
-        // The TSFP child, counted once: admitted and followed up in the period.
+        // The TSFP child, admitted and followed up in the period: the Total counts its admission only.
         expect(rowOf('Total in program')).toEqual([
             'Total in program',
             '1',

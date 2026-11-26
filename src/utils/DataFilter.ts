@@ -22,6 +22,7 @@ import {
 import { groupBy } from './Array';
 import { otherRationOf, givesRation, rationsOf } from './Ration';
 import { countryConfig } from '../config/country';
+import { admissionTypeOf } from '../config/country/admission';
 
 const entitiesWithVisits = (
     entities: Array<Entity>,
@@ -87,7 +88,13 @@ const categoryWithData = (
             // Counts the beneficiaries, not their visits.
             let followUps = admissionByStatus(
                 entityType,
-                followedUpBeneficiaries(entities, program, entityType),
+                followedUpBeneficiaries(
+                    entities,
+                    program,
+                    entityType,
+                    startDate,
+                    endDate,
+                ),
                 'Followed up beneficiaries',
                 'Total Follow up',
                 program,
@@ -97,7 +104,7 @@ const categoryWithData = (
 
         case 'New admissions':
             let newAdmissions = followUpData(
-                entities,
+                visitsDoneInPeriod(entities, startDate, endDate),
                 program,
                 'admission',
                 entityType,
@@ -113,7 +120,7 @@ const categoryWithData = (
 
         case 'Old cases':
             let oldCases = followUpData(
-                entities,
+                visitsDoneInPeriod(entities, startDate, endDate),
                 program,
                 'oldCase',
                 entityType,
@@ -264,16 +271,19 @@ const categoryWithData = (
             break;
 
         case 'Total':
-            let allFolloWup = followedUpBeneficiaries(
+            let allFolloWup = followedUpNotAdmitted(
                 entities,
                 program,
                 entityType,
+                startDate,
+                endDate,
             );
-            let allAdmissions = followUpData(
+            let allAdmissions = admittedBeneficiaries(
                 entities,
                 program,
-                'admission',
                 entityType,
+                startDate,
+                endDate,
             );
 
             let totalFolloWups = admissionByStatus(
@@ -492,28 +502,101 @@ const formsOf = (
     return [];
 };
 
-// The beneficiaries with a follow-up visit, leaving out the ones admitted
-// in the period: they are already counted in the admissions. Some programs
-// (e.g. BSFP) list the follow-up forms among the admission forms, so only
-// a visit on an admission form that isn't a follow-up form is an admission.
-const followedUpBeneficiaries = (
+// Keeps the visits carried out in the period. The entities of a report
+// also keep the visits whose next visit falls in the period (to find the
+// absentees and defaulters), which were not made in it.
+const visitsDoneInPeriod = (
     entities: Array<Entity>,
+    startDate: Date,
+    endDate: Date,
+) => {
+    const startPeriod = timeStampToDate(startDate.toISOString());
+    const endPeriod = timeStampToDate(endDate.toISOString());
+    const inPeriod = (day: string) => startPeriod <= day && day <= endPeriod;
+    return entities.map(entity => ({
+        ...entity,
+        visits: entity.visits.filter(
+            (visit: any) =>
+                inPeriod(timeStampToDate(visit?.createdAt)) ||
+                inPeriod(
+                    timeStampToDate(
+                        visit?.values?._visit_date || visit?.values?.visit_date,
+                    ),
+                ),
+        ),
+    }));
+};
+
+// The beneficiaries admitted in the period. The forms filled on the day
+// of the admission (medical, IYCF, assistance...) are filled again at the
+// follow-ups, and some programs (e.g. BSFP) list the follow-up forms among
+// the admission forms: only a visit on an admission form, not a follow-up
+// one, recording an admission type is an admission.
+const admittedBeneficiaries = (
+    allEntities: Array<Entity>,
     program: string,
     beneficiaryType: string,
+    startDate: Date,
+    endDate: Date,
 ) => {
     const followUpForms = formsOf(program, 'followUps', beneficiaryType);
+    const isAdmission = (visit: any) =>
+        !followUpForms.includes(visit?.formFormId) &&
+        !!admissionTypeOf(visit?.values);
+    return followUpData(
+        visitsDoneInPeriod(allEntities, startDate, endDate),
+        program,
+        'admission',
+        beneficiaryType,
+    )
+        .map(entity => ({
+            ...entity,
+            visits: entity.visits.filter(isAdmission),
+        }))
+        .filter(entity => entity.visits.length > 0);
+};
+
+// The beneficiaries with a follow-up visit in the period, each counted
+// once. The admission visit is not a follow-up one, so it isn't counted.
+const followedUpBeneficiaries = (
+    allEntities: Array<Entity>,
+    program: string,
+    beneficiaryType: string,
+    startDate: Date,
+    endDate: Date,
+) =>
+    followUpData(
+        visitsDoneInPeriod(allEntities, startDate, endDate),
+        program,
+        'followUps',
+        beneficiaryType,
+    );
+
+// The beneficiaries followed up in the period, leaving out the ones also
+// admitted in it: the admission is privileged, they are counted there.
+const followedUpNotAdmitted = (
+    allEntities: Array<Entity>,
+    program: string,
+    beneficiaryType: string,
+    startDate: Date,
+    endDate: Date,
+) => {
     const admitted = new Set(
-        followUpData(entities, program, 'admission', beneficiaryType)
-            .filter(entity =>
-                entity.visits.some(
-                    (visit: any) => !followUpForms.includes(visit?.formFormId),
-                ),
-            )
-            .map(entity => entity.id),
+        admittedBeneficiaries(
+            allEntities,
+            program,
+            beneficiaryType,
+            startDate,
+            endDate,
+        ).map(entity => entity.id),
     );
-    return followUpData(entities, program, 'followUps', beneficiaryType).filter(
-        entity => !admitted.has(entity.id),
-    );
+    return followedUpBeneficiaries(
+        allEntities,
+        program,
+        beneficiaryType,
+        startDate,
+        endDate,
+    ).filter(entity => !admitted.has(entity.id));
 };
 
 const followUpData = (
