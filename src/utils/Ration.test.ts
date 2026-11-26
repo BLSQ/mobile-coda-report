@@ -270,19 +270,40 @@ describe('several rations given at one visit', () => {
         ).toEqual([{ type: 'wsb', quantity: 20 }]);
     });
 
-    it('leaves out a selected type its form gives no packets for', () => {
-        // The child assistance forms select every type but count elsewhere.
+    it('reads the totals of the rations selected on the child assistance forms', () => {
         expect(
             rationsOf(
                 form('child_assistance_admission_2_u6', {
-                    ration_type_otp: 'rutf',
+                    _selected_rutf: 'rutf',
                     _selected_wsb: 'wsb',
+                    _selected_wsbp: 'wsbp',
                     _selected_lns_mq: 'lns_mq',
+                    _total_number_of_sachets_rusf: '0',
+                    _total_number_of_sachets_rutf: '35',
                     _total_wsb_packets: '1',
+                    _total_wsbp_packets: '1',
+                    _total_lns_packets: '7',
                     _total_number_of_sachets: '35',
                 }),
             ),
-        ).toEqual([{ type: 'rutf', quantity: 35 }]);
+        ).toEqual([
+            { type: 'rutf', quantity: 35 },
+            { type: 'wsb', quantity: 1 },
+            { type: 'wsbp', quantity: 1 },
+            { type: 'lns_mq', quantity: 7 },
+        ]);
+    });
+
+    it('leaves out a selected type its form gives no quantity for', () => {
+        expect(
+            rationsOf(
+                form('child_assistance_admission_2_u6', {
+                    _selected_wsb: 'wsb',
+                    _selected_csb: 'csb',
+                    _total_wsb_packets: '1',
+                }),
+            ),
+        ).toEqual([{ type: 'wsb', quantity: 1 }]);
     });
 
     it('sums each ration type over the visits', () => {

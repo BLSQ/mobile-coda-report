@@ -121,10 +121,23 @@ const repeatedRationsOf = (visit: any): Ration[] => {
 
 const SELECTED_PREFIX = '_selected_';
 
+// Fields that can hold the quantity of a ration type selected on an
+// assistance form: _<type>_packets on the PBWG forms; the totals on the
+// child forms (e.g. _total_wsb_packets, _total_number_of_sachets_rutf, and
+// _total_lns_packets for lns_mq).
+const selectedQuantityFields = (type: string): string[] => {
+    const base = type.split('_')[0];
+    return [
+        `_${type}_packets`,
+        `_total_${type}_packets`,
+        `_total_${base}_packets`,
+        `_total_number_of_sachets_${type}`,
+    ];
+};
+
 // The rations selected on an assistance form, given together: each in a
-// _selected_<type> field (e.g. _selected_wsb), its quantity in
-// _<type>_packets. A selected type without that quantity field is left out
-// (the child forms select every type and count elsewhere).
+// _selected_<type> field (e.g. _selected_wsb), its quantity in one of
+// selectedQuantityFields. A selected type without a quantity is left out.
 const selectedRationsOf = (visit: any): Ration[] =>
     Object.keys(visit?.values ?? {})
         .filter(
@@ -133,10 +146,16 @@ const selectedRationsOf = (visit: any): Ration[] =>
                 isFilled(visit.values[field]),
         )
         .map(field => field.slice(SELECTED_PREFIX.length))
-        .filter(type => isFilled(visit.values[`_${type}_packets`]))
         .map(type => ({
             type,
-            quantity: toQuantity(visit.values[`_${type}_packets`]),
+            quantity: selectedQuantityFields(type)
+                .map(field => visit.values[field])
+                .find(isFilled),
+        }))
+        .filter(({ quantity }) => quantity !== undefined)
+        .map(({ type, quantity }) => ({
+            type,
+            quantity: toQuantity(quantity),
         }));
 
 const isMedicalForm = (visit: any) =>
