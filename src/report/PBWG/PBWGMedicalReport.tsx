@@ -28,7 +28,7 @@ const PBWGMedicalReport = (
     return (
         <div style={root}>
             <div>
-                <h3>{`${program} Report `} </h3>
+                <h3>{`${program} Medical Report`} </h3>
                 <h3> {dateValue} </h3>
                 <div>
                     <div>
